@@ -48,8 +48,8 @@ export function EmptyDashboardState() {
                             <h3 className="text-3xl font-extrabold uppercase tracking-tight text-foreground leading-none">
                                 Lançar Evento
                             </h3>
-                            <p className="text-sm font-semibold text-muted-foreground px-4">
-                                Configure categorias, integre pagamentos Asaass e monte chaves em 5 minutos.
+                            <p className="text-sm font-semibold text-muted-foreground px-4 leading-snug">
+                                Crie seu evento, adicione imagens e deixe que o restante nós fazemos por você.
                             </p>
                         </div>
 
