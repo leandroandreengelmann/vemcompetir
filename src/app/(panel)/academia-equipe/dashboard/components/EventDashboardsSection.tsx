@@ -96,7 +96,7 @@ export function EventDashboardsSection() {
             ) : (
                 <div className="flex flex-col items-center justify-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed border-border/50">
                     <PackageOpen className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                    <p className="text-sm font-medium text-muted-foreground">Nenhum evento encontrado.</p>
+                    <p className="text-sm font-medium text-muted-foreground">Nenhum evento encontrado com estes filtros.</p>
                 </div>
             )}
         </div>
