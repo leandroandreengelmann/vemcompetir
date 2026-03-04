@@ -20,18 +20,17 @@ export type EventSummary = {
 
 export async function getEventsDashboardSummaries(filters: { search?: string; status?: string; sort?: string }) {
     const { tenant_id } = await requireTenantScope();
-    const supabase = await createClient();
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const adminSupabase = createAdminClient();
 
-    let query = supabase
+    let query = adminSupabase
         .from('events')
         .select(`
             id,
             title,
             event_date,
             status,
-            event_registrations(count),
-            paid_regs:event_registrations!inner(price, status),
-            all_regs:event_registrations(category_id)
+            event_registrations(count)
         `)
         .eq('tenant_id', tenant_id);
 
@@ -57,19 +56,24 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
     }
 
     // Processar KPIs por evento
-    // Nota: A query acima pode ser pesada se houver muitas inscrições. 
-    // Em uma versão real, usaríamos uma view ou uma query de agregação.
-    // Para simplificar e garantir precisão:
+    const { getEventFee } = await import('@/lib/fee-calculator');
 
     const summaries: EventSummary[] = await Promise.all(data.map(async (event: any) => {
-        const { data: statsData } = await supabase
-            .from('event_registrations')
-            .select('status, price, category_id')
-            .eq('event_id', event.id);
+        const [feeRes, { data: statsData }] = await Promise.all([
+            getEventFee(event.id),
+            adminSupabase
+                .from('event_registrations')
+                .select('status, price, category_id, payment:payments!payment_id(is_no_split)')
+                .eq('event_id', event.id)
+        ]);
 
-        const paid = statsData?.filter(r => r.status === 'paga' || r.status === 'confirmado') || [];
-        const pending = statsData?.filter(r => r.status === 'pendente') || [];
+        const fee = feeRes.fee;
+
+        const paid = statsData?.filter(r => r.status === 'paga' || r.status === 'pago' || r.status === 'confirmado') || [];
+        const pending = statsData?.filter(r => r.status === 'pendente' || r.status === 'aguardando_pagamento') || [];
         const uniqueCategoriesActive = new Set(paid.map(r => r.category_id)).size;
+
+        const paidFinancial = paid.filter((r: any) => r.payment?.is_no_split !== true);
 
         return {
             id: event.id,
@@ -79,10 +83,14 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
             stats: {
                 athletes_total: paid.length,
                 categories_active: uniqueCategoriesActive,
-                paid_count: paid.length,
+                paid_count: paidFinancial.length,
                 pending_count: pending.length,
-                paid_amount: paid.reduce((acc, current) => acc + Number(current.price || 0), 0),
-                pending_amount: pending.reduce((acc, current) => acc + Number(current.price || 0), 0),
+                paid_amount: paidFinancial.reduce((acc: any, current: any) => {
+                    const price = Number(current.price || 0);
+                    const net = price > 0 ? Math.max(0, price - fee) : 0;
+                    return acc + net;
+                }, 0),
+                pending_amount: pending.reduce((acc: any, current: any) => acc + Number(current.price || 0), 0),
             }
         };
     }));
@@ -99,10 +107,11 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
 
 export async function getEventDashboardDetails(eventId: string) {
     const { tenant_id } = await requireTenantScope();
-    const supabase = await createClient();
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const adminSupabase = createAdminClient();
 
     // Validar IDOR
-    const { data: eventExists } = await supabase
+    const { data: eventExists } = await adminSupabase
         .from('events')
         .select('id')
         .eq('id', eventId)
@@ -115,7 +124,7 @@ export async function getEventDashboardDetails(eventId: string) {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-    const { data: registrations } = await supabase
+    const { data: registrations } = await adminSupabase
         .from('event_registrations')
         .select('created_at, status')
         .eq('event_id', eventId)
@@ -129,7 +138,7 @@ export async function getEventDashboardDetails(eventId: string) {
     }, {});
 
     // 2. Distribuição por faixa (Top 5)
-    const { data: beltData } = await supabase
+    const { data: beltData } = await adminSupabase
         .from('event_registrations')
         .select('athlete:profiles!athlete_id(belt_color)')
         .eq('event_id', eventId);

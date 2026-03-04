@@ -20,22 +20,6 @@ export function EventDashboardSummaryKpis({ stats }: EventDashboardSummaryKpisPr
 
     const items = [
         {
-            label: "Atletas",
-            value: stats.athletes_total,
-            icon: Users,
-            color: "text-blue-500 dark:text-blue-400",
-            bgColor: "bg-blue-500/10 dark:bg-blue-400/10",
-            sub: "Inscritos"
-        },
-        {
-            label: "Categorias",
-            value: stats.categories_active,
-            icon: LayoutGrid,
-            color: "text-cyan-600 dark:text-cyan-400",
-            bgColor: "bg-cyan-600/10 dark:bg-cyan-400/10",
-            sub: "Com inscrições"
-        },
-        {
             label: "Pagamentos",
             value: `${stats.paid_count} / ${stats.pending_count}`,
             icon: CheckCircle2,
@@ -54,7 +38,7 @@ export function EventDashboardSummaryKpis({ stats }: EventDashboardSummaryKpisPr
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 py-2 border-t border-border/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-2 border-t border-border/50">
             {items.map((item, idx) => (
                 <div key={idx} className="flex flex-col gap-1 group/kpi">
                     <div className="flex items-center gap-2">

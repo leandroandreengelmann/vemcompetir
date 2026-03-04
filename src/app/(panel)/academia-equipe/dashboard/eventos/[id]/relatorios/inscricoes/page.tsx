@@ -58,7 +58,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
     const totalPages = Math.ceil(count / 20);
 
     const renderStatusBadge = (status: string) => {
-        if (status === 'paga' || status === 'confirmado') {
+        if (status === 'paga' || status === 'pago' || status === 'confirmado') {
             return (
                 <Badge variant="outline" className="text-label px-2 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
                     PAGO

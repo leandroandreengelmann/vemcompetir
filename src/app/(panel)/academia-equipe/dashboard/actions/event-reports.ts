@@ -45,8 +45,6 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
         .range((page - 1) * pageSize, page * pageSize - 1);
 
     const processedData = (data || [])
-        // Filter out no-split inscriptions from organizer view
-        .filter((item: any) => item.payment?.is_no_split !== true)
         .map((item: any) => {
             let cat = item.category?.categoria_completa || 'Sem categoria';
             if (cat.toLowerCase().includes('absoluto')) {
@@ -58,12 +56,9 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
             return item;
         });
 
-    // Recalculate count excluding no-split
-    const filteredCount = processedData.length;
-
     return {
         data: processedData,
-        count: filteredCount,
+        count: count,
         pageSize,
         error
     };
@@ -125,7 +120,9 @@ export async function getEventReportCategorias(eventId: string) {
     const { data: event } = await supabase.from('events').select('id, owner_tenant_id:tenant_id').eq('id', eventId).single();
     if (event?.owner_tenant_id !== tenant_id) throw new Error('Acesso negado');
 
-    const { data, error } = await supabase
+    const adminSupabase = createAdminClient();
+
+    const { data, error } = await adminSupabase
         .from('event_registrations')
         .select(`
             status,
@@ -134,22 +131,9 @@ export async function getEventReportCategorias(eventId: string) {
             category:category_rows!category_id(categoria_completa)
         `)
         .eq('event_id', eventId)
-        .in('status', ['carrinho', 'pendente', 'aguardando_pagamento', 'paga', 'confirmado']);
+        .in('status', ['carrinho', 'pendente', 'aguardando_pagamento', 'paga', 'pago', 'confirmado']);
 
-    // Fetch no-split payment IDs to filter
-    const adminSupabase = createAdminClient();
-    const { data: noSplitPayments } = await adminSupabase
-        .from('payments')
-        .select('id')
-        .eq('event_id', eventId)
-        .eq('is_no_split', true);
-    const noSplitPaymentIds = new Set((noSplitPayments || []).map(p => p.id));
-
-    const filteredData = (data || []).filter((item: any) =>
-        !item.payment_id || !noSplitPaymentIds.has(item.payment_id)
-    );
-
-    const categoryMap = filteredData.reduce((acc: any, item: any) => {
+    const categoryMap = (data || []).reduce((acc: any, item: any) => {
         let cat = item.category?.categoria_completa || 'Sem categoria';
 
         if (cat.toLowerCase().includes('absoluto')) {
@@ -169,7 +153,7 @@ export async function getEventReportCategorias(eventId: string) {
 
         if (st === 'carrinho') acc[cat].cart += 1;
         else if (st === 'pendente' || st === 'aguardando_pagamento') acc[cat].pending += 1;
-        else if (st === 'paga' || st === 'confirmado') acc[cat].paid += 1;
+        else if (st === 'paga' || st === 'pago' || st === 'confirmado') acc[cat].paid += 1;
 
         return acc;
     }, {});
@@ -228,7 +212,7 @@ export async function getEventReportFinanceiro(eventId: string) {
             };
         });
 
-    const paid = processedData.filter((r: any) => r.status === 'paga' || r.status === 'confirmado');
+    const paid = processedData.filter((r: any) => r.status === 'paga' || r.status === 'pago' || r.status === 'confirmado');
     const pending = processedData.filter((r: any) => r.status === 'pendente' || r.status === 'aguardando_pagamento');
     const cart = processedData.filter((r: any) => r.status === 'carrinho');
 
@@ -274,7 +258,7 @@ export async function getEventCategoryDetails(eventId: string, categoryName: str
             category:category_rows!category_id(categoria_completa)
         `)
         .eq('event_id', eventId)
-        .in('status', ['carrinho', 'pendente', 'aguardando_pagamento', 'paga', 'confirmado']);
+        .in('status', ['carrinho', 'pendente', 'aguardando_pagamento', 'paga', 'pago', 'confirmado']);
 
     if (error) {
         console.error('Error fetching category details:', error);
@@ -321,7 +305,7 @@ export async function getCategoryBracketAthletes(eventId: string, categoryName: 
             category:category_rows!category_id(categoria_completa)
         `)
         .eq('event_id', eventId)
-        .in('status', ['paga', 'confirmado']);
+        .in('status', ['paga', 'pago', 'confirmado']);
 
     if (error) {
         console.error('Error fetching bracket athletes:', error);

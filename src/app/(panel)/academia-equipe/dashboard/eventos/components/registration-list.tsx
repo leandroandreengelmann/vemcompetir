@@ -1,5 +1,7 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +14,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { removeRegistrationAction } from '../registrations-actions';
-import { toast } from 'sonner';
 
 interface Registration {
     id: string;
@@ -36,6 +36,7 @@ interface Registration {
         categoria_peso: string;
         sexo: string;
         faixa: string;
+        categoria_completa?: string;
     };
     registered_by_profile: {
         full_name: string;
@@ -57,25 +58,50 @@ interface RegistrationListProps {
 }
 
 export function RegistrationList({ event, registrations, athletes, currentUserId, currentUserTenantId }: RegistrationListProps) {
-    const [removingId, setRemovingId] = useState<string | null>(null);
-
-    const handleRemove = async (id: string) => {
-        if (!confirm('Tem certeza que deseja remover esta inscrição?')) return;
-
-        setRemovingId(id);
-        try {
-            const result = await removeRegistrationAction(id);
-            if (result.error) {
-                toast.error(result.error);
-            } else {
-                toast.success('Inscrição removida.');
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error('Erro ao remover inscrição.');
-        } finally {
-            setRemovingId(null);
+    const renderStatusBadge = (status: string) => {
+        if (status === 'paga' || status === 'pago' || status === 'confirmado') {
+            return (
+                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                    PAGO
+                </Badge>
+            );
         }
+        if (status === 'pendente' || status === 'aguardando_pagamento') {
+            return (
+                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+                    PENDENTE
+                </Badge>
+            );
+        }
+        return (
+            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
+                {status.replace('_', ' ')}
+            </Badge>
+        );
+    };
+
+    const renderBeltBadge = (belt: string) => {
+        if (!belt) return null;
+
+        const lowerBelt = belt.toLowerCase();
+        let bgClass = "bg-muted text-muted-foreground border-border";
+
+        if (lowerBelt.includes('branca')) bgClass = "bg-white text-slate-800 border-slate-200 shadow-sm";
+        else if (lowerBelt.includes('azul')) bgClass = "bg-blue-500 text-white border-blue-600 shadow-sm";
+        else if (lowerBelt.includes('roxa')) bgClass = "bg-purple-500 text-white border-purple-600 shadow-sm";
+        else if (lowerBelt.includes('marrom')) bgClass = "bg-amber-800 text-white border-amber-900 shadow-sm";
+        else if (lowerBelt.includes('preta')) bgClass = "bg-slate-900 text-white border-slate-950 shadow-sm dark:bg-black dark:border-slate-800";
+        else if (lowerBelt.includes('colorida')) bgClass = "bg-gradient-to-r from-green-500 via-yellow-500 to-blue-500 text-white border-none shadow-sm";
+        else if (lowerBelt.includes('cinza')) bgClass = "bg-gray-400 text-white border-gray-500 shadow-sm";
+        else if (lowerBelt.includes('amarela')) bgClass = "bg-yellow-400 text-yellow-950 border-yellow-500 shadow-sm";
+        else if (lowerBelt.includes('laranja')) bgClass = "bg-orange-500 text-white border-orange-600 shadow-sm";
+        else if (lowerBelt.includes('verde')) bgClass = "bg-green-600 text-white border-green-700 shadow-sm";
+
+        return (
+            <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5", bgClass)}>
+                {belt}
+            </Badge>
+        );
     };
 
     return (
@@ -102,14 +128,13 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                     <TableHead className="hidden sm:table-cell">Faixa</TableHead>
                                     <TableHead>Categoria</TableHead>
                                     <TableHead className="hidden md:table-cell">Inscrito Por</TableHead>
-                                    <TableHead className="text-right">Status</TableHead>
-                                    <TableHead className="w-[80px] text-right pr-6">Ações</TableHead>
+                                    <TableHead className="text-right pr-6">Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!registrations || registrations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                                             Nenhuma inscrição encontrada.
                                         </TableCell>
                                     </TableRow>
@@ -117,47 +142,27 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                     registrations.map((reg) => (
                                         <TableRow key={reg.id} className="hover:bg-muted/10 transition-colors">
                                             <TableCell className="pl-6 py-4">
-                                                <div className="flex flex-col gap-0.5">
+                                                <div className="flex flex-col gap-1 items-start">
                                                     <span className="font-bold text-foreground text-ui">{reg.athlete?.full_name}</span>
-                                                    <span className="text-[10px] text-muted-foreground font-medium sm:hidden">
-                                                        {reg.athlete?.belt_color}
+                                                    <span className="sm:hidden block mt-0.5">
+                                                        {renderBeltBadge(reg.athlete?.belt_color)}
                                                     </span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="hidden sm:table-cell text-muted-foreground font-medium">
-                                                {reg.athlete?.belt_color}
+                                            <TableCell className="hidden sm:table-cell">
+                                                {renderBeltBadge(reg.athlete?.belt_color)}
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-caption font-bold text-foreground">{reg.category?.divisao_idade}</span>
-                                                    <span className="text-[10px] text-muted-foreground font-medium">{reg.category?.categoria_peso}</span>
+                                                    <span className="text-caption font-bold text-foreground">{reg.category?.categoria_completa || reg.category?.divisao_idade}</span>
+                                                    {!reg.category?.categoria_completa && <span className="text-[10px] text-muted-foreground font-medium">{reg.category?.categoria_peso}</span>}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-caption font-medium hidden md:table-cell">
                                                 {reg.registered_by_profile?.full_name || '-'}
                                             </TableCell>
-                                            <TableCell className="text-right py-4">
-                                                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border-muted-foreground/30 text-muted-foreground">
-                                                    {reg.status}
-                                                </Badge>
-                                            </TableCell>
                                             <TableCell className="text-right pr-6 py-4">
-                                                {(reg.registered_by === currentUserId || event.tenant_id === currentUserTenantId) && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-all"
-                                                        onClick={() => handleRemove(reg.id)}
-                                                        disabled={removingId === reg.id}
-                                                        pill
-                                                    >
-                                                        {removingId === reg.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <Trash2 className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
-                                                )}
+                                                {renderStatusBadge(reg.status)}
                                             </TableCell>
                                         </TableRow>
                                     ))

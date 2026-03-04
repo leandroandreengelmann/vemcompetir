@@ -157,14 +157,6 @@ export default async function EventosPage() {
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-4">
                                                 <div className="flex items-center justify-end gap-1 sm:gap-2">
-                                                    {event.status !== 'pendente' && (
-                                                        <Button variant="ghost" size="icon" asChild pill title="Inscrições" className="h-10 w-10 sm:h-9 sm:w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 dark:hover:bg-primary/20 dark:hover:text-primary transition-colors">
-                                                            <Link href={`/academia-equipe/dashboard/eventos/${event.id}/inscricoes`}>
-                                                                <Users className="h-4 w-4" />
-                                                                <span className="sr-only">Inscrições</span>
-                                                            </Link>
-                                                        </Button>
-                                                    )}
                                                     <Button variant="ghost" size="icon" asChild pill title="Editar" className="h-10 w-10 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted/80 dark:hover:bg-muted/20 dark:hover:text-foreground transition-colors">
                                                         <Link href={`/academia-equipe/dashboard/eventos/${event.id}`}>
                                                             <Pencil className="h-4 w-4" />
@@ -181,6 +173,6 @@ export default async function EventosPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 }

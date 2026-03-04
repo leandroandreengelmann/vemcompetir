@@ -309,8 +309,11 @@ export async function getEventRegistrationsAction(eventId: string) {
 
     const isOrganizer = event?.tenant_id === tenant_id;
 
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const adminSupabase = createAdminClient();
+
     // 2. Build Query
-    let query = supabase
+    let query = (isOrganizer ? adminSupabase : supabase)
         .from('event_registrations')
         .select(`
             id,
@@ -331,7 +334,8 @@ export async function getEventRegistrationsAction(eventId: string) {
                 categoria_peso,
                 sexo,
                 faixa,
-                peso_max_kg
+                peso_max_kg,
+                categoria_completa
             ),
             registered_by_profile:profiles!registered_by (
                 full_name,

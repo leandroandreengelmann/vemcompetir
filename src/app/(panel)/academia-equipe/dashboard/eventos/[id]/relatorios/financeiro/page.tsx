@@ -145,7 +145,7 @@ export default function FinanceiroReportPage({ params }: { params: Promise<{ id:
                                             <TableCell>
                                                 <Badge variant="outline" className={cn(
                                                     "text-label px-2 font-semibold uppercase tracking-wider",
-                                                    (reg.status === 'paga' || reg.status === 'confirmado')
+                                                    (reg.status === 'paga' || reg.status === 'pago' || reg.status === 'confirmado')
                                                         ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30"
                                                         : reg.status === 'carrinho'
                                                             ? "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30"
