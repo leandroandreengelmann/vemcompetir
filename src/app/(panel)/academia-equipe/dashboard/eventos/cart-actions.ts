@@ -106,7 +106,7 @@ export async function getCartItemsAction() {
             event:events!event_id (title, event_date)
         `)
         .eq('registered_by', profile.id)
-        .eq('status', 'carrinho')
+        .in('status', ['carrinho', 'aguardando_pagamento'])
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -151,6 +151,30 @@ export async function checkoutCartAction(eventIds?: string[]) {
 
     if (error) {
         return { error: 'Erro ao finalizar inscrições.' };
+    }
+
+    revalidatePath('/academia-equipe/dashboard/eventos');
+    return { success: true };
+}
+
+// Reactivate pending item back to cart
+export async function reactivateCartItemAction(registrationId: string) {
+    const { profile } = await requireTenantScope();
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('event_registrations')
+        .update({
+            status: 'carrinho',
+            payment_id: null
+        })
+        .eq('id', registrationId)
+        .eq('registered_by', profile.id)
+        .eq('status', 'aguardando_pagamento');
+
+    if (error) {
+        console.error('reactivateCartItemAction error:', error);
+        return { error: 'Erro ao reativar item na cesta.' };
     }
 
     revalidatePath('/academia-equipe/dashboard/eventos');

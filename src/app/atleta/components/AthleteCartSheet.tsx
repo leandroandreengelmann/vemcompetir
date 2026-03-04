@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAthleteCart } from "@/hooks/use-athlete-cart";
-import { Loader2, Trash2, ShoppingBag, CreditCard, Info } from "lucide-react";
+import { Loader2, Trash2, ShoppingBag, CreditCard, Info, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "@/components/panel-layout/PixModal";
 
 export function AthleteCartSheet() {
-    const { isOpen, setOpen, items, removeItem, fetchCart, isLoading } = useAthleteCart();
+    const { isOpen, setOpen, items, removeItem, reactivateItem, fetchCart, isLoading } = useAthleteCart();
 
     useEffect(() => {
         fetchCart();
@@ -142,10 +142,24 @@ export function AthleteCartSheet() {
                                                 Aguardando Pagamento ({pendingItems.length})
                                             </h3>
                                         </div>
+                                        <div className="bg-muted/50 border border-border/60 rounded-lg p-3 text-sm font-semibold text-foreground leading-relaxed mb-3 shadow-sm">
+                                            Clique no botão <strong>Refazer</strong> para devolver a inscrição à cesta e tentar realizar o pagamento novamente.
+                                        </div>
                                         {pendingItems.map((item) => (
-                                            <div key={item.id} className="p-3 rounded-xl border border-yellow-200 dark:border-yellow-900 bg-yellow-50/50 dark:bg-yellow-950/20">
-                                                <p className="text-sm font-medium">{item.eventTitle}</p>
-                                                <p className="text-xs text-muted-foreground">{item.categoryTitle}</p>
+                                            <div key={item.id} className="relative p-4 rounded-xl border border-border/50 bg-card overflow-hidden flex flex-col sm:flex-row gap-4 sm:items-center justify-between shadow-sm group">
+                                                <div className="space-y-1 pl-2">
+                                                    <p className="text-sm font-bold leading-tight text-foreground">{item.eventTitle}</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">{item.categoryTitle}</p>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    disabled={isLoading || submitting}
+                                                    onClick={() => reactivateItem(item.id)}
+                                                    className="w-full sm:w-auto h-9 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 transition-colors"
+                                                >
+                                                    <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                                                    Refazer
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
@@ -244,7 +258,11 @@ export function AthleteCartSheet() {
 
             <PixModal
                 open={pixModalOpen}
-                onClose={() => setPixModalOpen(false)}
+                onClose={() => {
+                    setPixModalOpen(false);
+                    fetchCart();
+                    router.refresh();
+                }}
                 pixData={pixData}
             />
         </Sheet>

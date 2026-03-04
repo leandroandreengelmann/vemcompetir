@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { addToCartAction, removeFromCartAction, getCartItemsAction, checkoutCartAction } from '@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions';
+import { addToCartAction, removeFromCartAction, getCartItemsAction, checkoutCartAction, reactivateCartItemAction } from '@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ export interface CartItem {
     categoryId: string;
     categoryTitle: string;
     price: number;
+    status: string;
 }
 
 interface RegistrationCartState {
@@ -20,9 +21,10 @@ interface RegistrationCartState {
     isLoading: boolean;
     setOpen: (open: boolean) => void;
     fetchCart: () => Promise<void>;
-    addItem: (item: Omit<CartItem, 'id'>) => Promise<void>;
+    addItem: (item: Omit<CartItem, 'id' | 'status'>) => Promise<void>;
     removeItem: (id: string) => Promise<void>;
     checkout: (eventIds?: string[]) => Promise<void>;
+    reactivateItem: (id: string) => Promise<void>;
 }
 
 export const useRegistrationCart = create<RegistrationCartState>((set, get) => ({
@@ -54,7 +56,8 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
                     peso_min_kg: d.category.peso_min_kg,
                     peso_max_kg: d.category.peso_max_kg
                 }) : 'Categoria Desconhecida',
-                price: Number(d.price) || 0 // Read price from DB
+                price: Number(d.price) || 0, // Read price from DB
+                status: d.status
             }));
             set({ items });
         } catch (error) {
@@ -120,6 +123,22 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
             set({ isOpen: false });
         } catch (error) {
             toast.error('Erro ao finalizar');
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    reactivateItem: async (id) => {
+        set({ isLoading: true });
+        try {
+            const result = await reactivateCartItemAction(id);
+            if (result.error) {
+                toast.error(result.error);
+                return;
+            }
+            await get().fetchCart();
+        } catch (error) {
+            toast.error('Erro ao reativar item');
         } finally {
             set({ isLoading: false });
         }

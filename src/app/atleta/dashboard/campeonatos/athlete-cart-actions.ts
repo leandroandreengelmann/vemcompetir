@@ -135,3 +135,29 @@ export async function getAthleteCartAction() {
 
     return data || [];
 }
+
+export async function reactivateAthleteCartItemAction(registrationId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('Não autenticado');
+
+    // Mover o status de volta para 'carrinho' e desvincular do pagamento cancelado/expirado
+    const { error } = await supabase
+        .from('event_registrations')
+        .update({
+            status: 'carrinho',
+            payment_id: null
+        })
+        .eq('id', registrationId)
+        .eq('registered_by', user.id)
+        .eq('status', 'aguardando_pagamento')
+        .is('tenant_id', null);
+
+    if (error) {
+        console.error('reactivateAthleteCartItemAction error:', error);
+        throw new Error('Erro ao reativar item na cesta.');
+    }
+
+    return { success: true };
+}

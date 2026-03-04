@@ -3,6 +3,7 @@ import {
     getAthleteCartAction,
     addToAthleteCartAction,
     removeFromAthleteCartAction,
+    reactivateAthleteCartItemAction,
 } from '@/app/atleta/dashboard/campeonatos/athlete-cart-actions';
 import { formatFullCategoryName } from '@/lib/category-utils';
 
@@ -25,6 +26,7 @@ interface AthleteCartState {
     fetchCart: () => Promise<void>;
     addItem: (item: { eventId: string; categoryId: string; price: number }) => Promise<void>;
     removeItem: (registrationId: string) => Promise<void>;
+    reactivateItem: (registrationId: string) => Promise<void>;
 }
 
 export const useAthleteCart = create<AthleteCartState>((set, get) => ({
@@ -82,6 +84,18 @@ export const useAthleteCart = create<AthleteCartState>((set, get) => ({
         } catch (error) {
             console.error('Failed to remove from athlete cart', error);
             await get().fetchCart();
+        }
+    },
+
+    reactivateItem: async (registrationId) => {
+        set({ isLoading: true });
+        try {
+            await reactivateAthleteCartItemAction(registrationId);
+            await get().fetchCart();
+        } catch (error) {
+            console.error('Failed to reactivate athlete cart item', error);
+            set({ isLoading: false });
+            throw error;
         }
     },
 }));

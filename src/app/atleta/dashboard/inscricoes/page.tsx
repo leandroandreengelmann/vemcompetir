@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AthleteProfileForm } from '../profile-form';
 import { AthletePageHeader } from '../components/athlete-page-header';
+import { ReactivatePaymentButton } from './ReactivatePaymentButton';
 
 const BELTS = [
     'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde',
@@ -125,11 +126,14 @@ export default async function AthleteInscricoes() {
                                         </div>
                                         {/* Detalhes da Inscrição */}
                                         <div className="p-5 flex-1 flex flex-col justify-center">
-                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
+                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
                                                 <h3 className="font-bold text-lg leading-tight line-clamp-2 text-brand-950 group-hover:text-primary transition-colors">
                                                     {inscricao.event?.title}
                                                 </h3>
-                                                <div className="shrink-0">
+                                                <div className="shrink-0 flex items-center gap-2">
+                                                    {['aguardando_pagamento', 'pendente'].includes(inscricao.status) && (
+                                                        <ReactivatePaymentButton registrationId={inscricao.id} />
+                                                    )}
                                                     {getStatusBadge(inscricao.status)}
                                                 </div>
                                             </div>

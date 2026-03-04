@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useRegistrationCart } from "@/hooks/use-registration-cart";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Loader2, Trash2, ShoppingBag, X, CreditCard, Info } from "lucide-react";
+import { Loader2, Trash2, ShoppingBag, X, CreditCard, Info, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "./PixModal";
 
 export function CartSheet() {
-    const { isOpen, setOpen, items, removeItem, fetchCart, checkout, isLoading } = useRegistrationCart();
+    const { isOpen, setOpen, items, removeItem, fetchCart, checkout, isLoading, reactivateItem } = useRegistrationCart();
 
     // Fetch cart on mount and when opening
     useEffect(() => {
@@ -39,8 +39,12 @@ export function CartSheet() {
     const [cpf, setCpf] = useState("");
     const router = useRouter();
 
-    // Group items by event
-    const groupedItems = items.reduce((acc, item) => {
+    // Filter only items in carrinho
+    const cartItems = items.filter(i => i.status === 'carrinho');
+    const pendingItems = items.filter(i => i.status === 'aguardando_pagamento');
+
+    // Group cart items by event
+    const groupedItems = cartItems.reduce((acc, item) => {
         if (!acc[item.eventId]) {
             acc[item.eventId] = {
                 title: item.eventTitle || 'Evento Desconhecido',
@@ -49,7 +53,7 @@ export function CartSheet() {
         }
         acc[item.eventId].items.push(item);
         return acc;
-    }, {} as Record<string, { title: string, items: typeof items }>);
+    }, {} as Record<string, { title: string, items: typeof cartItems }>);
 
     const events = Object.entries(groupedItems);
     const total = items.reduce((acc, item) => acc + item.price, 0);
@@ -107,7 +111,8 @@ export function CartSheet() {
                             <div className="space-y-0.5">
                                 <SheetTitle className="text-lg font-bold">Cesta</SheetTitle>
                                 <p className="text-xs text-muted-foreground">
-                                    {items.length} {items.length === 1 ? 'item' : 'itens'}
+                                    {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} na cesta
+                                    {pendingItems.length > 0 && ` • ${pendingItems.length} aguardando pagamento`}
                                 </p>
                             </div>
                         </div>
@@ -115,7 +120,7 @@ export function CartSheet() {
                 </SheetHeader>
 
                 <div className="flex-1 overflow-hidden relative">
-                    {items.length === 0 ? (
+                    {cartItems.length === 0 && pendingItems.length === 0 ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 space-y-4 animate-in fade-in zoom-in-95 duration-300">
                             <div className="bg-muted p-6 rounded-full">
                                 <ShoppingBag className="h-10 w-10 text-muted-foreground/50" />
@@ -133,6 +138,40 @@ export function CartSheet() {
                     ) : (
                         <ScrollArea className="h-full w-full">
                             <div className="px-4 sm:px-6 py-4 space-y-8">
+                                {/* Pending payments section */}
+                                {pendingItems.length > 0 && (
+                                    <div className="space-y-3 pb-6 border-b">
+                                        <div className="flex items-center gap-2 py-2">
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500" />
+                                            </span>
+                                            <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wide">
+                                                Aguardando Pagamento ({pendingItems.length})
+                                            </h3>
+                                        </div>
+                                        <div className="bg-muted/50 border border-border/60 rounded-lg p-3 text-sm font-semibold text-foreground leading-relaxed mb-3 shadow-sm">
+                                            Clique no botão <strong>Refazer</strong> para devolver a inscrição à cesta e tentar realizar o pagamento novamente.
+                                        </div>
+                                        {pendingItems.map((item) => (
+                                            <div key={item.id} className="relative p-4 rounded-xl border border-border/50 bg-card overflow-hidden flex flex-col sm:flex-row gap-4 sm:items-center justify-between shadow-sm group">
+                                                <div className="space-y-1 pl-2">
+                                                    <p className="text-sm font-bold leading-tight text-foreground">{item.eventTitle}</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">{item.athleteName} - {item.categoryTitle}</p>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    disabled={isLoading || submitting}
+                                                    onClick={() => reactivateItem(item.id)}
+                                                    className="w-full sm:w-auto h-9 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 transition-colors"
+                                                >
+                                                    <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                                                    Refazer
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                                 {events.map(([eventId, group]) => {
                                     const eventSubtotal = group.items.reduce((acc, item) => acc + item.price, 0);
 
@@ -220,7 +259,7 @@ export function CartSheet() {
                     )}
                 </div>
 
-                {items.length > 0 && (
+                {(cartItems.length > 0 || pendingItems.length > 0) && (
                     <div className="flex-none p-6 bg-background border-t">
                         <Button pill variant="outline"
                             className="w-full  h-12 font-semibold"
@@ -234,7 +273,11 @@ export function CartSheet() {
 
             <PixModal
                 open={pixModalOpen}
-                onClose={() => setPixModalOpen(false)}
+                onClose={() => {
+                    setPixModalOpen(false);
+                    fetchCart();
+                    router.refresh();
+                }}
                 pixData={pixData}
             />
         </Sheet>
