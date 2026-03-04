@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, Users, Calendar, User, ChevronLeft, ChevronRight, Building2, MessageSquareQuote, Layers, Settings, Plug, Wallet, Landmark, HandCoins, BarChart2 } from "lucide-react";
+import { Menu, LayoutDashboard, Users, Calendar, User, ChevronLeft, ChevronRight, Building2, MessageSquareQuote, Layers, Settings, Plug, Wallet, Landmark, HandCoins } from "lucide-react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import {
@@ -79,12 +79,6 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             label: "Cobrança Integral",
             icon: HandCoins,
             href: "/admin/dashboard/cobranca-integral",
-            roles: ['admin_geral'],
-        },
-        {
-            label: "Monitoramento",
-            icon: BarChart2,
-            href: "/admin/dashboard/analytics",
             roles: ['admin_geral'],
         },
         {
