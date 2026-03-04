@@ -1,0 +1,65 @@
+'use client';
+
+import Link from 'next/link';
+import { Calendar, MapPin, ArrowRight } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { PublicEvent } from '../_data/events';
+import { getEventCoverUrl } from '../_data/event-utils';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+
+interface EventCardProps {
+    event: PublicEvent;
+}
+
+export function EventCard({ event }: EventCardProps) {
+    const coverUrl = getEventCoverUrl(event.cover_image_path || null);
+
+    return (
+        <Card className="overflow-hidden group flex flex-col h-full border-border/50 shadow-sm hover:shadow-md transition-all duration-300 rounded-[7px] p-0 gap-0 bg-white">
+            <CardHeader className="p-0 border-0">
+                <div className="relative aspect-square overflow-hidden">
+                    {coverUrl ? (
+                        <img
+                            src={coverUrl}
+                            alt={event.title}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted/50">
+                            <Calendar className="h-10 w-10 text-muted-foreground/20" />
+                        </div>
+                    )}
+                </div>
+            </CardHeader>
+
+            <CardContent className="p-5 flex-1 space-y-4">
+                <h3 className="text-h2 text-foreground line-clamp-2 min-h-[4rem]">
+                    {event.title}
+                </h3>
+
+                <div className="space-y-1.5 pt-2">
+                    <p className="text-ui text-muted-foreground font-medium uppercase tracking-tight">
+                        {event.starts_at ? format(new Date(event.starts_at), "dd 'de' MMMM", { locale: ptBR }) : 'Data a definir'}
+                    </p>
+                    <p className="text-ui text-muted-foreground font-medium truncate">
+                        {event.city ? `${event.city}, ${event.state}` : (event.venue_name || 'Local a definir')}
+                    </p>
+                </div>
+            </CardContent>
+
+            <CardFooter className="p-5 pt-0">
+                <Link href={`/eventos/${event.id}`} className="w-full">
+                    <Button
+                        variant="default"
+                        pill
+                        className="h-12 text-ui font-bold text-white shadow-lg shadow-primary/20 w-full"
+                    >
+                        Ver Detalhes
+                    </Button>
+                </Link>
+            </CardFooter>
+        </Card>
+    );
+}

@@ -39,3 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Relatórios, Dumps e Logs Locais
+*.txt
+db_dump.json
+*report.json
+*results.json
+lh_report.json
+lighthouse_*.json
+image.png
+
+# (Opcional) Scripts locais soltos na raiz que não fazem parte do código-fonte
+/scripts-locais/
+/lixo/
+# check_asaas.js
+# debug_asaas.js
+
+# Arquivos do Assistente IA
+/.agent/
+# replace_dom.py
+# etc...
