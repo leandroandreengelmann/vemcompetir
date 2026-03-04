@@ -47,7 +47,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
         try {
             const res = await getEventReportInscricoes(eventId, { search, status, page });
             setData(res.data);
-            setCount(res.count);
+            setCount(res.count ?? 0);
         } catch (err) {
             console.error(err);
         } finally {

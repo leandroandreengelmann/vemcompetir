@@ -103,7 +103,7 @@ export const generateBracketLogic = (athleteList: Athlete[]): Round[] => {
 
         if (isBye) {
             match.winner = match.athleteA !== "BYE" && match.athleteA ? match.athleteA :
-                match.athleteB !== "BYE" && match.athleteB ? match.athleteB : null;
+                match.athleteB !== "BYE" && match.athleteB ? match.athleteB : "BYE";
         }
 
         r1Matches.push(match);
@@ -126,7 +126,7 @@ export const generateBracketLogic = (athleteList: Athlete[]): Round[] => {
             isBye: false,
         }));
 
-        // Propagar vencedores do round anterior (inclui os que ganharam por BYE no Round 1)
+        // Create the next round matches
         const prevMatches = newRounds[r - 1].matches;
         prevMatches.forEach((m, idx) => {
             if (m.winner) {

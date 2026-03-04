@@ -54,9 +54,9 @@ export function EventDashboardsSection() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-2xl border border-border/50">
+                    <div className="flex items-center gap-3">
                         <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger className="w-[140px] rounded-xl border-none bg-transparent hover:bg-background font-bold transition-all h-12 text-body px-4 bg-background">
+                            <SelectTrigger className="w-[160px] rounded-2xl border border-input bg-background hover:bg-muted/50 font-bold transition-all h-14 text-body px-4 shadow-sm">
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -66,9 +66,9 @@ export function EventDashboardsSection() {
                                 <SelectItem value="publicado">Publicados</SelectItem>
                             </SelectContent>
                         </Select>
-                        <div className="w-[1px] h-6 bg-border/50" />
+
                         <Select value={sort} onValueChange={setSort}>
-                            <SelectTrigger className="w-[180px] rounded-xl border-none bg-transparent hover:bg-background font-bold transition-all h-12 text-body px-4 bg-background">
+                            <SelectTrigger className="w-[180px] rounded-2xl border border-input bg-background hover:bg-muted/50 font-bold transition-all h-14 text-body px-4 shadow-sm">
                                 <SelectValue placeholder="Ordenar por" />
                             </SelectTrigger>
                             <SelectContent>

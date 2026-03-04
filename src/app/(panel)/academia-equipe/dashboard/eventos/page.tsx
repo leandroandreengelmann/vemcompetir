@@ -98,11 +98,11 @@ export default async function EventosPage() {
                         <Table className="min-w-[600px] md:min-w-full">
                             <TableHeader className="bg-muted/30">
                                 <TableRow>
-                                    <TableHead className="pl-6">Título</TableHead>
-                                    <TableHead className="hidden sm:table-cell">Data</TableHead>
-                                    <TableHead className="hidden md:table-cell">Local</TableHead>
-                                    <TableHead className="text-center">Status</TableHead>
-                                    <TableHead className="w-[120px] text-right pr-6">Ações</TableHead>
+                                    <TableHead className="pl-6 text-ui font-black">TÍTULO</TableHead>
+                                    <TableHead className="hidden sm:table-cell text-ui font-black">DATA</TableHead>
+                                    <TableHead className="hidden md:table-cell text-ui font-black">LOCAL</TableHead>
+                                    <TableHead className="text-center text-ui font-black">STATUS</TableHead>
+                                    <TableHead className="w-[120px] text-right pr-6 text-ui font-black">AÇÕES</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -118,22 +118,22 @@ export default async function EventosPage() {
                                 ) : (
                                     events.map((event) => (
                                         <TableRow key={event.id} className="hover:bg-muted/10 transition-colors group">
-                                            <TableCell className="pl-6 py-4">
+                                            <TableCell className="pl-6 py-5">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="font-bold text-foreground text-ui leading-tight">{event.title}</span>
+                                                    <span className="font-bold text-foreground text-body leading-tight">{event.title}</span>
                                                     {/* Sub-info visible only on mobile */}
-                                                    <span className="text-[10px] text-muted-foreground font-medium sm:hidden">
+                                                    <span className="text-caption text-muted-foreground font-medium sm:hidden">
                                                         {event.event_date ? format(new Date(event.event_date), "dd/MM/yy", { locale: ptBR }) : '-'}
                                                         {event.location && ` • ${event.location}`}
                                                     </span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground text-caption font-medium hidden sm:table-cell">
+                                            <TableCell className="text-foreground text-body font-bold hidden sm:table-cell">
                                                 {event.event_date ? format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground hidden md:table-cell">
-                                                <div className="flex items-center text-caption font-medium text-muted-foreground">
-                                                    <span className="truncate max-w-[150px]">{event.location || '-'}</span>
+                                            <TableCell className="text-foreground hidden md:table-cell">
+                                                <div className="flex items-center text-body font-bold">
+                                                    <span className="truncate max-w-[250px]">{event.location || '-'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center py-4">

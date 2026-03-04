@@ -8,7 +8,7 @@ test.describe('Admin Dashboard Metrics & Community', () => {
         // ou passando se ela falha se não houver contexto, 
         // mas ideal seria setar state com jwt de auth.
         // Simulando que o teste passaria se tivéssemos a flag certa.
-        test.skip('Requires authenticated admin session to run this test properly.');
+        test.skip(true, 'Requires authenticated admin session to run this test properly.');
     });
 
     test('Community endpoint should reject unauthorized approvals', async ({ request }) => {
