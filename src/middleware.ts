@@ -1,7 +1,10 @@
 import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import { logPageView } from '@/lib/analytics/log-event'
 
 export async function middleware(request: NextRequest) {
+    // Fire-and-forget: log the page view without blocking the request
+    logPageView(request).catch(() => { });
     return await updateSession(request)
 }
 
