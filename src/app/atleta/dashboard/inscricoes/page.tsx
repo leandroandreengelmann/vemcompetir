@@ -10,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { AthleteProfileForm } from '../profile-form';
 import { AthletePageHeader } from '../components/athlete-page-header';
 import { ReactivatePaymentButton } from './ReactivatePaymentButton';
-import { CancelRegistrationButton } from './CancelRegistrationButton';
+import { CancelRegistrationWrapper } from './CancelRegistrationWrapper';
 
 const BELTS = [
     'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde',
@@ -109,13 +109,13 @@ id,
                         <h2 className="text-h3 font-bold text-brand-950 mb-2">Histórico de Inscrições</h2>
                         <div className="grid gap-4 w-full">
                             {inscricoes.map((inscricao: any) => (
-                                <Link key={inscricao.id} href={`/ atleta / dashboard / campeonatos / ${inscricao.event?.id} `} className="block group">
+                                <Link key={inscricao.id} href={`/atleta/dashboard/campeonatos/${inscricao.event?.id}`} className="block group">
                                     <Card className="overflow-hidden border-none shadow-premium hover:shadow-xl transition-all active:scale-[0.98] w-full bg-white flex flex-col sm:flex-row">
                                         {/* Imagem do Evento */}
                                         <div className="sm:w-32 sm:h-auto h-32 bg-muted relative shrink-0">
                                             {inscricao.event?.image_path ? (
                                                 <img
-                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL} /storage/v1 / object / public / event - images / ${inscricao.event.image_path} `}
+                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${inscricao.event.image_path}`}
                                                     alt={inscricao.event.title || 'Evento'}
                                                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
@@ -135,7 +135,7 @@ id,
                                                     {['aguardando_pagamento', 'pendente'].includes(inscricao.status) && (
                                                         <>
                                                             <ReactivatePaymentButton registrationId={inscricao.id} />
-                                                            <CancelRegistrationButton registrationId={inscricao.id} />
+                                                            <CancelRegistrationWrapper registrationId={inscricao.id} />
                                                         </>
                                                     )}
                                                     {getStatusBadge(inscricao.status)}
