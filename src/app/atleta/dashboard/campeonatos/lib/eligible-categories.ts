@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth-guards';
 import { parseISO } from 'date-fns';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * [AJUSTE AQUI] Mapeamento de campos reais do banco de dados
@@ -362,10 +363,12 @@ export async function getEligibleCategories(eventId: string) {
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
 
     // 4.5 Get enrolled athlete counts and previews
-    const { data: countsData } = await supabase
+    const supabaseAdmin = createAdminClient();
+    const { data: countsData } = await supabaseAdmin
         .from('event_registrations')
         .select(`
             category_id,
+            athlete_id,
             athlete:profiles!athlete_id(full_name)
         `)
         .eq('event_id', eventId)
@@ -374,11 +377,13 @@ export async function getEligibleCategories(eventId: string) {
 
     const countMap = new Map<string, number>();
     const previewMap = new Map<string, string[]>();
+    const myEnrolledCategoryIds = new Set<string>();
 
     countsData?.forEach(row => {
         const catId = row.category_id;
         const name = (row.athlete as any)?.full_name || 'Competidor';
 
+        // Add to count and previews
         countMap.set(catId, (countMap.get(catId) || 0) + 1);
 
         if (!previewMap.has(catId)) {
@@ -390,10 +395,15 @@ export async function getEligibleCategories(eventId: string) {
             const shortName = name.split(' ').slice(0, 2).join(' ');
             previews.push(shortName);
         }
+
+        // Check if the current logged in user is already registered in this category
+        if (profile && row.athlete_id === profile.id) {
+            myEnrolledCategoryIds.add(catId);
+        }
     });
 
     // 5. Match
-    const results = await Promise.all(categories.map(async (cat) => {
+    const rawResults = await Promise.all(categories.map(async (cat) => {
         const match = await isEligible(athlete, cat as any, event?.event_date || null);
 
         // Score de especificidade
@@ -419,13 +429,16 @@ export async function getEligibleCategories(eventId: string) {
         };
     }));
 
+    // Filter out categories where the user is already successfully enrolled
+    const results = rawResults.filter(r => !myEnrolledCategoryIds.has(r.id));
+
     const suggestions = results
         .filter(r => r.match.eligible)
         .sort((a, b) => b.score - a.score || a.categoria_completa.localeCompare(b.categoria_completa));
 
     return {
         suggestions,
-        all: categories, // Mantendo compatibilidade se necessário
+        all: categories.filter(c => !myEnrolledCategoryIds.has(c.id)), // Mantendo compatibilidade com itens invisíveis
         isIncomplete,
         profile: athlete,
         incompleteReasons

@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "@/components/panel-layout/PixModal";
+import { CancelRegistrationButton } from "@/app/atleta/dashboard/inscricoes/CancelRegistrationButton";
+import { cancelPendingRegistrationAction } from "@/app/atleta/dashboard/campeonatos/athlete-cart-actions";
 
 export function AthleteCartSheet() {
     const { isOpen, setOpen, items, removeItem, reactivateItem, fetchCart, isLoading } = useAthleteCart();
@@ -151,15 +153,22 @@ export function AthleteCartSheet() {
                                                     <p className="text-sm font-bold leading-tight text-foreground">{item.eventTitle}</p>
                                                     <p className="text-xs font-medium text-muted-foreground">{item.categoryTitle}</p>
                                                 </div>
-                                                <Button
-                                                    size="sm"
-                                                    disabled={isLoading || submitting}
-                                                    onClick={() => reactivateItem(item.id)}
-                                                    className="w-full sm:w-auto h-9 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 transition-colors"
-                                                >
-                                                    <RotateCcw className="w-3.5 h-3.5 mr-2" />
-                                                    Refazer
-                                                </Button>
+                                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                    <Button
+                                                        size="sm"
+                                                        disabled={isLoading || submitting}
+                                                        onClick={() => reactivateItem(item.id)}
+                                                        className="flex-1 sm:flex-none h-9 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 transition-colors"
+                                                    >
+                                                        <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                                                        Refazer
+                                                    </Button>
+                                                    <CancelRegistrationButton
+                                                        className="h-9 w-9"
+                                                        onSuccess={fetchCart}
+                                                        onConfirm={() => cancelPendingRegistrationAction(item.id)}
+                                                    />
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { AthleteProfileForm } from '../profile-form';
 import { AthletePageHeader } from '../components/athlete-page-header';
 import { ReactivatePaymentButton } from './ReactivatePaymentButton';
+import { CancelRegistrationButton } from './CancelRegistrationButton';
 
 const BELTS = [
     'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde',
@@ -29,11 +30,11 @@ export default async function AthleteInscricoes() {
     const { data: inscricoesData, error } = await supabase
         .from('event_registrations')
         .select(`
-            id,
-            status,
-            created_at,
-            event:events(id, title, event_date, location, image_path),
-            category:category_rows(categoria_completa, faixa, categoria_peso)
+id,
+    status,
+    created_at,
+    event: events(id, title, event_date, location, image_path),
+        category: category_rows(categoria_completa, faixa, categoria_peso)
         `)
         .eq('athlete_id', user.id)
         .neq('status', 'carrinho')
@@ -73,7 +74,7 @@ export default async function AthleteInscricoes() {
             />
 
             {/* Main Content */}
-            <div className={`flex-1 flex flex-col items-center ${inscricoes.length === 0 ? 'justify-center max-w-2xl' : 'max-w-4xl'} mx-auto w-full pb-20`}>
+            <div className={`flex - 1 flex flex - col items - center ${inscricoes.length === 0 ? 'justify-center max-w-2xl' : 'max-w-4xl'} mx - auto w - full pb - 20`}>
                 {inscricoes.length === 0 ? (
                     <div className="text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
                         <div className="mx-auto bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mb-6">
@@ -108,13 +109,13 @@ export default async function AthleteInscricoes() {
                         <h2 className="text-h3 font-bold text-brand-950 mb-2">Histórico de Inscrições</h2>
                         <div className="grid gap-4 w-full">
                             {inscricoes.map((inscricao: any) => (
-                                <Link key={inscricao.id} href={`/atleta/dashboard/campeonatos/${inscricao.event?.id}`} className="block group">
+                                <Link key={inscricao.id} href={`/ atleta / dashboard / campeonatos / ${inscricao.event?.id} `} className="block group">
                                     <Card className="overflow-hidden border-none shadow-premium hover:shadow-xl transition-all active:scale-[0.98] w-full bg-white flex flex-col sm:flex-row">
                                         {/* Imagem do Evento */}
                                         <div className="sm:w-32 sm:h-auto h-32 bg-muted relative shrink-0">
                                             {inscricao.event?.image_path ? (
                                                 <img
-                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${inscricao.event.image_path}`}
+                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL} /storage/v1 / object / public / event - images / ${inscricao.event.image_path} `}
                                                     alt={inscricao.event.title || 'Evento'}
                                                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
@@ -132,7 +133,10 @@ export default async function AthleteInscricoes() {
                                                 </h3>
                                                 <div className="shrink-0 flex items-center gap-2">
                                                     {['aguardando_pagamento', 'pendente'].includes(inscricao.status) && (
-                                                        <ReactivatePaymentButton registrationId={inscricao.id} />
+                                                        <>
+                                                            <ReactivatePaymentButton registrationId={inscricao.id} />
+                                                            <CancelRegistrationButton registrationId={inscricao.id} />
+                                                        </>
                                                     )}
                                                     {getStatusBadge(inscricao.status)}
                                                 </div>

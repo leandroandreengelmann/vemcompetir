@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import {
@@ -161,12 +161,20 @@ export default async function AthleteManagementPage() {
                                                 : '-'}
                                         </TableCell>
                                         <TableCell className="text-right pr-6">
-                                            <Button pill variant="ghost" size="icon" asChild>
-                                                <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}`}>
-                                                    <Pencil className="h-4 w-4" />
-                                                    <span className="sr-only">Editar</span>
-                                                </Link>
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button pill variant="ghost" size="icon" asChild title="Ver Perfil">
+                                                    <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}/perfil`}>
+                                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="sr-only">Ver Perfil</span>
+                                                    </Link>
+                                                </Button>
+                                                <Button pill variant="ghost" size="icon" asChild title="Editar">
+                                                    <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}`}>
+                                                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="sr-only">Editar</span>
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))

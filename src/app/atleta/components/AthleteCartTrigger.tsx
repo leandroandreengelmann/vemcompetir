@@ -7,20 +7,33 @@ import { ShoppingBag } from 'lucide-react';
 export function AthleteCartTrigger() {
     const { items, setOpen, isOpen } = useAthleteCart();
 
-    // Filter only carrinho items for the badge count
     const cartCount = items.filter(i => i.status === 'carrinho').length;
+    const pendingCount = items.filter(i => i.status === 'aguardando_pagamento').length;
 
-    if (cartCount === 0 || isOpen) return null;
+    if ((cartCount === 0 && pendingCount === 0) || isOpen) return null;
+
+    const hasOnlyPending = cartCount === 0 && pendingCount > 0;
+    const displayCount = cartCount + pendingCount;
+
+    const btnClasses = hasOnlyPending
+        ? "relative h-11 w-11 bg-background hover:bg-amber-50 border-2 border-amber-500 transition-colors shadow-sm"
+        : "relative h-11 w-11 bg-background hover:bg-primary/5 border-2 border-primary transition-colors shadow-sm";
+
+    const iconClasses = hasOnlyPending ? "h-5 w-5 text-amber-500" : "h-5 w-5 text-primary";
+
+    const badgeClasses = hasOnlyPending
+        ? "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white animate-in zoom-in shadow-sm"
+        : "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in shadow-sm";
 
     return (
         <Button pill variant="outline"
             size="icon"
-            className="relative h-11 w-11 bg-background hover:bg-primary/5 border-2 border-primary transition-colors shadow-sm"
+            className={btnClasses}
             onClick={() => setOpen(true)}
         >
-            <ShoppingBag className="h-5 w-5 text-primary" />
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in shadow-sm">
-                {cartCount}
+            <ShoppingBag className={iconClasses} />
+            <span className={badgeClasses}>
+                {displayCount}
             </span>
         </Button>
     );

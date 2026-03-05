@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { checkEligibility, parseAgeRangeFromText, isMasterLivre, normalizeText } from '@/lib/registration-logic';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function registerAthleteAction(
     eventId: string,
@@ -235,6 +236,45 @@ export async function getEligibleCategoriesAction(
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
 
+    // 4.5 Get enrolled athlete counts and previews
+    const supabaseAdmin = createAdminClient();
+    const { data: countsData } = await supabaseAdmin
+        .from('event_registrations')
+        .select(`
+            category_id,
+            athlete_id,
+            athlete:profiles!athlete_id(full_name)
+        `)
+        .eq('event_id', eventId)
+        .in('status', ['pago', 'isento', 'confirmado'])
+        .order('created_at', { ascending: true });
+
+    const countMap = new Map<string, number>();
+    const previewMap = new Map<string, string[]>();
+    const myEnrolledCategoryIds = new Set<string>();
+
+    countsData?.forEach(row => {
+        const catId = row.category_id;
+        const name = (row.athlete as any)?.full_name || 'Competidor';
+
+        // Add to count and previews
+        countMap.set(catId, (countMap.get(catId) || 0) + 1);
+
+        if (!previewMap.has(catId)) {
+            previewMap.set(catId, []);
+        }
+
+        const previews = previewMap.get(catId)!;
+        if (previews.length < 3) {
+            const shortName = name.split(' ').slice(0, 2).join(' ');
+            previews.push(shortName);
+        }
+
+        if (row.athlete_id === athleteId) {
+            myEnrolledCategoryIds.add(catId);
+        }
+    });
+
     // 5. Process Eligibility
     const processed = await Promise.all(categories.map(async (cat: any) => {
         const match = await checkEligibility(athlete, cat, event?.event_date || null);
@@ -248,22 +288,29 @@ export async function getEligibleCategoriesAction(
         }
 
         const price = overridesMap.get(cat.id) ?? tablePriceMap.get(cat.table_id) ?? 0;
+        const registeredCount = countMap.get(cat.id) || 0;
+        const previewAthletes = previewMap.get(cat.id) || [];
 
         return {
             ...cat,
             registration_fee: price,
+            registered_count: registeredCount,
+            preview_athletes: previewAthletes,
             match,
             score
         };
     }));
 
+    // Filter out categories where the athlete is already successfully enrolled
+    const results = processed.filter(p => !myEnrolledCategoryIds.has(p.id));
+
     // Split into Suggestions (Matches) and All
-    const suggestions = processed
+    const suggestions = results
         .filter(p => p.match.eligible)
         .sort((a, b) => b.score - a.score || a.categoria_completa.localeCompare(b.categoria_completa));
 
     // For "All" tab: sort by title
-    const all = processed.sort((a, b) => a.categoria_completa.localeCompare(b.categoria_completa));
+    const all = results.sort((a, b) => a.categoria_completa.localeCompare(b.categoria_completa));
 
     return { suggestions, all };
 }

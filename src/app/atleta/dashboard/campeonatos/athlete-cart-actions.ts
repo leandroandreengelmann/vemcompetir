@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function addToAthleteCartAction(item: {
     eventId: string;
@@ -150,13 +151,41 @@ export async function reactivateAthleteCartItemAction(registrationId: string) {
             payment_id: null
         })
         .eq('id', registrationId)
-        .eq('registered_by', user.id)
-        .eq('status', 'aguardando_pagamento')
-        .is('tenant_id', null);
+        .eq('athlete_id', user.id)
+        .eq('status', 'aguardando_pagamento');
 
     if (error) {
         console.error('reactivateAthleteCartItemAction error:', error);
         throw new Error('Erro ao reativar item na cesta.');
+    }
+
+    return { success: true };
+}
+
+export async function cancelPendingRegistrationAction(registrationId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('Não autenticado');
+
+    const supabaseAdmin = createAdminClient();
+
+    // Only allow deletion if the status is aguardando_pagamento or pendente
+    const { data, error } = await supabaseAdmin
+        .from('event_registrations')
+        .delete()
+        .eq('id', registrationId)
+        .eq('athlete_id', user.id)
+        .in('status', ['aguardando_pagamento', 'pendente'])
+        .select();
+
+    if (error) {
+        console.error('cancelPendingRegistrationAction error:', error);
+        throw new Error('Erro ao cancelar inscrição pendente.');
+    }
+
+    if (!data || data.length === 0) {
+        throw new Error('Nenhuma inscrição foi removida. Ela pode já ter sido processada ou não existe.');
     }
 
     return { success: true };

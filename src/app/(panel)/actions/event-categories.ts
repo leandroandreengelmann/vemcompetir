@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole, requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function linkCategoryTables(eventId: string, tableIds: string[]) {
     const { profile, tenant_id } = await requireTenantScope();
@@ -302,7 +303,8 @@ export async function getEventCategoriesWithPrices(
         .neq('registration_fee', defaultPrice);
 
     // 6. Get enrolled athlete counts and previews
-    const { data: countsData } = await supabase
+    const supabaseAdmin = createAdminClient();
+    const { data: countsData } = await supabaseAdmin
         .from('event_registrations')
         .select(`
             category_id,
@@ -404,10 +406,15 @@ export async function searchEventCategories(eventId: string, query: string) {
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
 
     // 3.5 Get enrolled athlete counts and previews for this event
-    const { data: countsData } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Use admin client to bypass RLS and read all athlete profiles for previews
+    const supabaseAdmin = createAdminClient();
+    const { data: countsData } = await supabaseAdmin
         .from('event_registrations')
         .select(`
             category_id,
+            athlete_id,
             athlete:profiles!athlete_id(full_name)
         `)
         .eq('event_id', eventId)
@@ -416,6 +423,7 @@ export async function searchEventCategories(eventId: string, query: string) {
 
     const countMap = new Map<string, number>();
     const previewMap = new Map<string, string[]>();
+    const myEnrolledCategoryIds = new Set<string>();
 
     countsData?.forEach(row => {
         const catId = row.category_id;
@@ -432,21 +440,27 @@ export async function searchEventCategories(eventId: string, query: string) {
             const shortName = name.split(' ').slice(0, 2).join(' ');
             previews.push(shortName);
         }
+
+        if (user && row.athlete_id === user.id) {
+            myEnrolledCategoryIds.add(catId);
+        }
     });
 
-    // 4. Merge prices and counts
-    return rows.map(row => {
-        const defaultPrice = tablePriceMap.get(row.table_id) || 0;
-        const overridePrice = overridesMap.get(row.id);
-        const registeredCount = countMap.get(row.id) || 0;
+    // 4. Merge prices and counts, and filter out already enrolled categories
+    return rows
+        .filter(row => !myEnrolledCategoryIds.has(row.id))
+        .map(row => {
+            const defaultPrice = tablePriceMap.get(row.table_id) || 0;
+            const overridePrice = overridesMap.get(row.id);
+            const registeredCount = countMap.get(row.id) || 0;
 
-        return {
-            ...row,
-            registration_fee: overridePrice ?? defaultPrice,
-            registered_count: registeredCount,
-            preview_athletes: previewMap.get(row.id) || []
-        };
-    });
+            return {
+                ...row,
+                registration_fee: overridePrice ?? defaultPrice,
+                registered_count: registeredCount,
+                preview_athletes: previewMap.get(row.id) || []
+            };
+        });
 }
 
 /**
@@ -454,9 +468,9 @@ export async function searchEventCategories(eventId: string, query: string) {
  * Used for lazy loading in the UI expansion segment for categories.
  */
 export async function getCategoryEnrolledAthletes(eventId: string, categoryId: string) {
-    const supabase = await createClient();
+    const supabaseAdmin = createAdminClient();
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('event_registrations')
         .select(`
             athlete_id,

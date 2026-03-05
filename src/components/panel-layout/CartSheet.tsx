@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "./PixModal";
+import { cancelPendingCartItemAction } from "@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions";
+import { CancelRegistrationButton } from "@/app/atleta/dashboard/inscricoes/CancelRegistrationButton";
 
 export function CartSheet() {
     const { isOpen, setOpen, items, removeItem, fetchCart, checkout, isLoading, reactivateItem } = useRegistrationCart();
@@ -159,15 +161,22 @@ export function CartSheet() {
                                                     <p className="text-sm font-bold leading-tight text-foreground">{item.eventTitle}</p>
                                                     <p className="text-xs font-medium text-muted-foreground">{item.athleteName} - {item.categoryTitle}</p>
                                                 </div>
-                                                <Button
-                                                    size="sm"
-                                                    disabled={isLoading || submitting}
-                                                    onClick={() => reactivateItem(item.id)}
-                                                    className="w-full sm:w-auto h-9 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 transition-colors"
-                                                >
-                                                    <RotateCcw className="w-3.5 h-3.5 mr-2" />
-                                                    Refazer
-                                                </Button>
+                                                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                                    <Button
+                                                        size="sm"
+                                                        disabled={isLoading || submitting}
+                                                        onClick={() => reactivateItem(item.id)}
+                                                        className="flex-1 sm:flex-[0_auto] h-9 text-xs font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 px-4 transition-colors rounded-full"
+                                                    >
+                                                        <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                                                        Refazer
+                                                    </Button>
+                                                    <CancelRegistrationButton
+                                                        className="h-9 w-9"
+                                                        onSuccess={fetchCart}
+                                                        onConfirm={() => cancelPendingCartItemAction(item.id)}
+                                                    />
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -193,7 +202,7 @@ export function CartSheet() {
                                                             initial={{ opacity: 0, scale: 0.95 }}
                                                             animate={{ opacity: 1, scale: 1 }}
                                                             exit={{ opacity: 0, scale: 0.95 }}
-                                                            className="group relative flex flex-col p-3.5 sm:p-4 rounded-2xl border shadow-sm bg-card hover:border-primary/50 transition-all"
+                                                            className="group relative flex flex-col p-3.5 sm:p-4 rounded-2xl border border-border shadow-sm bg-card hover:border-primary/50 transition-all"
                                                         >
                                                             <div className="flex flex-col gap-3">
                                                                 <div className="flex justify-between items-start gap-4">
@@ -276,7 +285,7 @@ export function CartSheet() {
                 onClose={() => {
                     setPixModalOpen(false);
                     fetchCart();
-                    router.refresh();
+                    router.refresh(); // Refresh page data on close
                 }}
                 pixData={pixData}
             />

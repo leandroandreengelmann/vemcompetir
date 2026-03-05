@@ -45,39 +45,22 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
 
     const isActuallyInCart = isInCart || added;
 
-    // --- MOCK ---
-    const isMock = category.categoria_completa.toLowerCase().includes('absoluto') &&
-        category.categoria_completa.toLowerCase().includes('azul') &&
-        category.categoria_completa.toLowerCase().includes('masculino');
-
-    const displayCount = isMock ? 35 : category.registered_count;
-    const displayPreviews = isMock ? ['Atleta A', 'Atleta B', 'Atleta C'] : category.preview_athletes;
-    // --- FIM MOCK ---
+    const displayCount = category.registered_count;
+    const displayPreviews = category.preview_athletes;
 
     const handleToggleExpand = async (e: React.MouseEvent) => {
         e.stopPropagation();
 
         if (!isExpanded && !hasLoaded && eventId) {
-            if (isMock) {
-                const mockAthletes = Array.from({ length: 35 }).map((_, i) => ({
-                    id: `mock-${i}`,
-                    name: `Atleta Teste ${i + 1} Silva`,
-                    gym: `Equipe Campeã BJJ`,
-                    belt: i % 2 === 0 ? 'Azul' : 'Roxa'
-                }));
-                setAthletes(mockAthletes);
+            setLoadingAthletes(true);
+            try {
+                const data = await getCategoryEnrolledAthletes(eventId, category.id);
+                setAthletes(data);
                 setHasLoaded(true);
-            } else {
-                setLoadingAthletes(true);
-                try {
-                    const data = await getCategoryEnrolledAthletes(eventId, category.id);
-                    setAthletes(data);
-                    setHasLoaded(true);
-                } catch (err) {
-                    console.error("Falha ao buscar atletas", err);
-                } finally {
-                    setLoadingAthletes(false);
-                }
+            } catch (err) {
+                console.error("Falha ao buscar atletas", err);
+            } finally {
+                setLoadingAthletes(false);
             }
         }
 
@@ -151,7 +134,7 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                                 ) : (
                                     <ShoppingBag className="h-3.5 w-3.5" />
                                 )}
-                                {isActuallyInCart ? 'Inscrito' : 'Inscrever'}
+                                {isActuallyInCart ? 'Na sacola' : 'Inscrever'}
                             </button>
                         )}
                     </div>
@@ -233,7 +216,11 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                                                     <span className="font-semibold text-foreground truncate text-xs">{athlete.name}</span>
                                                     <span className="text-[10px] text-muted-foreground truncate uppercase font-medium">{athlete.gym}</span>
                                                 </div>
-                                                <Badge variant="outline" className="text-[9px] shadow-none uppercase font-bold whitespace-nowrap px-1.5 py-0 border-primary/20 bg-primary/5 text-primary">
+                                                <Badge
+                                                    variant="outline"
+                                                    style={getBeltStyle(athlete.belt)}
+                                                    className="text-[9px] shadow-none uppercase font-bold whitespace-nowrap px-1.5 py-0 border-border/50"
+                                                >
                                                     {athlete.belt}
                                                 </Badge>
                                             </div>

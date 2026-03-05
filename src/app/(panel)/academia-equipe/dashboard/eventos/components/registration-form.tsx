@@ -21,6 +21,20 @@ import { RegistrationCategoryCard } from './registration-category-card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useDebounce } from '@/hooks/use-debounce';
 import { useRegistrationCart } from '@/hooks/use-registration-cart';
+import { Badge } from '@/components/ui/badge';
+import { getBeltStyle } from '@/lib/belt-theme';
+
+function calculateAge(birthDateStr: string) {
+    if (!birthDateStr) return '';
+    const birthDate = new Date(birthDateStr);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
 
 interface Athlete {
     id: string;
@@ -46,7 +60,6 @@ interface RegistrationFormProps {
 export function RegistrationForm({ event, athletes, isOwner, adminTax }: RegistrationFormProps) {
     const router = useRouter();
     const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
-    const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
     const { items, addItem } = useRegistrationCart();
 
     // Data states
@@ -63,21 +76,14 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
         athletes.find(a => a.id === selectedAthleteId),
         [selectedAthleteId, athletes]);
 
-    const selectedCategory = useMemo(() => {
-        if (!selectedCategoryId) return null;
-        return suggestions.find(c => c.id === selectedCategoryId) || allCategories.find(c => c.id === selectedCategoryId);
-    }, [selectedCategoryId, suggestions, allCategories]);
-
     // Fetch categories when athlete changes
     useEffect(() => {
         if (selectedAthleteId) {
             fetchCategories(selectedAthleteId);
-            setSelectedCategoryId(''); // Reset selection
             setViewMode('match'); // Reset to match view
         } else {
             setSuggestions([]);
             setAllCategories([]);
-            setSelectedCategoryId('');
         }
     }, [selectedAthleteId]);
 
@@ -104,12 +110,15 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
         }
     };
 
-    const addToCart = async () => {
-        if (!selectedAthlete || !selectedCategory) return;
+    const addToCart = async (categoryId: string) => {
+        if (!selectedAthlete || !categoryId) return;
+
+        const category = suggestions.find(c => c.id === categoryId) || allCategories.find(c => c.id === categoryId);
+        if (!category) return;
 
         // Check for duplicates
         const exists = items.some(
-            item => item.athleteId === selectedAthleteId && item.categoryId === selectedCategoryId
+            item => item.athleteId === selectedAthleteId && item.categoryId === categoryId
         );
 
         if (exists) {
@@ -120,15 +129,11 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
         await addItem({
             eventId: event.id,
             athleteId: selectedAthleteId,
-            categoryId: selectedCategoryId,
+            categoryId: categoryId,
             athleteName: selectedAthlete.full_name,
-            categoryTitle: selectedCategory.categoria_completa,
-            price: isOwner && adminTax > 0 ? adminTax : selectedCategory.registration_fee
+            categoryTitle: category.categoria_completa,
+            price: isOwner && adminTax > 0 ? adminTax : category.registration_fee
         });
-
-        setSelectedCategoryId('');
-        setSelectedAthleteId('');
-        setViewMode('match');
     };
 
     const isWhiteBelt = selectedAthlete?.belt_color?.toLowerCase() === 'branca' || selectedAthlete?.belt_color?.toLowerCase() === 'white';
@@ -145,17 +150,12 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
 
     // Filter suggestions excluding cart items
     const filteredSuggestions = useMemo(() => {
-        return suggestions.filter(cat => !cartCategoryIds.has(cat.id));
-    }, [suggestions, cartCategoryIds]);
+        return suggestions;
+    }, [suggestions]);
 
     // Filter "All" categories based on search AND cart items
     const filteredAllCategories = useMemo(() => {
         let cats = allCategories;
-
-        // Filter out cart items
-        if (cartCategoryIds.size > 0) {
-            cats = cats.filter(cat => !cartCategoryIds.has(cat.id));
-        }
 
         if (!debouncedQuery) return cats;
         const lower = debouncedQuery.toLowerCase();
@@ -165,7 +165,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
             cat.divisao_idade?.toLowerCase().includes(lower) ||
             cat.peso?.toLowerCase().includes(lower)
         );
-    }, [allCategories, debouncedQuery, cartCategoryIds]);
+    }, [allCategories, debouncedQuery]);
 
     return (
         <Card className="max-w-4xl mx-auto border-none shadow-none bg-transparent">
@@ -174,7 +174,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                     Inscreva <strong>{selectedAthlete?.full_name || 'um atleta'}</strong> no evento <span className="text-foreground font-medium">{event.title}</span>.
                 </p>
             </CardHeader>
-            <CardContent className="space-y-8 px-0">
+            <CardContent className="space-y-8 px-0 pb-16 md:pb-0">
                 {/* 1. Athlete Selection */}
                 <div className="space-y-4 bg-card p-6 rounded-3xl border shadow-sm">
                     <Label htmlFor="athlete" className="text-h3">1. Selecione o Atleta</Label>
@@ -183,20 +183,47 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                         onValueChange={setSelectedAthleteId}
                         disabled={submitting}
                     >
-                        <SelectTrigger className="w-full h-12 rounded-xl">
-                            <SelectValue placeholder="Buscar atleta..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                            {athletes.map((athlete) => (
-                                <SelectItem key={athlete.id} value={athlete.id} className="py-3">
-                                    <div className="flex flex-col">
-                                        <span className="text-ui font-medium">{athlete.full_name}</span>
-                                        <span className="text-caption text-muted-foreground">
-                                            {athlete.belt_color} • {athlete.weight}kg • {athlete.sexo}
-                                        </span>
+                        <SelectTrigger className="w-full h-14 rounded-xl px-4 bg-card hover:bg-muted/50 transition-colors">
+                            <SelectValue placeholder="Buscar atleta...">
+                                {selectedAthlete && (
+                                    <div className="flex items-center justify-between w-full">
+                                        <span className="text-ui font-semibold">{selectedAthlete.full_name}</span>
+                                        <div className="flex items-center gap-2 mr-2">
+                                            <Badge
+                                                variant="outline"
+                                                style={getBeltStyle(selectedAthlete.belt_color)}
+                                                className="text-[10px] shadow-none uppercase font-bold px-2 py-0.5 border-border/50"
+                                            >
+                                                {selectedAthlete.belt_color}
+                                            </Badge>
+                                        </div>
                                     </div>
-                                </SelectItem>
-                            ))}
+                                )}
+                            </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[350px] p-2 rounded-xl">
+                            {athletes.map((athlete) => {
+                                const age = calculateAge(athlete.birth_date);
+                                return (
+                                    <SelectItem key={athlete.id} value={athlete.id} className="py-2.5 px-3 mb-1 rounded-lg focus:bg-muted/60 cursor-pointer">
+                                        <div className="flex items-center justify-between w-full gap-3">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-semibold text-foreground truncate text-sm">{athlete.full_name}</span>
+                                                <span className="text-[11px] text-muted-foreground truncate font-medium mt-0.5">
+                                                    {athlete.weight}kg • {athlete.sexo} {age ? `• ${age} anos` : ''}
+                                                </span>
+                                            </div>
+                                            <Badge
+                                                variant="outline"
+                                                style={getBeltStyle(athlete.belt_color)}
+                                                className="text-[10px] shadow-none uppercase font-bold whitespace-nowrap px-2 py-0.5 border-border/50 shrink-0"
+                                            >
+                                                {athlete.belt_color}
+                                            </Badge>
+                                        </div>
+                                    </SelectItem>
+                                );
+                            })}
                         </SelectContent>
                     </Select>
 
@@ -266,9 +293,10 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                         {filteredSuggestions.map((cat) => (
                                             <RegistrationCategoryCard
                                                 key={cat.id}
+                                                eventId={event.id}
                                                 category={cat}
-                                                isSelected={selectedCategoryId === cat.id}
-                                                onClick={() => setSelectedCategoryId(cat.id)}
+                                                isInCart={cartCategoryIds.has(cat.id)}
+                                                onAddToCart={() => addToCart(cat.id)}
                                                 isWhiteBelt={isWhiteBelt}
                                             />
                                         ))}
@@ -303,9 +331,10 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                         {filteredAllCategories.slice(0, 50).map((cat) => (
                                             <RegistrationCategoryCard
                                                 key={cat.id}
+                                                eventId={event.id}
                                                 category={cat}
-                                                isSelected={selectedCategoryId === cat.id}
-                                                onClick={() => setSelectedCategoryId(cat.id)}
+                                                isInCart={cartCategoryIds.has(cat.id)}
+                                                onAddToCart={() => addToCart(cat.id)}
                                                 isWhiteBelt={isWhiteBelt}
                                             />
                                         ))}
@@ -320,33 +349,18 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                         </Tabs>
 
                         {/* Warnings */}
-                        {selectedCategoryId && viewMode === 'all' && (
+                        {viewMode === 'all' && (
                             <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-300 rounded-2xl">
                                 <AlertCircle className="h-4 w-4 text-amber-500" />
                                 <AlertTitle className="text-ui font-bold">Atenção</AlertTitle>
                                 <AlertDescription className="text-caption">
-                                    Você está inscrevendo o atleta em uma categoria selecionada manualmente. Verifique se ele cumpre os requisitos de idade e peso.
+                                    Você está inscrevendo o atleta através da lista manual de categorias. Verifique se ele cumpre os requisitos de idade e peso antes de adicionar à cesta.
                                 </AlertDescription>
                             </Alert>
                         )}
                     </div>
                 )}
             </CardContent>
-
-            {/* ACTION FOOTER */}
-            <div className="flex justify-end pt-6 pb-20 md:pb-0">
-                <Button
-                    size="lg"
-                    pill
-                    onClick={addToCart}
-                    disabled={!selectedCategoryId}
-                    className="w-full md:w-auto shadow-sm transition-all"
-                >
-                    Adicionar ao Carrinho
-                </Button>
-            </div>
-
-
         </Card>
     );
 }

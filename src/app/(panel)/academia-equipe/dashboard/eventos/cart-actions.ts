@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // Add item to cart (create registration with status 'carrinho')
 export async function addToCartAction(item: { eventId: string, athleteId: string, categoryId: string, price: number }) {
@@ -95,8 +96,7 @@ export async function getCartItemsAction() {
         .select(`
             id,
             event_id,
-            created_at,
-            price,
+            status,
             created_at,
             price,
             athlete_id,
@@ -175,6 +175,32 @@ export async function reactivateCartItemAction(registrationId: string) {
     if (error) {
         console.error('reactivateCartItemAction error:', error);
         return { error: 'Erro ao reativar item na cesta.' };
+    }
+
+    revalidatePath('/academia-equipe/dashboard/eventos');
+    return { success: true };
+}
+
+// Cancel a pending registration (aguardando_pagamento) placed by this academy user
+export async function cancelPendingCartItemAction(registrationId: string) {
+    const { profile } = await requireTenantScope();
+    const supabaseAdmin = createAdminClient();
+
+    const { data, error } = await supabaseAdmin
+        .from('event_registrations')
+        .delete()
+        .eq('id', registrationId)
+        .eq('registered_by', profile.id)
+        .in('status', ['aguardando_pagamento', 'pendente'])
+        .select();
+
+    if (error) {
+        console.error('cancelPendingCartItemAction error:', error);
+        throw new Error('Erro ao cancelar inscrição pendente.');
+    }
+
+    if (!data || data.length === 0) {
+        throw new Error('Nenhuma inscrição foi removida. Ela pode já ter sido processada ou não existe.');
     }
 
     revalidatePath('/academia-equipe/dashboard/eventos');
