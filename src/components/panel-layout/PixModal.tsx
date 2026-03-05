@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Clock, QrCode, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { motion } from 'framer-motion';
 
 interface PixModalProps {
     open: boolean;
@@ -130,20 +131,61 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
 
                 <div className="flex flex-col items-center gap-4 py-4">
                     {paymentStatus === 'PAID' ? (
-                        <div className="flex flex-col items-center gap-6 py-6 animate-in fade-in zoom-in-95 duration-500">
-                            <div className="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center">
-                                <CheckCircle2 className="h-12 w-12 text-green-600" />
+                        <div className="flex flex-col items-center gap-6 py-8 w-full">
+                            {/* Animated icon: pulsing halo + bounce + rotate */}
+                            <div className="relative flex items-center justify-center">
+                                {/* Pulsing outer halo */}
+                                <motion.div
+                                    className="absolute h-40 w-40 rounded-full bg-green-100"
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                />
+                                {/* Main circle */}
+                                <motion.div
+                                    className="relative h-32 w-32 rounded-full bg-green-100 flex items-center justify-center z-10"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
+                                >
+                                    {/* Rotating check icon */}
+                                    <motion.div
+                                        initial={{ rotate: -90, opacity: 0 }}
+                                        animate={{ rotate: 0, opacity: 1 }}
+                                        transition={{ duration: 0.45, delay: 0.3, ease: 'easeOut' }}
+                                    >
+                                        <CheckCircle2 className="h-16 w-16 text-green-600" strokeWidth={1.8} />
+                                    </motion.div>
+                                </motion.div>
                             </div>
-                            <div className="space-y-2 text-center">
-                                <h3 className="text-xl font-bold text-green-700">Pagamento Confirmado!</h3>
-                                <p className="text-sm text-muted-foreground">Sua inscrição foi efetivada com sucesso.</p>
-                            </div>
-                            <Button
-                                className="w-full h-12 font-bold bg-green-600 hover:bg-green-700 text-white mt-4"
-                                onClick={onClose}
+
+                            {/* Animated text */}
+                            <motion.div
+                                className="space-y-2 text-center"
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: 0.5 }}
                             >
-                                Concluir
-                            </Button>
+                                <h3 className="text-2xl font-bold text-green-700">Pagamento Confirmado!</h3>
+                                <p className="text-sm text-muted-foreground">Sua inscrição foi efetivada com sucesso.</p>
+                            </motion.div>
+
+                            {/* Pill button — project standard */}
+                            <motion.div
+                                className="w-full"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35, delay: 0.7 }}
+                            >
+                                <Button
+                                    pill
+                                    size="lg"
+                                    className="w-full h-12 font-bold bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={onClose}
+                                >
+                                    Concluir
+                                </Button>
+                            </motion.div>
                         </div>
                     ) : (
                         <>
