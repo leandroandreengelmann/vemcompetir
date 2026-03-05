@@ -39,16 +39,18 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
         if (!pixData?.payment_id || !open) return;
 
         const supabase = createClient();
+        const paymentId = pixData.payment_id;
 
+        // --- Realtime WebSocket (primary) ---
         const channel = supabase
-            .channel(`payment-${pixData.payment_id}`)
+            .channel(`payment-${paymentId}`)
             .on(
                 'postgres_changes',
                 {
                     event: 'UPDATE',
                     schema: 'public',
                     table: 'payments',
-                    filter: `id=eq.${pixData.payment_id}`,
+                    filter: `id=eq.${paymentId}`,
                 },
                 (payload) => {
                     if (payload.new.status === 'PAID' || payload.new.status === 'CONFIRMED') {
@@ -58,8 +60,23 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
             )
             .subscribe();
 
+        // --- Polling fallback (every 5s) ---
+        const poll = setInterval(async () => {
+            const { data } = await supabase
+                .from('payments')
+                .select('status')
+                .eq('id', paymentId)
+                .single();
+
+            if (data?.status === 'PAID' || data?.status === 'CONFIRMED') {
+                setPaymentStatus('PAID');
+                clearInterval(poll);
+            }
+        }, 5000);
+
         return () => {
             supabase.removeChannel(channel);
+            clearInterval(poll);
         };
     }, [pixData?.payment_id, open]);
 
