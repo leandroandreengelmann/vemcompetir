@@ -134,6 +134,13 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
             categoryTitle: category.categoria_completa,
             price: isOwner && adminTax > 0 ? adminTax : category.registration_fee
         });
+
+        toast.custom((t) => (
+            <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
+                <Check className="h-6 w-6 shrink-0" />
+                <p className="text-base font-bold">Adicionado à cesta!</p>
+            </div>
+        ), { duration: 4000 });
     };
 
     const isWhiteBelt = selectedAthlete?.belt_color?.toLowerCase() === 'branca' || selectedAthlete?.belt_color?.toLowerCase() === 'white';

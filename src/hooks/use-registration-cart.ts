@@ -82,7 +82,6 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
                 return;
             }
 
-            toast.success('Adicionado à cesta');
             await get().fetchCart(); // Refresh cart
             set({ isOpen: true });
         } catch (error) {
