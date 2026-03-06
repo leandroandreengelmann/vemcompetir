@@ -15,7 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { createAdminEventAction, updateAdminEventAction, deleteAdminEventAction, approveAdminEventAction, publishAdminEventAction } from '../actions';
+import { createAdminEventAction, updateAdminEventAction, deleteAdminEventAction, approveAdminEventAction, publishAdminEventAction, unpublishAdminEventAction } from '../actions';
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmationDialog } from "@/components/panel/DeleteConfirmationDialog";
 
@@ -143,6 +143,29 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
             }
         } catch (err) {
             setError('Falha ao publicar o evento.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUnpublish = async () => {
+        if (!initialData?.id || loading) return;
+
+        if (!confirm('Deseja despublicar este evento? Ele deixará de ser visível na página inicial.')) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const result = await unpublishAdminEventAction(initialData.id);
+            if (result.error) {
+                setError(result.error);
+            } else if (result.success) {
+                alert('Evento despublicado com sucesso.');
+                router.refresh();
+            }
+        } catch (err) {
+            setError('Falha ao despublicar o evento.');
         } finally {
             setLoading(false);
         }
@@ -376,7 +399,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 type="button"
                                 variant="default"
                                 pill
-                                onClick={handlePublish}
+                                onClick={initialData.status === 'publicado' ? handleUnpublish : handlePublish}
                                 className={cn(
                                     "w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold shadow-lg transition-all",
                                     initialData.status === 'publicado'
@@ -385,7 +408,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 )}
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : initialData.status === 'publicado' ? 'Evento já Publicado' : 'Publicar'}
+                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : initialData.status === 'publicado' ? 'Despublicar Evento' : 'Publicar'}
                             </Button>
                         )}
 

@@ -261,3 +261,23 @@ export async function publishAdminEventAction(id: string) {
     revalidatePath('/', 'layout');
     return { success: true };
 }
+export async function unpublishAdminEventAction(id: string) {
+    if (!(await checkAdmin())) return { error: 'Não autorizado.' };
+
+    const adminClient = createAdminClient();
+    const { error } = await adminClient
+        .from('events')
+        .update({ status: 'aprovado' })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Erro ao despublicar evento:", error);
+        return { error: 'Erro ao despublicar evento.' };
+    }
+
+    revalidatePath('/admin/dashboard/eventos', 'page');
+    revalidatePath('/admin/dashboard/eventos/[id]/preview', 'page');
+    revalidatePath('/admin/dashboard/equipes-academias/[id]/eventos', 'page');
+    revalidatePath('/', 'layout');
+    return { success: true };
+}

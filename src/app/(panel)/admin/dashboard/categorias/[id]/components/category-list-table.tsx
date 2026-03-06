@@ -131,9 +131,11 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                                         </Badge>
                                     </div>
                                 </TableCell>
-                                <div className="flex flex-col">
-                                    <span className="text-ui font-medium">{row.divisao_idade}</span>
-                                </div>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="text-ui font-medium">{row.divisao_idade}</span>
+                                    </div>
+                                </TableCell>
 
 
                                 <TableCell>{row.sexo}</TableCell>
