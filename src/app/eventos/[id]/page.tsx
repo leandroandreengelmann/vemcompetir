@@ -10,6 +10,7 @@ import { getEventCoverUrl } from '../_data/event-utils';
 import { PublicHeader } from '@/components/layout/PublicHeader';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { SubscribeButton } from '../_components/subscribe-button';
+import { ShareLink } from '../_components/share-link';
 import { Eye } from 'lucide-react';
 import {
     Accordion,
@@ -154,6 +155,11 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                         </p>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Share Section */}
+                            <div className="max-w-md">
+                                <ShareLink />
                             </div>
 
                             {/* CTA & Social Proof */}
