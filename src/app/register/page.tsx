@@ -86,11 +86,13 @@ export default function RegisterPage() {
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
             <div className="w-full max-w-md space-y-10 py-12">
                 <div className="flex flex-col items-center gap-4">
-                    <img
-                        src="/logo-camaleao-black.png"
-                        alt="COMPETIR"
-                        className="h-14 w-auto"
-                    />
+                    <Link href="/">
+                        <img
+                            src="/logo-camaleao-black.png"
+                            alt="COMPETIR"
+                            className="h-14 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                    </Link>
                     <p className="text-body text-muted-foreground">
                         {step === 1 ? 'Primeiro, como devemos te chamar?' : 'Agora, suas credenciais de acesso.'}
                     </p>
