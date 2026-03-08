@@ -207,7 +207,7 @@ export default function NovoAcademiaEquipePage() {
                         <Button
                             type="submit"
                             pill
-                            className="w-full max-w-[320px] h-12 text-ui font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                            className="w-full max-w-[320px] h-12 text-ui text-white font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
                             disabled={loading}
                         >
                             {loading ? (

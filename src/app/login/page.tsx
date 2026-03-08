@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { checkInterest, clearInterest } from '@/app/eventos/actions';
+import { getAuthErrorMessage } from '@/lib/auth-errors';
 
 
 export default function LoginPage() {
@@ -101,8 +102,7 @@ export default function LoginPage() {
             // Default redirection for everyone else (including athletes without interest)
             router.push(targetRoute);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'E-mail ou senha inválidos.';
-            setError(message);
+            setError(getAuthErrorMessage(err));
         } finally {
             setLoading(false);
         }

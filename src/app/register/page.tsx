@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SectionHeader } from "@/components/layout/SectionHeader";
+import { getAuthErrorMessage } from '@/lib/auth-errors';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -70,13 +71,7 @@ export default function RegisterPage() {
                 setTimeout(() => router.push('/login'), 3000);
             }
         } catch (err) {
-            // The error message "E-mail ou senha inválidos" is typically for login failures.
-            // For a registration page, a more appropriate message would be related to sign-up issues.
-            // Keeping the provided message for faithful adherence to the instruction,
-            // but noting its logical inconsistency with a registration context.
-            const message = err instanceof Error ? err.message : 'Ocorreu um erro ao criar a conta.'; // Original message for consistency with sign-up
-            // const message = err instanceof Error ? err.message : 'E-mail ou senha inválidos.'; // Provided message
-            setError(message);
+            setError(getAuthErrorMessage(err));
         } finally {
             setLoading(false);
         }
