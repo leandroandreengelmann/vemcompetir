@@ -61,7 +61,7 @@ export default async function AthleteDashboard() {
 
     return (
         <div
-            className="min-h-screen bg-[#FAFAFA] relative flex flex-col items-center justify-center p-4 pt-20 md:pt-8"
+            className="min-h-screen md:h-screen md:overflow-hidden bg-[#FAFAFA] relative flex flex-col items-center justify-center p-4 pt-20 md:pt-8"
             style={{ '--primary': activeHsl } as React.CSSProperties}
         >
             {/* Header: Avatar (Left) and Belt (Right) — mobile only */}

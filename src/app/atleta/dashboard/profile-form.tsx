@@ -701,8 +701,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                 </div>
             </form >
 
-            {/* Seção de Saída */}
-            < div className="pt-6 border-t border-gray-100" >
+            {/* Seção de Saída - Mobile Only */}
+            < div className="pt-6 border-t border-gray-100 md:hidden" >
                 <div className="flex justify-center">
                     <Button
                         onClick={() => setShowLogoutConfirm(true)}

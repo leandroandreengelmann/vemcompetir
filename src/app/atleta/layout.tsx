@@ -32,7 +32,7 @@ export default async function AthleteLayout({
                     avatarUrl={profile?.avatar_url}
                     beltColor={profile?.belt_color || 'branca'}
                 />
-                <div className="flex-1 min-w-0 relative">
+                <div className="flex-1 min-w-0 md:pl-64 relative">
                     {children}
                     {/* Floating cart trigger */}
                     <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">
