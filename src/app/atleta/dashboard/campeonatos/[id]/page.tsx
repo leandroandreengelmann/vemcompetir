@@ -24,7 +24,7 @@ export default async function EventDetailPage(props: { params: Promise<{ id: str
     if (error || !event) notFound();
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#FAFAFA] p-4">
+        <div className="flex flex-col min-h-screen bg-[#FAFAFA] p-4 md:p-8 md:max-w-5xl md:mx-auto w-full">
             <AthletePageHeader
                 title={event.title}
                 description="Confira os detalhes e realize sua inscrição."

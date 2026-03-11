@@ -4,6 +4,7 @@ import { BeltThemeProvider } from '@/components/belt-theme-provider';
 import { redirect } from 'next/navigation';
 import { AthleteCartTrigger } from './components/AthleteCartTrigger';
 import { AthleteCartSheet } from './components/AthleteCartSheet';
+import { AthleteDesktopSidebar } from './components/AthleteDesktopSidebar';
 
 export default async function AthleteLayout({
     children,
@@ -19,18 +20,27 @@ export default async function AthleteLayout({
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('belt_color')
+        .select('belt_color, full_name, avatar_url')
         .eq('id', user.id)
         .single();
 
     return (
         <BeltThemeProvider beltColor={profile?.belt_color || 'branca'}>
-            {children}
-            {/* Floating cart trigger */}
-            <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">
-                <AthleteCartTrigger />
+            <div className="md:flex md:min-h-screen">
+                <AthleteDesktopSidebar
+                    fullName={profile?.full_name}
+                    avatarUrl={profile?.avatar_url}
+                    beltColor={profile?.belt_color || 'branca'}
+                />
+                <div className="flex-1 min-w-0 relative">
+                    {children}
+                    {/* Floating cart trigger */}
+                    <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">
+                        <AthleteCartTrigger />
+                    </div>
+                    <AthleteCartSheet />
+                </div>
             </div>
-            <AthleteCartSheet />
         </BeltThemeProvider>
     );
 }

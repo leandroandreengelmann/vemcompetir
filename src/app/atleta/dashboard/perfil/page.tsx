@@ -17,7 +17,7 @@ export default async function AthletePerfil() {
     const { user, profile } = await requireRole('atleta');
 
     return (
-        <div className="min-h-screen bg-[#FAFAFA] p-4">
+        <div className="min-h-screen bg-[#FAFAFA] p-4 md:p-8">
             <div className="max-w-2xl mx-auto flex flex-col gap-6">
                 <AthletePageHeader
                     title="Meu Perfil"

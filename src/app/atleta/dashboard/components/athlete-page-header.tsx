@@ -13,34 +13,37 @@ interface AthletePageHeaderProps {
 }
 
 export function AthletePageHeader({ title, description, backHref, beltColor = 'branca' }: AthletePageHeaderProps) {
-    // Lógica de cores baseada na faixa
     const currentBelt = beltColor.toLowerCase();
     const activeHex = getBeltColor(currentBelt);
     const activeHsl = hexToHsl(activeHex);
 
-    // Determina cor do foreground para contraste (preto para faixa branca, branco para as outras)
     const isWhiteBelt = currentBelt === 'branca';
     const activeFg = isWhiteBelt ? '240 10% 3.9%' : '0 0% 100%';
+    const accentColor = isWhiteBelt ? 'text-brand-950' : 'text-primary';
+    const borderColor = isWhiteBelt ? 'md:border-brand-950' : 'md:border-primary';
 
     return (
         <div
-            className="flex flex-col gap-8 mb-4 px-2 md:px-0"
+            className="flex flex-col gap-8 md:gap-5 mb-4 md:mb-8 px-2 md:px-0"
             style={{
                 // @ts-ignore
                 '--primary': activeHsl,
                 '--primary-foreground': activeFg,
             } as React.CSSProperties}
         >
+            {/* Botão voltar — só seta no mobile, seta + texto no desktop */}
             <Link
                 href={backHref}
-                className="w-fit group transition-all"
+                className={`w-fit group flex items-center gap-2 transition-all md:pl-5 ${accentColor}`}
                 aria-label="Voltar"
             >
-                <ArrowLeft className={`h-6 w-6 group-hover:-translate-x-1 transition-transform cursor-pointer ${isWhiteBelt ? 'text-brand-950' : 'text-primary'}`} />
+                <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform cursor-pointer" />
+                <span className="hidden md:inline text-sm font-semibold">Voltar</span>
             </Link>
 
-            <div className="space-y-1">
-                <h1 className={`text-h1 tracking-tight ${isWhiteBelt ? 'text-brand-950' : 'text-primary'}`}>
+            {/* Título com borda-acento lateral no desktop */}
+            <div className={`space-y-2 md:pl-5 md:border-l-[3px] ${borderColor}`}>
+                <h1 className={`text-h1 md:text-4xl md:font-black tracking-tight ${accentColor}`}>
                     {title}
                 </h1>
                 {description && (

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { User, ArrowRight } from 'lucide-react';
+import { User, ArrowRight, Trophy, ClipboardList } from 'lucide-react';
 import { AthleteProfileForm } from './profile-form';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
@@ -43,9 +43,10 @@ export default async function AthleteDashboard() {
     const isWhiteBelt = beltColor.toLowerCase().trim() === 'branca' || beltColor.toLowerCase().trim() === 'white';
 
     // Classes condicionais
-    const cardBaseClasses = "h-40 md:h-48 shadow-none active:scale-[0.98] transition-all duration-300 relative overflow-hidden";
-    const getCardClasses = (isWhite: boolean) =>
-        `${cardBaseClasses} ${isWhite
+    const cardPrimaryClasses = "h-40 md:h-60 shadow-none active:scale-[0.98] transition-all duration-300 relative overflow-hidden";
+    const cardSecondaryClasses = "h-40 md:h-48 shadow-none active:scale-[0.98] transition-all duration-300 relative overflow-hidden";
+    const getCardClasses = (isWhite: boolean, isPrimary: boolean = false) =>
+        `${isPrimary ? cardPrimaryClasses : cardSecondaryClasses} ${isWhite
             ? "bg-card border-brand-950/20 border-2 hover:bg-muted/40"
             : "bg-primary border-white/10 hover:brightness-110"}`;
 
@@ -60,11 +61,11 @@ export default async function AthleteDashboard() {
 
     return (
         <div
-            className="min-h-screen bg-[#FAFAFA] relative flex flex-col items-center justify-center p-4 pt-20"
+            className="min-h-screen bg-[#FAFAFA] relative flex flex-col items-center justify-center p-4 pt-20 md:pt-8"
             style={{ '--primary': activeHsl } as React.CSSProperties}
         >
-            {/* Header: Avatar (Left) and Belt (Right) */}
-            <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
+            {/* Header: Avatar (Left) and Belt (Right) — mobile only */}
+            <div className="md:hidden absolute top-4 left-4 right-4 flex items-start justify-between">
                 {/* Left: Avatar + Greeting */}
                 <div className="flex flex-col">
                     <Avatar className="h-10 w-10 shadow-sm border border-gray-100">
@@ -90,11 +91,11 @@ export default async function AthleteDashboard() {
             <InterestNotificationWrapper beltColor={beltColor} />
 
 
-            {/* Main Content: Navigation Cards (Mobile-First Layout) */}
-            <div className="w-full max-w-lg md:max-w-4xl grid grid-cols-2 gap-4 p-4 z-10">
-                {/* Card 1: Campeonatos */}
-                <Link href="/atleta/dashboard/campeonatos" className="block group col-span-1">
-                    <Card className={getCardClasses(isWhiteBelt)}>
+            {/* Main Content: Navigation Cards */}
+            <div className="w-full max-w-lg md:max-w-xl grid grid-cols-2 gap-4 md:gap-5 p-4 md:p-0 z-10">
+                {/* Card 1: Campeonatos — card primário, ocupa largura total no desktop */}
+                <Link href="/atleta/dashboard/campeonatos" className="block group col-span-1 md:col-span-2">
+                    <Card className={getCardClasses(isWhiteBelt, true)}>
                         <CardHeader className="h-full flex flex-col p-4 pb-12">
                             <div className="flex flex-col gap-1">
                                 <CardTitle className={getTitleClasses(isWhiteBelt)}>
@@ -106,6 +107,10 @@ export default async function AthleteDashboard() {
                             </div>
                             <ArrowRight className={getIconClasses(isWhiteBelt)} />
                         </CardHeader>
+                        {/* Ícone decorativo — visível apenas no desktop */}
+                        <Trophy className={`hidden md:block absolute bottom-4 right-6 h-24 w-24 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 ${
+                            isWhiteBelt ? 'text-brand-950/8' : 'text-white/10'
+                        }`} />
                     </Card>
                 </Link>
 
@@ -123,11 +128,14 @@ export default async function AthleteDashboard() {
                             </div>
                             <ArrowRight className={getIconClasses(isWhiteBelt)} />
                         </CardHeader>
+                        <ClipboardList className={`hidden md:block absolute bottom-4 right-4 h-16 w-16 ${
+                            isWhiteBelt ? 'text-brand-950/8' : 'text-white/10'
+                        }`} />
                     </Card>
                 </Link>
 
-                {/* Card 3: Meu Perfil (Centralizado e ~70% width) */}
-                <Link href="/atleta/dashboard/perfil" className="block group col-span-2 w-3/4 mx-auto">
+                {/* Card 3: Meu Perfil — largura total no mobile, metade no desktop */}
+                <Link href="/atleta/dashboard/perfil" className="block group col-span-2 w-3/4 mx-auto md:col-span-1 md:w-full md:mx-0">
                     <Card className={getCardClasses(isWhiteBelt)}>
                         <CardHeader className="h-full flex flex-col p-4 pb-12">
                             <div className="flex flex-col gap-1">
@@ -140,6 +148,9 @@ export default async function AthleteDashboard() {
                             </div>
                             <ArrowRight className={getIconClasses(isWhiteBelt)} />
                         </CardHeader>
+                        <User className={`hidden md:block absolute bottom-4 right-4 h-16 w-16 ${
+                            isWhiteBelt ? 'text-brand-950/8' : 'text-white/10'
+                        }`} />
                     </Card>
                 </Link>
             </div>

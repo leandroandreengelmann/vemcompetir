@@ -65,13 +65,42 @@ id,
     }
 
     return (
-        <div className="min-h-screen bg-[#FAFAFA] p-4 flex flex-col">
+        <div className="min-h-screen bg-[#FAFAFA] p-4 md:p-8 flex flex-col md:max-w-5xl md:mx-auto w-full">
             <AthletePageHeader
                 title="Minhas Inscrições"
                 description="Gerencie suas participações"
                 backHref="/atleta/dashboard"
                 beltColor={profile?.belt_color || 'branca'}
             />
+
+            {/* Stats — desktop only, só aparece se tiver inscrições */}
+            {inscricoes.length > 0 && (
+                <div className="hidden md:flex items-center gap-3 -mt-2 mb-2 flex-wrap">
+                    {(() => {
+                        const confirmadas = inscricoes.filter((i: any) => ['pago', 'confirmado'].includes(i.status)).length;
+                        const pendentes = inscricoes.filter((i: any) => ['aguardando_pagamento', 'pendente'].includes(i.status)).length;
+                        return (
+                            <>
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                    {inscricoes.length} {inscricoes.length === 1 ? 'inscrição' : 'inscrições'}
+                                </span>
+                                {confirmadas > 0 && (
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                        {confirmadas} confirmada{confirmadas > 1 ? 's' : ''}
+                                    </span>
+                                )}
+                                {pendentes > 0 && (
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                        {pendentes} aguardando
+                                    </span>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
 
             {/* Main Content */}
             <div className={`flex - 1 flex flex - col items - center ${inscricoes.length === 0 ? 'justify-center max-w-2xl' : 'max-w-4xl'} mx - auto w - full pb - 20`}>
