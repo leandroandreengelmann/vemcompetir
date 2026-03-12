@@ -53,7 +53,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(
         initialData?.image_path
-            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${initialData.image_path}?t=${new Date().getTime()}`
+            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${initialData.image_path}`
             : null
     );
     const [resizedImage, setResizedImage] = useState<Blob | null>(null);
@@ -70,22 +70,21 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
         reader.onload = (event) => {
             const img = new Image();
             img.onload = () => {
+                const MAX = 1000;
+                const scale = Math.min(MAX / img.width, MAX / img.height, 1);
                 const canvas = document.createElement('canvas');
-                canvas.width = 200;
-                canvas.height = 200;
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    const scale = Math.max(200 / img.width, 200 / img.height);
-                    const x = (200 - img.width * scale) / 2;
-                    const y = (200 - img.height * scale) / 2;
-                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     canvas.toBlob((blob) => {
                         if (blob) {
                             setResizedImage(blob);
                             setImagePreview(URL.createObjectURL(blob));
                         }
-                    }, 'image/jpeg', 0.8);
+                    }, 'image/jpeg', 0.92);
                 }
             };
             img.src = event.target?.result as string;
@@ -361,7 +360,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                         ) : (
                                             <div className="flex flex-col items-center transition-opacity">
                                                 <span className="text-label uppercase tracking-wider opacity-60">ENVIAR IMAGEM</span>
-                                                <span className="text-caption mt-1 opacity-40">Recomendado: 200×200</span>
+                                                <span className="text-caption mt-1 opacity-40">Recomendado: 1000×1000</span>
                                             </div>
                                         )}
                                     </div>

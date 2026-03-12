@@ -4,6 +4,7 @@ import { Info, Trophy, Users, FileText, Image as ImageIcon, ExternalLink } from 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { getPublishedEventById, getEventByIdAdmin } from '../_data/events';
 import { getEventCoverUrl } from '../_data/event-utils';
@@ -115,16 +116,20 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                 {/* Content starts here */}
 
                 <div className="space-y-20">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-stretch">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
 
                         {/* Hero Image Section */}
                         <div className="lg:col-span-5">
-                            <div className="relative aspect-square overflow-hidden rounded-[7px] border bg-card shadow-2xl ring-1 ring-black/5 h-full">
+                            <div className="relative aspect-square overflow-hidden rounded-[7px] border bg-card shadow-2xl ring-1 ring-black/5">
                                 {coverUrl ? (
-                                    <img
+                                    <Image
                                         src={coverUrl}
                                         alt={event.title}
-                                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                                        fill
+                                        priority
+                                        quality={100}
+                                        sizes="(max-width: 1024px) 100vw, 513px"
+                                        className="object-cover transition-transform duration-700 hover:scale-105"
                                     />
                                 ) : (
                                     <div className="h-full w-full flex items-center justify-center p-12 bg-muted/30">

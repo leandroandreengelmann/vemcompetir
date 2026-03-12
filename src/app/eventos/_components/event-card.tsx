@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,10 +23,13 @@ export function EventCard({ event }: EventCardProps) {
                 <CardHeader className="p-0 border-0">
                     <div className="relative aspect-square overflow-hidden">
                         {coverUrl ? (
-                            <img
+                            <Image
                                 src={coverUrl}
                                 alt={event.title}
-                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                fill
+                                quality={100}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                className="object-cover transition-transform duration-700 group-hover:scale-110"
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center bg-muted/50">
