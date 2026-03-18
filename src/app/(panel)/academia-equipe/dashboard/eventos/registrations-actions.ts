@@ -195,7 +195,7 @@ export async function getEligibleCategoriesAction(
         .select('category_table_id, registration_fee')
         .eq('event_id', eventId);
 
-    if (!linkedTables || linkedTables.length === 0) return { suggestions: [], all: [] };
+    if (!linkedTables || linkedTables.length === 0) return { suggestions: [], all: [], enrolledCategories: [] };
 
     const tableIds = linkedTables.map(lt => lt.category_table_id);
     const tablePriceMap = new Map(linkedTables.map(lt => [lt.category_table_id, lt.registration_fee]));
@@ -226,7 +226,7 @@ export async function getEligibleCategoriesAction(
 
     const categories = allCategories;
 
-    if (!categories || categories.length === 0) return { suggestions: [], all: [] };
+    if (!categories || categories.length === 0) return { suggestions: [], all: [], enrolledCategories: [] };
 
     // 4. Overrides
     const { data: overrides } = await supabase
@@ -275,6 +275,14 @@ export async function getEligibleCategoriesAction(
         }
     });
 
+    // Fetch enrolled registrations for this athlete with status (including pending)
+    const { data: enrolledRegsData } = await supabaseAdmin
+        .from('event_registrations')
+        .select('category_id, status')
+        .eq('event_id', eventId)
+        .eq('athlete_id', athleteId)
+        .in('status', ['pago', 'isento', 'confirmado', 'aguardando_pagamento', 'pendente']);
+
     // 5. Process Eligibility
     const processed = await Promise.all(categories.map(async (cat: any) => {
         const match = await checkEligibility(athlete, cat, event?.event_date || null);
@@ -301,8 +309,26 @@ export async function getEligibleCategoriesAction(
         };
     }));
 
-    // Filter out categories where the athlete is already successfully enrolled
-    const results = processed.filter(p => !myEnrolledCategoryIds.has(p.id));
+    // Build enrolledCategories: categories the athlete is already registered in (any status)
+    const enrolledCategoryMap = new Map<string, string>(
+        enrolledRegsData?.map(r => [r.category_id, r.status]) || []
+    );
+    const enrolledCategories = processed
+        .filter(p => enrolledCategoryMap.has(p.id))
+        .map(p => ({
+            id: p.id,
+            categoria_completa: p.categoria_completa,
+            faixa: p.faixa,
+            divisao: p.divisao,
+            peso: p.peso,
+            categoria_peso: p.categoria_peso,
+            peso_min_kg: p.peso_min_kg,
+            peso_max_kg: p.peso_max_kg,
+            status: enrolledCategoryMap.get(p.id)!,
+        }));
+
+    // Filter out categories where the athlete is already enrolled (any status)
+    const results = processed.filter(p => !myEnrolledCategoryIds.has(p.id) && !enrolledCategoryMap.has(p.id));
 
     // Split into Suggestions (Matches) and All
     const suggestions = results
@@ -312,7 +338,7 @@ export async function getEligibleCategoriesAction(
     // For "All" tab: sort by title
     const all = results.sort((a, b) => a.categoria_completa.localeCompare(b.categoria_completa));
 
-    return { suggestions, all };
+    return { suggestions, all, enrolledCategories };
 }
 
 export async function getAvailableEventsAction() {
