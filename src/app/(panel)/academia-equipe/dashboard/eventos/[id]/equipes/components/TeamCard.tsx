@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { UsersIcon, StarIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
