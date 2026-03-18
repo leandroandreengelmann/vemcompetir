@@ -5,6 +5,39 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 
+const FIELD_NAMES_PT: Record<string, string> = {
+    cpf: 'CPF',
+    full_name: 'Nome completo',
+    birth_date: 'Data de nascimento',
+    belt_color: 'Faixa',
+    weight: 'Peso',
+    sexo: 'Sexo',
+    tenant_id: 'Academia',
+    master_id: 'Mestre',
+    role: 'Perfil',
+};
+
+function translateProfileError(err: { code?: string; message?: string; details?: string }): string {
+    const code = err.code ?? '';
+    const message = err.message ?? '';
+    const details = err.details ?? '';
+
+    if (code === '23505') {
+        if (details.includes('cpf') || message.includes('cpf')) return 'Este CPF já está cadastrado na plataforma.';
+        const col = details.match(/\(([^)]+)\)/)?.[1];
+        const fieldPT = col ? (FIELD_NAMES_PT[col] ?? col) : 'campo';
+        return `Valor duplicado no campo "${fieldPT}". Verifique os dados.`;
+    }
+    if (code === '23502') {
+        const col = message.match(/column "([^"]+)"/)?.[1];
+        const fieldPT = col ? (FIELD_NAMES_PT[col] ?? col) : 'desconhecido';
+        return `O campo "${fieldPT}" é obrigatório e não foi preenchido.`;
+    }
+    if (code === '23503') return 'Mestre selecionado não encontrado. Selecione outro ou digite o nome manualmente.';
+    if (code === '22001') return 'Um dos campos excede o tamanho permitido. Verifique os dados informados.';
+    return `Erro ao salvar os dados do atleta: ${message || 'tente novamente.'}`;
+}
+
 export async function createAthleteAction(formData: FormData) {
     const { profile, tenant_id } = await requireTenantScope();
 
@@ -66,14 +99,20 @@ export async function createAthleteAction(formData: FormData) {
     });
 
     if (error) {
-        if (error.message.includes('already been registered')) {
-            return { error: 'Este e-mail já está cadastrado em nossa base de dados.' };
+        if (error.message.includes('already been registered') || error.message.includes('already registered')) {
+            return { error: 'Este atleta já possui um cadastro na plataforma.' };
         }
-        return { error: error.message };
+        if (error.message.includes('Database error')) {
+            return { error: 'Erro interno ao criar o atleta. Tente novamente em instantes.' };
+        }
+        if (error.message.includes('invalid')) {
+            return { error: 'Dados inválidos. Verifique as informações preenchidas.' };
+        }
+        return { error: 'Não foi possível cadastrar o atleta. Tente novamente.' };
     }
 
     if (user) {
-        await adminClient
+        const { error: profileError } = await adminClient
             .from('profiles')
             .upsert({
                 id: user.id,
@@ -92,6 +131,11 @@ export async function createAthleteAction(formData: FormData) {
                 cpf: (formData.get('cpf') as string || '').replace(/\D/g, ''),
                 sexo: formData.get('sexo') as string,
             });
+
+        if (profileError) {
+            await adminClient.auth.admin.deleteUser(user.id);
+            return { error: translateProfileError(profileError) };
+        }
     }
 
     revalidatePath('/academia-equipe/dashboard/atletas');

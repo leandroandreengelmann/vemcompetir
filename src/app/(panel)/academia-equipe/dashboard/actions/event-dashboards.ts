@@ -42,7 +42,7 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
         query = query.eq('status', filters.status);
     }
 
-    if (filters.sort === 'mais_ recentes') {
+    if (filters.sort === 'mais_recentes') {
         query = query.order('created_at', { ascending: false });
     } else {
         query = query.order('event_date', { ascending: true });

@@ -1,15 +1,13 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeftIcon, CircleNotchIcon, TrashIcon, CheckCircleIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateAthleteAction, deleteAthleteAction, unlinkSuggestedMasterAction } from '../actions';
-import { Building2 } from 'lucide-react';
-import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
-import { toast } from 'sonner';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
     Select,
     SelectContent,
@@ -17,7 +15,17 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { updateAthleteAction, deleteAthleteAction, unlinkSuggestedMasterAction } from '../actions';
+import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
+import { toast } from 'sonner';
 
 interface EditAthleteFormProps {
     athlete: {
@@ -48,12 +56,14 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
     const [error, setError] = useState<string | null>(null);
     const [isManualMaster, setIsManualMaster] = useState(!!athlete.master_name && !athlete.master_id);
     const [isMasterChecked, setIsMasterChecked] = useState(!!athlete.is_master);
+    const [isResponsibleChecked, setIsResponsibleChecked] = useState(!!athlete.is_responsible);
     const [selectedSuggestedMasterName, setSelectedSuggestedMasterName] = useState<string>('');
     const [cpfValue, setCpfValue] = useState(athlete.cpf ? formatCPF(athlete.cpf) : '');
     const [phoneValue, setPhoneValue] = useState(athlete.phone ? formatPhone(athlete.phone) : '');
     const [cpfError, setCpfError] = useState<string | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: { preventDefault(): void; currentTarget: HTMLFormElement }) => {
         e.preventDefault();
 
         if (cpfValue && !validateCPF(cpfValue)) {
@@ -68,7 +78,6 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
         try {
             const formData = new FormData(e.currentTarget);
             formData.append('id', athlete.id);
-            // Ensure normalized values are sent
             formData.set('cpf', normalizeNumeric(cpfValue));
             formData.set('phone', normalizeNumeric(phoneValue));
 
@@ -80,6 +89,13 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                 return;
             }
 
+            toast.custom(() => (
+                <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
+                    <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
+                    <p className="text-panel-sm font-bold">Atleta atualizado com sucesso!</p>
+                </div>
+            ), { duration: 4000 });
+
             router.push('/academia-equipe/dashboard/atletas');
             router.refresh();
         } catch (err: any) {
@@ -89,8 +105,6 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
     };
 
     const handleDelete = async () => {
-        if (!confirm('Tem certeza que deseja excluir este atleta?')) return;
-
         setLoading(true);
         try {
             const result = await deleteAthleteAction(athlete.id);
@@ -99,6 +113,14 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                 setLoading(false);
                 return;
             }
+
+            toast.custom(() => (
+                <div className="flex items-center gap-3 w-[356px] bg-foreground rounded-xl px-5 py-4 shadow-xl text-background animate-in slide-in-from-right-2 z-[100]">
+                    <WarningCircleIcon size={24} weight="duotone" className="shrink-0" />
+                    <p className="text-panel-sm font-bold">Atleta excluído.</p>
+                </div>
+            ), { duration: 4000 });
+
             router.push('/academia-equipe/dashboard/atletas');
             router.refresh();
         } catch (err: any) {
@@ -108,87 +130,87 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
     };
 
     return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 relative">
-            <div className="w-full max-w-md space-y-10">
-                <div className="space-y-6">
+        <div className="flex flex-col items-center justify-center py-8 px-4 relative">
+            <div className="w-full max-w-2xl space-y-8">
+                <div className="space-y-4">
                     <Link
                         href="/academia-equipe/dashboard/atletas"
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+                        className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={24} weight="duotone" className="mr-2" />
                         Voltar para a lista
                     </Link>
 
-                    <div className="space-y-2 text-center">
-                        <h1 className="text-3xl font-bold tracking-tight">Editar Atleta</h1>
-                        <p className="text-muted-foreground">
+                    <div className="space-y-1 text-center">
+                        <h1 className="text-panel-lg font-bold tracking-tight">Editar Atleta</h1>
+                        <p className="text-panel-sm text-muted-foreground">
                             Atualize os dados do atleta.
                         </p>
                     </div>
                 </div>
 
                 {error && (
-                    <div className="p-3 bg-destructive/15 text-destructive text-sm rounded-lg text-center animate-in fade-in zoom-in duration-300">
+                    <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center animate-in fade-in zoom-in duration-300">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                        {/* Mestre (oculto quando o atleta é o próprio mestre) */}
-                        {!isMasterChecked && (
-                            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                <label className="text-sm font-medium leading-none">
-                                    Mestre / Professor Responsável
-                                </label>
-
-                                {!isManualMaster && masters.length > 0 ? (
-                                    <Select
-                                        name="master_id"
-                                        defaultValue={athlete.master_id || undefined}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Linha 1: Mestre (full width) */}
+                    {!isMasterChecked && (
+                        <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                            <label className="text-panel-sm font-semibold text-muted-foreground">
+                                Mestre / Professor Responsável
+                            </label>
+                            {!isManualMaster && masters.length > 0 ? (
+                                <Select
+                                    name="master_id"
+                                    defaultValue={athlete.master_id || undefined}
+                                    disabled={loading}
+                                    onValueChange={(value) => {
+                                        if (value === 'manual') setIsManualMaster(true);
+                                    }}
+                                >
+                                    <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0 transition-all">
+                                        <SelectValue placeholder="Selecione o mestre" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        <SelectItem value="none">Sem mestre definido</SelectItem>
+                                        {masters.map((m) => (
+                                            <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                                        ))}
+                                        <SelectItem value="manual" className="font-semibold text-primary">Meu mestre não está na lista</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <div className="space-y-2">
+                                    <Input variant="lg"
+                                        name="master_name"
+                                        defaultValue={athlete.master_name || ''}
+                                        placeholder="Digite o nome do mestre"
+                                        aria-label="Introduza o nome do mestre"
+                                        className="bg-background"
+                                        required={isManualMaster}
                                         disabled={loading}
-                                        onValueChange={(value) => {
-                                            if (value === 'manual') setIsManualMaster(true);
-                                        }}
-                                    >
-                                        <SelectTrigger className="bg-background h-12 text-base rounded-xl focus:ring-0 focus:ring-offset-0">
-                                            <SelectValue placeholder="Selecione o mestre" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl">
-                                            <SelectItem value="none">Sem mestre definido</SelectItem>
-                                            {masters.map((m) => (
-                                                <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                                            ))}
-                                            <SelectItem value="manual" className="font-semibold text-primary">Meu mestre não está na lista</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <Input variant="lg"
-                                            name="master_name"
-                                            defaultValue={athlete.master_name || ''}
-                                            placeholder="Digite o nome do mestre"
-                                            aria-label="Introduza o nome do mestre"
-                                            className="bg-background"
-                                            required={isManualMaster}
-                                            disabled={loading}
-                                        />
-                                        {masters.length > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsManualMaster(false)}
-                                                className="text-xs text-primary hover:underline font-medium"
-                                            >
-                                                Voltar para a lista de mestres registrados
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    />
+                                    {masters.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsManualMaster(false)}
+                                            className="text-panel-sm font-semibold text-primary hover:underline"
+                                        >
+                                            Voltar para a lista
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
+                    {/* Linha 2: Nome + Data de Nascimento */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label htmlFor="full_name" className="text-sm font-medium leading-none">
+                            <label htmlFor="full_name" className="text-panel-sm font-semibold text-muted-foreground">
                                 Nome Completo
                             </label>
                             <Input variant="lg"
@@ -201,10 +223,8 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                             />
                         </div>
 
-
-
                         <div className="space-y-2">
-                            <label htmlFor="birth_date" className="text-sm font-medium leading-none">
+                            <label htmlFor="birth_date" className="text-panel-sm font-semibold text-muted-foreground">
                                 Data de Nascimento
                             </label>
                             <Input variant="lg"
@@ -216,69 +236,52 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                                 disabled={loading}
                             />
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="sexo" className="text-sm font-medium leading-none">Sexo</label>
-                                <Select name="sexo" defaultValue={athlete.sexo || undefined} required disabled={loading}>
-                                    <SelectTrigger className="bg-background h-12 text-base rounded-xl focus:ring-0 focus:ring-offset-0">
-                                        <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        <SelectItem value="Masculino">Masculino</SelectItem>
-                                        <SelectItem value="Feminino">Feminino</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    {/* Linha 3: Sexo + CPF + Peso + Faixa */}
+                    <div className="grid grid-cols-6 gap-4">
+                        <div className="col-span-2 space-y-2">
+                            <label htmlFor="sexo" className="text-panel-sm font-semibold text-muted-foreground">Sexo</label>
+                            <Select name="sexo" defaultValue={athlete.sexo || undefined} required disabled={loading}>
+                                <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0">
+                                    <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="Masculino">Masculino</SelectItem>
+                                    <SelectItem value="Feminino">Feminino</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                            <div className="space-y-2">
-                                <label htmlFor="cpf" className="text-sm font-medium leading-none">CPF</label>
-                                <Input variant="lg"
-                                    id="cpf"
-                                    name="cpf"
-                                    value={cpfValue}
-                                    onChange={(e) => {
-                                        const formatted = formatCPF(e.target.value);
-                                        setCpfValue(formatted);
-                                        if (formatted.length === 14) {
-                                            if (!validateCPF(formatted)) {
-                                                setCpfError('CPF inválido');
-                                            } else {
-                                                setCpfError(null);
-                                            }
+                        <div className="col-span-2 space-y-2">
+                            <label htmlFor="cpf" className="text-panel-sm font-semibold text-muted-foreground">CPF</label>
+                            <Input variant="lg"
+                                id="cpf"
+                                name="cpf"
+                                value={cpfValue}
+                                onChange={(e) => {
+                                    const formatted = formatCPF(e.target.value);
+                                    setCpfValue(formatted);
+                                    if (formatted.length === 14) {
+                                        if (!validateCPF(formatted)) {
+                                            setCpfError('CPF inválido');
                                         } else {
                                             setCpfError(null);
                                         }
-                                    }}
-                                    placeholder="000.000.000-00"
-                                    className={`bg-background shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 ${cpfError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                                    required
-                                    disabled={loading}
-                                />
-                                {cpfError && <p className="text-xs text-red-500 font-medium">{cpfError}</p>}
-                            </div>
+                                    } else {
+                                        setCpfError(null);
+                                    }
+                                }}
+                                placeholder="000.000.000-00"
+                                className={`bg-background h-12 text-panel-sm rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 ${cpfError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                required
+                                disabled={loading}
+                            />
+                            {cpfError && <p className="text-panel-sm font-semibold text-red-500">{cpfError}</p>}
                         </div>
 
-                        {!athlete.email?.includes('@dummy.competir.com') && (
-                            <div className="space-y-2">
-                                <label htmlFor="phone" className="text-sm font-medium leading-none">
-                                    Telefone/WhatsApp
-                                </label>
-                                <Input variant="lg"
-                                    id="phone"
-                                    name="phone"
-                                    type="tel"
-                                    value={phoneValue}
-                                    onChange={(e) => setPhoneValue(formatPhone(e.target.value))}
-                                    placeholder="(00) 00000-0000"
-                                    className="bg-background h-12 text-base rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    disabled={loading}
-                                />
-                            </div>
-                        )}
-
                         <div className="space-y-2">
-                            <label htmlFor="weight" className="text-sm font-medium leading-none">
+                            <label htmlFor="weight" className="text-panel-sm font-semibold text-muted-foreground">
                                 Peso (kg)
                             </label>
                             <Input variant="lg"
@@ -294,15 +297,14 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="belt_color" className="text-sm font-medium leading-none">
+                            <label htmlFor="belt_color" className="text-panel-sm font-semibold text-muted-foreground">
                                 Faixa
                             </label>
                             <Select name="belt_color" defaultValue={athlete.belt_color || undefined} disabled={loading}>
-                                <SelectTrigger className="bg-background h-12 text-base rounded-xl focus:ring-0 focus:ring-offset-0">
+                                <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0">
                                     <SelectValue placeholder="Selecione a faixa" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                    <SelectItem value="none" disabled>Selecione a faixa</SelectItem>
+                                <SelectContent className="rounded-xl border-muted">
                                     <SelectItem value="Branca">Branca</SelectItem>
                                     <SelectItem value="Cinza e branca">Cinza e branca</SelectItem>
                                     <SelectItem value="Cinza">Cinza</SelectItem>
@@ -325,182 +327,202 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
 
-                        {/* Cargos e Permissões */}
-                        <div className="space-y-4 pt-2">
-                            <label className="text-sm font-semibold leading-none border-b pb-2 block">
-                                Cargos e Permissões
+                    {/* Telefone — só aparece se o atleta tem conta real */}
+                    {!athlete.email?.includes('@dummy.competir.com') && (
+                        <div className="space-y-2">
+                            <label htmlFor="phone" className="text-panel-sm font-semibold text-muted-foreground">
+                                Telefone/WhatsApp
                             </label>
+                            <Input variant="lg"
+                                id="phone"
+                                name="phone"
+                                type="tel"
+                                value={phoneValue}
+                                onChange={(e) => setPhoneValue(formatPhone(e.target.value))}
+                                placeholder="(00) 00000-0000"
+                                className="bg-background h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
 
-                            {isGlobalAdmin ? (
-                                <div className="space-y-4">
-                                    {(!athlete.is_responsible && !athlete.is_master) ? (
-                                        <p className="text-sm text-muted-foreground italic pd-4">
-                                            Este atleta não possui cargos especiais.
+                    {/* Linha 4: Cargos e Permissões lado a lado */}
+                    <div className="pt-2">
+                        {isGlobalAdmin ? (
+                            <div className="space-y-2">
+                                <label className="text-panel-sm font-semibold text-muted-foreground">Cargos e Permissões</label>
+                                {(!athlete.is_responsible && !athlete.is_master) ? (
+                                    <p className="text-panel-sm text-muted-foreground italic p-4">
+                                        Este atleta não possui cargos especiais.
+                                    </p>
+                                ) : (
+                                    <div className="flex gap-2 flex-wrap p-4 bg-muted/20 border rounded-2xl">
+                                        {athlete.is_responsible && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Responsável pela Equipe</Badge>}
+                                        {athlete.is_master && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Mestre da Academia</Badge>}
+                                    </div>
+                                )}
+                                {athlete.is_responsible && <input type="hidden" name="is_responsible" value="on" />}
+                                {athlete.is_master && <input type="hidden" name="is_master" value="on" />}
+                                {athlete.master_id && <input type="hidden" name="master_id" value={athlete.master_id} />}
+                                {athlete.master_name && <input type="hidden" name="master_name" value={athlete.master_name} />}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-start space-x-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
+                                    <Checkbox
+                                        id="is_responsible"
+                                        name="is_responsible"
+                                        checked={isResponsibleChecked}
+                                        onCheckedChange={(v) => setIsResponsibleChecked(!!v)}
+                                        disabled={loading}
+                                        className="mt-1"
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <label htmlFor="is_responsible" className="text-panel-sm font-bold leading-none cursor-pointer">
+                                            Responsável pela Academia/Equipe
+                                        </label>
+                                        <p className="text-panel-sm text-muted-foreground">
+                                            Permite que este atleta gerencie os dados da academia e outros atletas.
                                         </p>
-                                    ) : (
-                                        <div className="flex gap-2 flex-wrap p-4 bg-muted/20 border rounded-2xl">
-                                            {athlete.is_responsible && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Responsável pela Equipe</Badge>}
-                                            {athlete.is_master && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">Mestre da Academia</Badge>}
-                                        </div>
-                                    )}
-
-                                    {/* Keep values for submission */}
-                                    {athlete.is_responsible && <input type="hidden" name="is_responsible" value="on" />}
-                                    {athlete.is_master && <input type="hidden" name="is_master" value="on" />}
-                                    {athlete.master_id && <input type="hidden" name="master_id" value={athlete.master_id} />}
-                                    {athlete.master_name && <input type="hidden" name="master_name" value={athlete.master_name} />}
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="flex items-start space-x-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
-                                        <input
-                                            type="checkbox"
-                                            id="is_responsible"
-                                            name="is_responsible"
-                                            defaultChecked={athlete.is_responsible}
-                                            className="mt-1 h-5 w-5 rounded-md border-2 border-muted bg-background checked:bg-primary checked:border-primary transition-all cursor-pointer"
+
+                                <div className="flex flex-col space-y-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
+                                    <div className="flex items-start space-x-3">
+                                        <Checkbox
+                                            id="is_master"
+                                            name="is_master"
+                                            checked={isMasterChecked}
+                                            onCheckedChange={(v) => setIsMasterChecked(!!v)}
                                             disabled={loading}
+                                            className="mt-1"
                                         />
-                                        <div
-                                            role="button"
-                                            tabIndex={0}
-                                            className="grid gap-1.5 leading-none cursor-pointer select-none"
-                                            onClick={() => (document.getElementById('is_responsible') as HTMLInputElement)?.click()}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    (document.getElementById('is_responsible') as HTMLInputElement)?.click();
-                                                }
-                                            }}
-                                        >
-                                            <label htmlFor="is_responsible" className="text-sm font-bold leading-none cursor-pointer">
-                                                Responsável pela Academia/Equipe
+                                        <div className="grid gap-1.5 leading-none">
+                                            <label htmlFor="is_master" className="text-panel-sm font-bold leading-none cursor-pointer">
+                                                Mestre da Academia
                                             </label>
-                                            <p className="text-xs text-muted-foreground">
-                                                Permite que este atleta gerencie os dados da academia e outros atletas.
+                                            <p className="text-panel-sm text-muted-foreground">
+                                                Define este atleta como mestre/instrutor principal da equipe.
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col space-y-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
-                                        <div className="flex items-start space-x-3">
-                                            <input
-                                                type="checkbox"
-                                                id="is_master"
-                                                name="is_master"
-                                                checked={isMasterChecked}
-                                                onChange={(e) => setIsMasterChecked(e.target.checked)}
-                                                className="mt-1 h-5 w-5 rounded-md border-2 border-muted bg-background checked:bg-primary checked:border-primary transition-all cursor-pointer"
-                                                disabled={loading}
-                                            />
-                                            <div
-                                                role="button"
-                                                tabIndex={0}
-                                                className="grid gap-1.5 leading-none cursor-pointer select-none"
-                                                onClick={() => setIsMasterChecked(!isMasterChecked)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' || e.key === ' ') {
-                                                        e.preventDefault();
-                                                        setIsMasterChecked(!isMasterChecked);
-                                                    }
-                                                }}
-                                            >
-                                                <label htmlFor="is_master" className="text-sm font-bold leading-none cursor-pointer">
-                                                    Mestre da Academia
-                                                </label>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Define este atleta como mestre/instrutor principal da equipe.
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Mostrar sugestões ou vínculo ativo se marcado */}
-                                        {isMasterChecked && (
-                                            <>
-                                                {linkedSuggestions.length > 0 ? (
-                                                    <div className="pl-8 pt-2 animate-in slide-in-from-top-2 duration-300">
-                                                        <div className="p-3 bg-muted/50 border rounded-xl flex items-center justify-between gap-4">
-                                                            <div className="min-w-0">
-                                                                <p className="text-sm font-medium text-muted-foreground">Vinculado à sugestão:</p>
-                                                                <p className="text-sm font-bold text-foreground truncate">{linkedSuggestions[0]}</p>
-                                                            </div>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                pill
-                                                                className="h-8 px-4 text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive hover:text-white transition-all shrink-0 shadow-sm"
-                                                                disabled={isPendingUnlink || loading}
-                                                                onClick={() => {
-                                                                    startUnlink(async () => {
-                                                                        const res = await unlinkSuggestedMasterAction(athlete.id, linkedSuggestions[0]);
-                                                                        if (res.error) {
-                                                                            toast.error(res.error);
-                                                                        } else {
-                                                                            toast.success('Desvinculado com sucesso!');
-                                                                        }
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {isPendingUnlink ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Desvincular'}
-                                                            </Button>
+                                    {isMasterChecked && (
+                                        <>
+                                            {linkedSuggestions.length > 0 ? (
+                                                <div className="pl-8 pt-2 animate-in slide-in-from-top-2 duration-300">
+                                                    <div className="p-3 bg-muted/50 border rounded-xl flex items-center justify-between gap-4">
+                                                        <div className="min-w-0">
+                                                            <p className="text-panel-sm font-medium text-muted-foreground">Vinculado à sugestão:</p>
+                                                            <p className="text-panel-sm font-bold text-foreground truncate">{linkedSuggestions[0]}</p>
                                                         </div>
-                                                    </div>
-                                                ) : suggestedMasters.length > 0 ? (
-                                                    <div className="pl-8 pt-2 animate-in slide-in-from-top-2 duration-300">
-                                                        <label className="text-sm font-medium leading-none mb-2 block text-primary">
-                                                            Vincular Sugestão de Alunos?
-                                                        </label>
-                                                        <p className="text-xs text-muted-foreground mb-3">
-                                                            Alunos desta equipe citaram estes nomes. Se este for o mestre citado, escolha na lista para vinculá-los automaticamente.
-                                                        </p>
-                                                        <Select
-                                                            value={selectedSuggestedMasterName}
-                                                            onValueChange={setSelectedSuggestedMasterName}
-                                                            disabled={loading}
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            pill
+                                                            className="h-8 px-4 text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive hover:text-white transition-all shrink-0 shadow-sm"
+                                                            disabled={isPendingUnlink || loading}
+                                                            onClick={() => {
+                                                                startUnlink(async () => {
+                                                                    const res = await unlinkSuggestedMasterAction(athlete.id, linkedSuggestions[0]);
+                                                                    if (res.error) {
+                                                                        toast.custom(() => (
+                                                                            <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
+                                                                                <WarningCircleIcon size={24} weight="duotone" className="shrink-0" />
+                                                                                <p className="text-panel-sm font-bold">{res.error}</p>
+                                                                            </div>
+                                                                        ), { duration: 5000 });
+                                                                    } else {
+                                                                        toast.custom(() => (
+                                                                            <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
+                                                                                <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
+                                                                                <p className="text-panel-sm font-bold">Desvinculado com sucesso!</p>
+                                                                            </div>
+                                                                        ), { duration: 4000 });
+                                                                    }
+                                                                });
+                                                            }}
                                                         >
-                                                            <SelectTrigger className="bg-background rounded-xl focus:ring-primary focus:border-primary h-12 text-body px-4">
-                                                                <SelectValue placeholder="Não vincular nenhum nome sugerido" />
-                                                            </SelectTrigger>
-                                                            <SelectContent className="rounded-xl">
-                                                                <SelectItem value="none" className="text-muted-foreground italic">Não vincular nenhum nome sugerido</SelectItem>
-                                                                {suggestedMasters.map((name, idx) => (
-                                                                    <SelectItem key={idx} value={name}>
-                                                                        Vincular a sugestão: "{name}"
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        {/* Input oculto para enviar no form action */}
-                                                        <input type="hidden" name="suggested_master_name" value={selectedSuggestedMasterName !== 'none' ? selectedSuggestedMasterName : ''} />
+                                                            {isPendingUnlink ? <CircleNotchIcon size={16} weight="bold" className="animate-spin" /> : 'Desvincular'}
+                                                        </Button>
                                                     </div>
-                                                ) : null}
-                                            </>
-                                        )}
-                                    </div>
+                                                </div>
+                                            ) : suggestedMasters.length > 0 ? (
+                                                <div className="pl-8 pt-2 animate-in slide-in-from-top-2 duration-300">
+                                                    <label className="text-panel-sm font-semibold text-muted-foreground mb-2 block">
+                                                        Vincular Sugestão de Alunos?
+                                                    </label>
+                                                    <p className="text-xs text-muted-foreground mb-3">
+                                                        Alunos desta equipe citaram estes nomes. Se este for o mestre citado, escolha na lista para vinculá-los automaticamente.
+                                                    </p>
+                                                    <Select
+                                                        value={selectedSuggestedMasterName}
+                                                        onValueChange={setSelectedSuggestedMasterName}
+                                                        disabled={loading}
+                                                    >
+                                                        <SelectTrigger className="bg-background rounded-xl focus:ring-primary focus:border-primary h-12 text-panel-sm px-4">
+                                                            <SelectValue placeholder="Não vincular nenhum nome sugerido" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-xl">
+                                                            <SelectItem value="none" className="text-muted-foreground italic">Não vincular nenhum nome sugerido</SelectItem>
+                                                            {suggestedMasters.map((name, idx) => (
+                                                                <SelectItem key={idx} value={name}>
+                                                                    Vincular a sugestão: "{name}"
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <input type="hidden" name="suggested_master_name" value={selectedSuggestedMasterName !== 'none' ? selectedSuggestedMasterName : ''} />
+                                                </div>
+                                            ) : null}
+                                        </>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex flex-row items-center justify-center gap-4 pt-4">
+                    {/* Botões */}
+                    <div className="flex flex-row items-center justify-center gap-4 pt-2">
                         <Button pill type="button"
                             variant="destructive"
-                            onClick={handleDelete}
-                            className="flex-1 h-12 text-base font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                            className="flex-1 h-12 font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
                             disabled={loading}
+                            onClick={() => setDeleteDialogOpen(true)}
                         >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <TrashIcon size={16} weight="duotone" className="mr-2" />
                             Excluir
                         </Button>
+
+                        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                            <DialogContent showCloseButton={false}>
+                                <DialogHeader>
+                                    <DialogTitle>Excluir atleta?</DialogTitle>
+                                    <DialogDescription>
+                                        Esta ação não pode ser desfeita. O atleta <strong>{athlete.full_name}</strong> será removido permanentemente da plataforma, incluindo todas as suas inscrições.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                    <Button pill variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button pill variant="destructive" onClick={handleDelete}>
+                                        Sim, excluir
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
                         <Button pill type="submit"
-                            className="flex-1 h-12 text-base font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                            className="flex-1 h-12 font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
                             disabled={loading}
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
                                     Salvando...
                                 </>
                             ) : (

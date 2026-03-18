@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, CircleNotchIcon, CheckCircleIcon } from '@phosphor-icons/react';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -14,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { createAthleteAction } from '../actions';
-import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
+import { formatCPF, validateCPF, normalizeNumeric } from '@/lib/validation';
 
 interface Master {
     id: string;
@@ -32,11 +34,12 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
     const [error, setError] = useState<string | null>(null);
     const [isManualMaster, setIsManualMaster] = useState(masters.length === 0);
     const [isMaster, setIsMaster] = useState(false);
+    const [isResponsible, setIsResponsible] = useState(false);
     const [cpfValue, setCpfValue] = useState('');
 
     const [cpfError, setCpfError] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (cpfValue && !validateCPF(cpfValue)) {
@@ -50,7 +53,6 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
 
         try {
             const formData = new FormData(e.currentTarget);
-            // Ensure normalized values are sent
             formData.set('cpf', normalizeNumeric(cpfValue));
 
             const result = await createAthleteAction(formData);
@@ -61,6 +63,12 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                 return;
             }
 
+            toast.custom(() => (
+                <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
+                    <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
+                    <p className="text-panel-sm font-bold">Atleta cadastrado com sucesso!</p>
+                </div>
+            ), { duration: 4000 });
             router.push('/academia-equipe/dashboard/atletas');
             router.refresh();
         } catch (err: any) {
@@ -70,52 +78,50 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
     };
 
     return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 relative">
-            <div className="w-full max-w-md space-y-10">
-                <div className="space-y-6">
+        <div className="flex flex-col items-center justify-center py-8 px-4 relative">
+            <div className="w-full max-w-2xl space-y-8">
+                <div className="space-y-4">
                     <Link
                         href="/academia-equipe/dashboard/atletas"
-                        className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+                        className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={24} weight="duotone" className="mr-2" />
                         Voltar para a lista
                     </Link>
 
-                    <div className="space-y-2 text-center">
-                        <h1 className="text-h1">Novo Atleta</h1>
-                        <p className="text-caption text-muted-foreground">
+                    <div className="space-y-1 text-center">
+                        <h1 className="text-panel-lg font-bold">Novo Atleta</h1>
+                        <p className="text-panel-sm text-muted-foreground">
                             Preencha os dados para cadastrar um novo atleta.
                         </p>
                     </div>
                 </div>
 
                 {error && (
-                    <div className="p-3 bg-destructive/15 text-destructive text-ui rounded-lg text-center animate-in fade-in zoom-in duration-300">
+                    <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center animate-in fade-in zoom-in duration-300">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                        {/* Organização (Fixa) */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Linha 1: Academia + Mestre */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-label text-muted-foreground">
+                            <label className="text-panel-sm font-semibold text-muted-foreground">
                                 Academia / Equipe
                             </label>
                             <Input variant="lg"
                                 value={academyName}
-                                className="bg-muted/30 border-none cursor-not-allowed font-bold text-foreground text-lg disabled:opacity-100"
+                                className="bg-muted/30 border-none cursor-not-allowed font-bold text-foreground text-panel-sm disabled:opacity-100"
                                 disabled
                             />
                         </div>
 
-                        {/* Mestre (oculto quando o atleta é o próprio mestre) */}
-                        {!isMaster && (
+                        {!isMaster ? (
                             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                <label className="text-label text-muted-foreground">
+                                <label className="text-panel-sm font-semibold text-muted-foreground">
                                     Mestre / Professor
                                 </label>
-
                                 {!isManualMaster && masters.length > 0 ? (
                                     <Select
                                         name="master_id"
@@ -151,18 +157,23 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                                             <button
                                                 type="button"
                                                 onClick={() => setIsManualMaster(false)}
-                                                className="text-label text-primary hover:underline font-medium"
+                                                className="text-panel-sm font-semibold text-primary hover:underline"
                                             >
-                                                Voltar para a lista de mestres registrados
+                                                Voltar para a lista
                                             </button>
                                         )}
                                     </div>
                                 )}
                             </div>
+                        ) : (
+                            <div />
                         )}
+                    </div>
 
+                    {/* Linha 2: Nome + Data de Nascimento */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label htmlFor="full_name" className="text-label text-muted-foreground">
+                            <label htmlFor="full_name" className="text-panel-sm font-semibold text-muted-foreground">
                                 Nome Completo do Atleta
                             </label>
                             <Input variant="lg"
@@ -175,12 +186,8 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                             />
                         </div>
 
-
-
-
-
                         <div className="space-y-2">
-                            <label htmlFor="birth_date" className="text-label text-muted-foreground">
+                            <label htmlFor="birth_date" className="text-panel-sm font-semibold text-muted-foreground">
                                 Data de Nascimento
                             </label>
                             <Input variant="lg"
@@ -191,53 +198,52 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                                 disabled={loading}
                             />
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor="sexo" className="text-label text-muted-foreground">Sexo</label>
-                                <Select name="sexo" required disabled={loading}>
-                                    <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0">
-                                        <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        <SelectItem value="Masculino">Masculino</SelectItem>
-                                        <SelectItem value="Feminino">Feminino</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    {/* Linha 3: Sexo + CPF + Peso + Faixa */}
+                    <div className="grid grid-cols-6 gap-4">
+                        <div className="space-y-2">
+                            <label htmlFor="sexo" className="text-panel-sm font-semibold text-muted-foreground">Sexo</label>
+                            <Select name="sexo" required disabled={loading}>
+                                <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0">
+                                    <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="Masculino">Masculino</SelectItem>
+                                    <SelectItem value="Feminino">Feminino</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                            <div className="space-y-2">
-                                <label htmlFor="cpf" className="text-label text-muted-foreground">CPF</label>
-                                <Input variant="lg"
-                                    id="cpf"
-                                    name="cpf"
-                                    value={cpfValue}
-                                    onChange={(e) => {
-                                        const formatted = formatCPF(e.target.value);
-                                        setCpfValue(formatted);
-                                        if (formatted.length === 14) {
-                                            if (!validateCPF(formatted)) {
-                                                setCpfError('CPF inválido');
-                                            } else {
-                                                setCpfError(null);
-                                            }
+                        <div className="col-span-2 space-y-2">
+                            <label htmlFor="cpf" className="text-panel-sm font-semibold text-muted-foreground">CPF</label>
+                            <Input variant="lg"
+                                id="cpf"
+                                name="cpf"
+                                value={cpfValue}
+                                onChange={(e) => {
+                                    const formatted = formatCPF(e.target.value);
+                                    setCpfValue(formatted);
+                                    if (formatted.length === 14) {
+                                        if (!validateCPF(formatted)) {
+                                            setCpfError('CPF inválido');
                                         } else {
                                             setCpfError(null);
                                         }
-                                    }}
-                                    placeholder="000.000.000-00"
-                                    className={`bg-background h-12 text-ui rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 ${cpfError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                                    required
-                                    disabled={loading}
-                                />
-                                {cpfError && <p className="text-label text-red-500">{cpfError}</p>}
-                            </div>
+                                    } else {
+                                        setCpfError(null);
+                                    }
+                                }}
+                                placeholder="000.000.000-00"
+                                className={`bg-background h-12 text-panel-sm rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 ${cpfError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                required
+                                disabled={loading}
+                            />
+                            {cpfError && <p className="text-panel-sm font-semibold text-red-500">{cpfError}</p>}
                         </div>
 
-
-
                         <div className="space-y-2">
-                            <label htmlFor="weight" className="text-label text-muted-foreground">
+                            <label htmlFor="weight" className="text-panel-sm font-semibold text-muted-foreground">
                                 Peso (kg)
                             </label>
                             <Input variant="lg"
@@ -251,8 +257,8 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <label htmlFor="belt_color" className="text-label text-muted-foreground">
+                        <div className="col-span-2 space-y-2">
+                            <label htmlFor="belt_color" className="text-panel-sm font-semibold text-muted-foreground">
                                 Faixa
                             </label>
                             <Select name="belt_color" disabled={loading}>
@@ -282,89 +288,57 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
 
-                        {/* Cargos e Permissões */}
-                        <div className="space-y-4 pt-4">
-                            <h3 className="text-h3">
-                                Cargos e Permissões
-                            </h3>
+                    {/* Linha 4: Cargos e Permissões lado a lado */}
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                        <div className="flex items-start space-x-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
+                            <Checkbox
+                                id="is_responsible"
+                                name="is_responsible"
+                                checked={isResponsible}
+                                onCheckedChange={(v) => setIsResponsible(!!v)}
+                                disabled={loading}
+                                className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <label htmlFor="is_responsible" className="text-panel-sm font-bold leading-none cursor-pointer">
+                                    Responsável pela Academia/Equipe
+                                </label>
+                                <p className="text-panel-sm text-muted-foreground">
+                                    Permite que este atleta gerencie os dados da academia e outros atletas.
+                                </p>
+                            </div>
+                        </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-start space-x-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
-                                    <input
-                                        type="checkbox"
-                                        id="is_responsible"
-                                        name="is_responsible"
-                                        className="mt-1 h-5 w-5 rounded-md border-2 border-muted bg-background checked:bg-primary checked:border-primary transition-all cursor-pointer"
-                                        disabled={loading}
-                                    />
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="grid gap-1.5 leading-none cursor-pointer select-none"
-                                        onClick={() => {
-                                            const el = document.getElementById('is_responsible') as HTMLInputElement;
-                                            if (el) el.checked = !el.checked;
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                const el = document.getElementById('is_responsible') as HTMLInputElement;
-                                                if (el) el.checked = !el.checked;
-                                            }
-                                        }}
-                                    >
-                                        <label htmlFor="is_responsible" className="text-ui font-bold leading-none cursor-pointer">
-                                            Responsável pela Academia/Equipe
-                                        </label>
-                                        <p className="text-caption text-muted-foreground">
-                                            Permite que este atleta gerencie os dados da academia e outros atletas.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-start space-x-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
-                                    <input
-                                        type="checkbox"
-                                        id="is_master"
-                                        name="is_master"
-                                        checked={isMaster}
-                                        onChange={(e) => setIsMaster(e.target.checked)}
-                                        className="mt-1 h-5 w-5 rounded-md border-2 border-muted bg-background checked:bg-primary checked:border-primary transition-all cursor-pointer"
-                                        disabled={loading}
-                                    />
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="grid gap-1.5 leading-none cursor-pointer select-none"
-                                        onClick={() => setIsMaster(!isMaster)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                setIsMaster(!isMaster);
-                                            }
-                                        }}
-                                    >
-                                        <label htmlFor="is_master" className="text-ui font-bold leading-none cursor-pointer">
-                                            Mestre da Academia
-                                        </label>
-                                        <p className="text-caption text-muted-foreground">
-                                            Define este atleta como mestre/instrutor principal da equipe.
-                                        </p>
-                                    </div>
-                                </div>
+                        <div className="flex items-start space-x-3 p-4 bg-muted/40 rounded-2xl border-2 border-transparent hover:border-primary/10 transition-all">
+                            <Checkbox
+                                id="is_master"
+                                name="is_master"
+                                checked={isMaster}
+                                onCheckedChange={(v) => setIsMaster(!!v)}
+                                disabled={loading}
+                                className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <label htmlFor="is_master" className="text-panel-sm font-bold leading-none cursor-pointer">
+                                    Mestre da Academia
+                                </label>
+                                <p className="text-panel-sm text-muted-foreground">
+                                    Define este atleta como mestre/instrutor principal da equipe.
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center gap-4 pt-4">
+                    <div className="flex flex-col items-center gap-4 pt-2">
                         <Button pill type="submit"
-                            className="w-full max-w-[320px] h-12  transition-all hover:opacity-90 active:scale-[0.98]"
+                            className="w-full max-w-[320px] h-12 transition-all hover:opacity-90 active:scale-[0.98]"
                             disabled={loading}
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <CircleNotchIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                     Cadastrando...
                                 </>
                             ) : (
@@ -373,7 +347,7 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                         </Button>
                     </div>
                 </form>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 }
