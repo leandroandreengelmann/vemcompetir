@@ -1,25 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateAcademiaProfile } from './actions';
-import { Loader2 } from 'lucide-react';
+import { CircleNotchIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Profile {
-    full_name: string | null;
     email: string | null;
-    cpf: string | null; // Note: Although named CPF, it could be a CNPJ in reality
+    cpf: string | null;
+    gym_name: string | null;
+    phone: string | null;
 }
 
 interface ProfileFormProps {
     profile: Profile;
 }
 
-// Simple CPF/CNPJ masquerade for display
 function maskCpfCnpj(value: string) {
     const raw = value.replace(/\D/g, '');
     if (raw.length <= 11) {
@@ -28,18 +27,26 @@ function maskCpfCnpj(value: string) {
     return raw.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 }
 
+function maskPhone(value: string) {
+    const raw = value.replace(/\D/g, '');
+    if (raw.length <= 10) {
+        return raw.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    }
+    return raw.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+}
+
 export function AcademiaProfileForm({ profile }: ProfileFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // Controlled inputs to allow masking if desired
+    const [gymName, setGymName] = useState(profile.gym_name || '');
     const [cpfCnpj, setCpfCnpj] = useState(() => profile.cpf ? maskCpfCnpj(profile.cpf) : '');
-    const [fullName, setFullName] = useState(profile.full_name || '');
+    const [phone, setPhone] = useState(() => profile.phone ? maskPhone(profile.phone) : '');
 
     const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/\D/g, ''); // Keep only numbers
+        const val = e.target.value.replace(/\D/g, '');
+        if (val.length > 14) return;
         let masked = val;
-        // Apply masking on the fly
         if (val.length <= 11) {
             masked = val.replace(/(\d{3})(\d)/, '$1.$2')
                 .replace(/(\d{3})(\d)/, '$1.$2')
@@ -50,13 +57,13 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
                 .replace(/(\d{3})(\d)/, '$1/$2')
                 .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
         }
-
-        // Limit max length
-        if (val.length > 14) {
-            return;
-        }
-
         setCpfCnpj(masked);
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/\D/g, '');
+        if (val.length > 11) return;
+        setPhone(maskPhone(val));
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -65,8 +72,9 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
         setMessage(null);
 
         const formData = new FormData();
-        formData.append('fullName', fullName);
+        formData.append('gymName', gymName);
         formData.append('cpf', cpfCnpj);
+        formData.append('phone', phone);
 
         try {
             const result = await updateAcademiaProfile(formData);
@@ -75,7 +83,7 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
             } else {
                 setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Ocorreu um erro inesperado.' });
         } finally {
             setIsLoading(false);
@@ -83,75 +91,104 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <Card className="border-sidebar-border/50 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="text-h3">Informações Pessoais</CardTitle>
-                    <CardDescription className="text-body text-muted-foreground">
-                        Atualize seus dados pessoais. O CPF/CNPJ é necessário para realizar transações financeiras e geração de cobranças via Asaas.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {message && (
-                        <Alert variant={message.type === 'success' ? 'default' : 'destructive'}
-                            className={message.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : ''}>
-                            <AlertDescription>{message.text}</AlertDescription>
-                        </Alert>
-                    )}
+        <form onSubmit={handleSubmit} className="space-y-8">
+            {message && (
+                <Alert
+                    variant={message.type === 'success' ? 'info' : 'destructive'}
+                >
+                    <AlertDescription>{message.text}</AlertDescription>
+                </Alert>
+            )}
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="email" className="text-label text-muted-foreground">Email (Login)</Label>
+            {/* Dados da Academia */}
+            <div className="space-y-6">
+                <h3 className="text-panel-md font-semibold border-b pb-2">
+                    Dados da Academia
+                </h3>
+
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="gymName" className="text-panel-sm font-semibold text-muted-foreground">
+                            Nome da Academia / Equipe
+                        </Label>
+                        <Input
+                            id="gymName"
+                            value={gymName}
+                            onChange={(e) => setGymName(e.target.value)}
+                            placeholder="Ex: Academia Competir"
+                            variant="lg"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-panel-sm font-semibold text-muted-foreground">
+                            Telefone / WhatsApp
+                        </Label>
+                        <Input
+                            id="phone"
+                            value={phone}
+                            onChange={handlePhoneChange}
+                            placeholder="(00) 00000-0000"
+                            variant="lg"
+                            className="font-mono"
+                            inputMode="numeric"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Dados do Responsável */}
+            <div className="space-y-6">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="email" className="text-panel-sm font-semibold text-muted-foreground">
+                            Email (Login)
+                        </Label>
                         <Input
                             id="email"
                             value={profile.email || ''}
                             disabled
-                            className="bg-muted/50 cursor-not-allowed text-muted-foreground max-w-md h-12"
+                            variant="lg"
+                            className="bg-muted/50 cursor-not-allowed text-muted-foreground disabled:opacity-100"
                         />
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="fullName" className="text-label">Nome Completo</Label>
-                        <Input
-                            id="fullName"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Seu nome"
-                            required
-                            className="max-w-md h-12 bg-background border-border"
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="cpf" className="text-label">CPF ou CNPJ</Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="cpf" className="text-panel-sm font-semibold text-muted-foreground">
+                            CPF ou CNPJ
+                        </Label>
                         <Input
                             id="cpf"
                             value={cpfCnpj}
                             onChange={handleCpfCnpjChange}
                             placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                            className="max-w-md h-12 bg-background border-border font-mono"
+                            variant="lg"
+                            className="font-mono"
+                            inputMode="numeric"
                         />
-                        <p className="text-caption text-muted-foreground">
-                            Apenas números. O documento é necessário para registro de clientes no sistema de pagamento Asaas.
+                        <p className="text-panel-sm text-muted-foreground">
+                            Necessário para registro no sistema de pagamento Asaas.
                         </p>
                     </div>
+                </div>
+            </div>
 
-                </CardContent>
-                <CardFooter className="bg-muted/20 border-t border-sidebar-border px-6 py-4 flex justify-between items-center sm:rounded-b-xl">
-                    <p className="text-caption text-muted-foreground hidden sm:block">
-                        Seus dados estão seguros conosco.
-                    </p>
-                    <Button type="submit" disabled={isLoading} pill className="w-full sm:w-auto h-11 px-8">
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Salvando...
-                            </>
-                        ) : (
-                            'Salvar Alterações'
-                        )}
-                    </Button>
-                </CardFooter>
-            </Card>
+            {/* Footer */}
+            <div className="flex flex-col items-center gap-4 pt-4">
+                <Button type="submit" disabled={isLoading} pill className="w-1/2 h-11 px-8">
+                    {isLoading ? (
+                        <>
+                            <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                            Salvando...
+                        </>
+                    ) : (
+                        'Salvar Alterações'
+                    )}
+                </Button>
+                <p className="text-panel-sm text-muted-foreground">
+                    Seus dados estão seguros conosco.
+                </p>
+            </div>
         </form>
     );
 }

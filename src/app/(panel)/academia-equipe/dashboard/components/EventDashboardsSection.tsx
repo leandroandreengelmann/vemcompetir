@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, SlidersHorizontal, PackageOpen } from 'lucide-react';
+import { MagnifyingGlassIcon, PackageIcon } from '@phosphor-icons/react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EventDashboardCard } from './EventDashboardCard';
@@ -35,28 +35,28 @@ export function EventDashboardsSection() {
     }
 
     return (
-        <div className="space-y-6 mt-12 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1">
-                    <h2 className="text-h2 tracking-tight">Painéis por Evento</h2>
-                    <p className="text-caption text-muted-foreground">Monitore o desempenho e acesse relatórios de cada evento individualmente.</p>
+        <div className="space-y-4 mt-8 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                    <h2 className="text-panel-md font-bold tracking-tight">Painéis por Evento</h2>
+                    <p className="text-panel-sm text-muted-foreground">Monitore o desempenho e acesse relatórios de cada evento individualmente.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="relative w-full md:w-80 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-full md:w-64 group">
+                        <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
                         <Input
-                            placeholder="Pesquisar evento pelo nome..."
+                            placeholder="Pesquisar evento..."
                             aria-label="Pesquisar evento pelo nome"
                             variant="lg"
-                            className="pl-12 bg-background border-input shadow-sm focus:shadow-md transition-all h-14 rounded-2xl"
+                            className="pl-11 bg-background"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger className="w-[160px] rounded-2xl border border-input bg-background hover:bg-muted/50 font-bold transition-all h-14 text-body px-4 shadow-sm">
+                            <SelectTrigger className="w-[148px] rounded-xl border border-input bg-background hover:bg-muted/50 font-medium h-12 text-panel-sm px-4 focus:ring-0 focus:ring-offset-0">
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -68,7 +68,7 @@ export function EventDashboardsSection() {
                         </Select>
 
                         <Select value={sort} onValueChange={setSort}>
-                            <SelectTrigger className="w-[180px] rounded-2xl border border-input bg-background hover:bg-muted/50 font-bold transition-all h-14 text-body px-4 shadow-sm">
+                            <SelectTrigger className="w-[160px] rounded-xl border border-input bg-background hover:bg-muted/50 font-medium h-12 text-panel-sm px-4 focus:ring-0 focus:ring-offset-0">
                                 <SelectValue placeholder="Ordenar por" />
                             </SelectTrigger>
                             <SelectContent>
@@ -95,8 +95,8 @@ export function EventDashboardsSection() {
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed border-border/50">
-                    <PackageOpen className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                    <p className="text-sm font-medium text-muted-foreground">Nenhum evento encontrado com estes filtros.</p>
+                    <PackageIcon size={40} weight="duotone" className="text-muted-foreground/30 mb-4" />
+                    <p className="text-panel-sm font-medium text-muted-foreground">Nenhum evento encontrado com estes filtros.</p>
                 </div>
             )}
         </div>

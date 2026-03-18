@@ -14,7 +14,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Plus } from 'lucide-react';
+import { PlusIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 
 interface Registration {
@@ -61,20 +61,20 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
     const renderStatusBadge = (status: string) => {
         if (status === 'paga' || status === 'pago' || status === 'confirmado') {
             return (
-                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                <Badge variant="outline" className="text-panel-sm font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
                     PAGO
                 </Badge>
             );
         }
         if (status === 'pendente' || status === 'aguardando_pagamento') {
             return (
-                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+                <Badge variant="outline" className="text-panel-sm font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                     PENDENTE
                 </Badge>
             );
         }
         return (
-            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
+            <Badge variant="outline" className="text-panel-sm font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
                 {status.replace('_', ' ')}
             </Badge>
         );
@@ -98,7 +98,7 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
         else if (lowerBelt.includes('verde')) bgClass = "bg-green-600 text-white border-green-700 shadow-sm";
 
         return (
-            <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5", bgClass)}>
+            <Badge variant="outline" className={cn("text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5", bgClass)}>
                 {belt}
             </Badge>
         );
@@ -109,7 +109,7 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
             <div className="flex justify-end mb-4">
                 <Button asChild pill>
                     <Link href={`/academia-equipe/dashboard/eventos/${event.id}/inscrever`}>
-                        <Plus className="mr-2 h-4 w-4" />
+                        <PlusIcon size={16} weight="duotone" className="mr-2" />
                         Nova Inscrição
                     </Link>
                 </Button>
@@ -117,7 +117,7 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
 
             <Card className="border-none shadow-premium rounded-3xl overflow-hidden">
                 <CardHeader className="pb-4">
-                    <CardTitle className="text-xl">Inscrições Realizadas ({registrations.length})</CardTitle>
+                    <CardTitle className="text-panel-md">Inscrições Realizadas ({registrations.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -143,7 +143,7 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                         <TableRow key={reg.id} className="hover:bg-muted/10 transition-colors">
                                             <TableCell className="pl-6 py-4">
                                                 <div className="flex flex-col gap-1 items-start">
-                                                    <span className="font-bold text-foreground text-ui">{reg.athlete?.full_name}</span>
+                                                    <span className="font-bold text-foreground text-panel-sm">{reg.athlete?.full_name}</span>
                                                     <span className="sm:hidden block mt-0.5">
                                                         {renderBeltBadge(reg.athlete?.belt_color)}
                                                     </span>
@@ -154,11 +154,11 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-caption font-bold text-foreground">{reg.category?.categoria_completa || reg.category?.divisao_idade}</span>
-                                                    {!reg.category?.categoria_completa && <span className="text-[10px] text-muted-foreground font-medium">{reg.category?.categoria_peso}</span>}
+                                                    <span className="text-panel-sm font-bold text-foreground">{reg.category?.categoria_completa || reg.category?.divisao_idade}</span>
+                                                    {!reg.category?.categoria_completa && <span className="text-panel-sm text-muted-foreground font-medium">{reg.category?.categoria_peso}</span>}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground text-caption font-medium hidden md:table-cell">
+                                            <TableCell className="text-muted-foreground text-panel-sm font-medium hidden md:table-cell">
                                                 {reg.registered_by_profile?.full_name || '-'}
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-4">

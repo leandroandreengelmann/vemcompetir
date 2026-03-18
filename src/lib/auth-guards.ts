@@ -58,7 +58,9 @@ export async function requireRole(allowedRoles: UserRole | UserRole[]) {
             tenant_id: null,
             full_name: user.user_metadata?.full_name,
             gym_name: user.user_metadata?.gym_name,
-            cpf: null
+            cpf: null,
+            phone: null,
+            master_name: null,
         }
     };
 }

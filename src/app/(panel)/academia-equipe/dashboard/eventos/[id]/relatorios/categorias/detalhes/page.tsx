@@ -6,7 +6,7 @@ import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, LibrarySquare, AlertCircle, ShoppingBag, CheckCircle2, Key } from 'lucide-react';
+import { ArrowLeftIcon, BooksIcon, WarningCircleIcon, ShoppingBagIcon, CheckCircleIcon, KeyIcon } from '@phosphor-icons/react';
 import { getEventCategoryDetails } from '../../../../../actions/event-reports';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -68,15 +68,15 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                 <Table>
                     <TableHeader className="bg-muted/30">
                         <TableRow className="hover:bg-transparent border-border/50">
-                            <TableHead className="text-label h-10">Atleta</TableHead>
-                            <TableHead className="text-label h-10 w-[250px]">Equipe</TableHead>
-                            <TableHead className="text-label h-10 text-right w-[150px]">Data Reg.</TableHead>
+                            <TableHead className="text-panel-sm font-semibold h-10">Atleta</TableHead>
+                            <TableHead className="text-panel-sm font-semibold h-10 w-[250px]">Equipe</TableHead>
+                            <TableHead className="text-panel-sm font-semibold h-10 text-right w-[150px]">Data Reg.</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {items.map((item, idx) => (
                             <TableRow key={idx} className="hover:bg-muted/20 transition-colors border-border/50">
-                                <TableCell className="font-medium text-ui py-3">{item.athlete}</TableCell>
+                                <TableCell className="font-medium text-panel-sm py-3">{item.athlete}</TableCell>
                                 <TableCell className="text-muted-foreground text-sm">{item.gym}</TableCell>
                                 <TableCell className="text-right text-muted-foreground text-sm">{new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(item.created_at))}</TableCell>
                             </TableRow>
@@ -93,8 +93,8 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                 title="Detalhamento da Categoria"
                 description={categoriaName || ''}
                 rightElement={
-                    <Button variant="outline" pill className="h-12 gap-2 text-ui font-semibold shadow-sm" onClick={() => router.back()}>
-                        <ArrowLeft className="h-4 w-4" />
+                    <Button variant="outline" pill className="h-12 gap-2 text-panel-sm font-semibold shadow-sm" onClick={() => router.back()}>
+                        <ArrowLeftIcon size={16} weight="duotone" />
                         Voltar ao Relatório
                     </Button>
                 }
@@ -108,7 +108,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                         <div className="space-y-1">
                             <CardTitle className="text-base font-bold flex items-center gap-2">
-                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                <CheckCircleIcon size={20} weight="duotone" className="text-emerald-500" />
                                 Inscrições Pagas
                             </CardTitle>
                             <CardDescription className="text-xs">Atletas confirmados e aptos à chave.</CardDescription>
@@ -118,7 +118,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                         </Badge>
                         <Button variant="outline" size="sm" pill className="h-8 gap-1.5 text-muted-foreground" asChild>
                             <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/categorias/chaveamento?categoria=${encodeURIComponent(categoriaName || '')}`}>
-                                <Key className="h-3.5 w-3.5" />
+                                <KeyIcon size={14} weight="duotone" />
                                 Ver Chave
                             </Link>
                         </Button>
@@ -134,7 +134,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                         <div className="space-y-1">
                             <CardTitle className="text-base font-bold flex items-center gap-2">
-                                <AlertCircle className="h-5 w-5 text-amber-500" />
+                                <WarningCircleIcon size={20} weight="duotone" className="text-amber-500" />
                                 Inscrições Pendentes
                             </CardTitle>
                             <CardDescription className="text-xs">Atletas aguardando liberação do pagamento.</CardDescription>
@@ -154,7 +154,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                         <div className="space-y-1">
                             <CardTitle className="text-base font-bold flex items-center gap-2">
-                                <ShoppingBag className="h-5 w-5 text-sky-500" />
+                                <ShoppingBagIcon size={20} weight="duotone" className="text-sky-500" />
                                 Na Cesta de Compras
                             </CardTitle>
                             <CardDescription className="text-xs">Atletas que iniciaram a inscrição mas não finalizaram o pedido.</CardDescription>

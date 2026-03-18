@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileTextIcon, CircleNotchIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,7 +72,7 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
                 onClick={() => setOpen(true)}
                 className="gap-2"
             >
-                <FileText className="h-4 w-4" />
+                <FileTextIcon size={16} weight="duotone" />
                 PDF de Pontuação
             </Button>
 
@@ -126,7 +126,7 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
                             Cancelar
                         </Button>
                         <Button pill onClick={handleGenerate} disabled={loading} className="gap-2">
-                            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {loading && <CircleNotchIcon size={16} weight="bold" className="animate-spin" />}
                             Gerar PDF
                         </Button>
                     </DialogFooter>

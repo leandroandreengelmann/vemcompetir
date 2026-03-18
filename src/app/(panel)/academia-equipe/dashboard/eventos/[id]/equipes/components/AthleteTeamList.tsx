@@ -25,7 +25,7 @@ const statusLabel: Record<string, { label: string; className: string }> = {
 export function AthleteTeamList({ athletes }: AthleteTeamListProps) {
     if (athletes.length === 0) {
         return (
-            <div className="py-12 text-center text-muted-foreground text-ui">
+            <div className="py-12 text-center text-muted-foreground text-panel-sm">
                 Nenhum atleta encontrado para esta equipe.
             </div>
         );
@@ -46,9 +46,9 @@ export function AthleteTeamList({ athletes }: AthleteTeamListProps) {
                 {athletes.map((athlete) => (
                     <TableRow key={athlete.id}>
                         <TableCell className="pl-6">
-                            <p className="text-ui font-medium">{athlete.full_name}</p>
+                            <p className="text-panel-sm font-medium">{athlete.full_name}</p>
                             {athlete.sexo && (
-                                <p className="text-caption text-muted-foreground">{athlete.sexo}</p>
+                                <p className="text-panel-sm text-muted-foreground">{athlete.sexo}</p>
                             )}
                         </TableCell>
                         <TableCell className="capitalize text-muted-foreground">
@@ -60,7 +60,7 @@ export function AthleteTeamList({ athletes }: AthleteTeamListProps) {
                         <TableCell>
                             <div className="flex flex-col gap-1">
                                 {athlete.registrations.map((reg) => (
-                                    <span key={reg.id} className="text-caption text-muted-foreground">
+                                    <span key={reg.id} className="text-panel-sm text-muted-foreground">
                                         {reg.category ? formatCategoryTitle(reg.category) : 'Sem categoria'}
                                     </span>
                                 ))}
@@ -77,7 +77,7 @@ export function AthleteTeamList({ athletes }: AthleteTeamListProps) {
                                         <Badge
                                             key={reg.id}
                                             variant="outline"
-                                            className={`text-[10px] uppercase font-bold tracking-wider ${s.className}`}
+                                            className={`text-panel-sm uppercase font-bold tracking-wider ${s.className}`}
                                         >
                                             {s.label}
                                         </Badge>

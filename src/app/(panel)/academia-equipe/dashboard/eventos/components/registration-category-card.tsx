@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, ShoppingBag, Loader2, Check, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { ArrowRightIcon, ShoppingBagIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon } from '@phosphor-icons/react';
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { getCategoryEnrolledAthletes } from '@/app/(panel)/actions/event-categories';
@@ -76,7 +78,7 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
             <div className="flex flex-col gap-3">
                 {/* Topo: Título */}
                 <div className="space-y-1">
-                    <h3 className={`text-h3 font-semibold leading-snug line-clamp-2 transition-colors ${isWhiteBelt && !isSelected ? 'text-brand-950 group-hover:text-brand-800' : 'text-foreground group-hover:text-primary'}`}>
+                    <h3 className={`text-panel-md font-semibold leading-snug line-clamp-2 transition-colors ${isWhiteBelt && !isSelected ? 'text-brand-950 group-hover:text-brand-800' : 'text-foreground group-hover:text-primary'}`}>
                         {formattedTitle}
                     </h3>
                 </div>
@@ -86,7 +88,7 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                     <Badge
                         variant="outline"
                         style={getBeltStyle(category.faixa)}
-                        className="text-label px-4 py-2 uppercase tracking-wider h-8 flex items-center shadow-sm rounded-md border-border/50"
+                        className="text-panel-sm font-semibold px-4 py-2 uppercase tracking-wider h-8 flex items-center shadow-sm rounded-md border-border/50"
                     >
                         {category.faixa}
                     </Badge>
@@ -95,10 +97,10 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                 {/* Rodapé: Preço e Ação */}
                 <div className="flex items-center justify-between mt-auto pt-2">
                     <div className="flex items-center gap-2">
-                        <span className="text-ui font-semibold text-foreground whitespace-nowrap">
+                        <span className="text-panel-sm font-semibold text-foreground whitespace-nowrap">
                             Valor da inscrição
                         </span>
-                        <span className={`text-h2 font-bold tabular-nums ${isWhiteBelt && !isSelected ? 'text-brand-950' : 'text-primary'}`}>
+                        <span className={`text-panel-md font-bold tabular-nums ${isWhiteBelt && !isSelected ? 'text-brand-950' : 'text-primary'}`}>
                             R$ {category.registration_fee}
                         </span>
                     </div>
@@ -107,7 +109,7 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                         {onAddToCart ? (
                             <button
                                 type="button"
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${isActuallyInCart
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-panel-sm font-bold transition-all ${isActuallyInCart
                                     ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 opacity-100 cursor-default'
                                     : isWhiteBelt && !isSelected
                                         ? 'bg-brand-950 text-white hover:bg-brand-800'
@@ -129,17 +131,17 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                                 }}
                             >
                                 {adding ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
                                 ) : isActuallyInCart ? (
-                                    <Check className="h-3.5 w-3.5" />
+                                    <CheckIcon size={20} weight="duotone" />
                                 ) : (
-                                    <ShoppingBag className="h-3.5 w-3.5" />
+                                    <ShoppingBagIcon size={20} weight="duotone" />
                                 )}
                                 {isActuallyInCart ? 'Na sacola' : 'Inscrever'}
                             </button>
                         ) : (
                             <div className={`transition-colors ${isSelected ? 'text-primary' : (isWhiteBelt ? 'text-brand-950' : 'text-primary')}`}>
-                                <ArrowRight className={`h-5 w-5 ${isSelected ? 'animate-pulse' : ''}`} />
+                                <ArrowRightIcon size={24} weight="duotone" className={isSelected ? 'animate-pulse' : ''} />
                             </div>
                         )}
                     </div>
@@ -163,29 +165,29 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                                                 <div
                                                     key={index}
                                                     title={name}
-                                                    className="inline-flex h-7 w-7 rounded-full ring-2 ring-background bg-primary/20 text-primary items-center justify-center text-[10px] font-bold shrink-0"
+                                                    className="inline-flex h-7 w-7 rounded-full ring-2 ring-background bg-primary/20 text-primary items-center justify-center text-panel-sm font-bold shrink-0"
                                                 >
                                                     {name.trim().split(/\s+/).slice(0, 2).map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                                                 </div>
                                             ))}
                                             {displayCount! > displayPreviews.length && (
-                                                <div className="inline-flex h-7 w-7 rounded-full ring-2 ring-background bg-muted text-muted-foreground items-center justify-center text-[10px] font-bold shrink-0">
+                                                <div className="inline-flex h-7 w-7 rounded-full ring-2 ring-background bg-muted text-muted-foreground items-center justify-center text-panel-sm font-bold shrink-0">
                                                     +{displayCount! - displayPreviews.length}
                                                 </div>
                                             )}
                                         </div>
                                     )}
-                                    <span className="text-[11px] font-semibold text-foreground/80 whitespace-nowrap">
+                                    <span className="text-panel-sm font-semibold text-foreground/80 whitespace-nowrap">
                                         {displayCount! > (displayPreviews?.length || 0)
                                             ? `mais ${displayCount! - (displayPreviews?.length || 0)} inscrições`
                                             : `${displayCount} ${displayCount === 1 ? 'inscrição' : 'inscrições'}`}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 opacity-80 group-hover/preview:opacity-100 transition-opacity ml-2">
-                                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider hidden sm:inline-flex">
+                                    <span className="text-panel-sm font-bold text-primary uppercase tracking-wider hidden sm:inline-flex">
                                         Ver
                                     </span>
-                                    <ChevronDown className="h-4 w-4 text-primary group-hover/preview:translate-y-0.5 transition-transform shrink-0" />
+                                    <CaretDownIcon size={20} weight="duotone" className="text-primary group-hover/preview:translate-y-0.5 transition-transform shrink-0" />
                                 </div>
                             </button>
                         ) : (
@@ -195,11 +197,11 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                                 onClick={handleToggleExpand}
                                 className="w-full flex justify-between items-center py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors mb-2"
                             >
-                                <span className="text-[11px] font-bold text-primary flex items-center gap-1.5 uppercase tracking-wide">
-                                    <Users className="h-3.5 w-3.5" />
+                                <span className="text-panel-sm font-bold text-primary flex items-center gap-1.5 uppercase tracking-wide">
+                                    <UsersIcon size={20} weight="duotone" />
                                     {displayCount} {displayCount === 1 ? 'Inscrito' : 'Inscritos'}
                                 </span>
-                                <ChevronUp className="h-4 w-4 text-primary" />
+                                <CaretUpIcon size={20} weight="duotone" className="text-primary" />
                             </button>
                         )}
 
@@ -211,20 +213,20 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                             >
                                 {loadingAthletes ? (
                                     <div className="flex items-center justify-center p-4 bg-muted/20 rounded-xl">
-                                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                        <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />
                                     </div>
                                 ) : athletes.length > 0 ? (
                                     <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
                                         {athletes.map((athlete, idx) => (
-                                            <div key={athlete.id || idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-card border border-border/50 text-sm shadow-sm group/item">
+                                            <div key={athlete.id || idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-card border border-border/50 text-panel-sm shadow-sm group/item">
                                                 <div className="flex flex-col min-w-0 pr-2">
-                                                    <span className="font-semibold text-foreground truncate text-xs">{athlete.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground truncate uppercase font-medium">{athlete.gym}</span>
+                                                    <span className="text-panel-sm font-semibold text-foreground truncate">{athlete.name}</span>
+                                                    <span className="text-panel-sm text-muted-foreground truncate uppercase font-medium">{athlete.gym}</span>
                                                 </div>
                                                 <Badge
                                                     variant="outline"
                                                     style={getBeltStyle(athlete.belt)}
-                                                    className="text-[9px] shadow-none uppercase font-bold whitespace-nowrap px-1.5 py-0 border-border/50"
+                                                    className="text-panel-sm shadow-none uppercase font-bold whitespace-nowrap px-1.5 py-0 border-border/50"
                                                 >
                                                     {athlete.belt}
                                                 </Badge>
@@ -232,7 +234,7 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="p-3 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border/50">
+                                    <div className="p-3 text-center text-panel-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border/50">
                                         Nenhum atleta confirmado.
                                     </div>
                                 )}

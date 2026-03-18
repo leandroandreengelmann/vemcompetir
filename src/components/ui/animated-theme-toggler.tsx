@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Moon, Sun } from "lucide-react"
+import { MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { flushSync } from "react-dom"
 
 import { cn } from "@/lib/utils"
@@ -16,9 +16,11 @@ export const AnimatedThemeToggler = ({
   ...props
 }: AnimatedThemeTogglerProps) => {
   const [isDark, setIsDark] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    setMounted(true)
     const updateTheme = () => {
       setIsDark(document.documentElement.classList.contains("dark"))
     }
@@ -80,6 +82,8 @@ export const AnimatedThemeToggler = ({
     )
   }, [isDark, duration])
 
+  if (!mounted) return <div className={cn("h-9 w-9", className)} />
+
   return (
     <button
       ref={buttonRef}
@@ -87,7 +91,7 @@ export const AnimatedThemeToggler = ({
       className={cn(className)}
       {...props}
     >
-      {isDark ? <Sun /> : <Moon />}
+      {isDark ? <SunIcon size={22} weight="duotone" /> : <MoonIcon size={22} weight="duotone" />}
       <span className="sr-only">Toggle theme</span>
     </button>
   )

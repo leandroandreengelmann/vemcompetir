@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Clock, QrCode, CheckCircle2 } from 'lucide-react';
+import { CopyIcon, CheckIcon, ClockIcon, QrCodeIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 
@@ -124,7 +124,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <QrCode className="h-5 w-5" />
+                        <QrCodeIcon size={20} weight="duotone" />
                         Pagamento via Pix
                     </DialogTitle>
                 </DialogHeader>
@@ -154,7 +154,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                                         animate={{ rotate: 0, opacity: 1 }}
                                         transition={{ duration: 0.45, delay: 0.3, ease: 'easeOut' }}
                                     >
-                                        <CheckCircle2 className="h-16 w-16 text-green-600" strokeWidth={1.8} />
+                                        <CheckCircleIcon size={64} weight="duotone" className="text-green-600" />
                                     </motion.div>
                                 </motion.div>
                             </div>
@@ -211,7 +211,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                             {/* Timer */}
                             {pixData.pix_expiration && (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Clock className="h-4 w-4" />
+                                    <ClockIcon size={16} weight="duotone" />
                                     <span>Expira em: <strong className="text-foreground">{timeLeft}</strong></span>
                                 </div>
                             )}
@@ -225,12 +225,12 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                                 >
                                     {copied ? (
                                         <>
-                                            <Check className="h-4 w-4 text-green-500" />
+                                            <CheckIcon size={16} weight="duotone" className="text-green-500" />
                                             Copiado!
                                         </>
                                     ) : (
                                         <>
-                                            <Copy className="h-4 w-4" />
+                                            <CopyIcon size={16} weight="duotone" />
                                             Copiar código Pix
                                         </>
                                     )}

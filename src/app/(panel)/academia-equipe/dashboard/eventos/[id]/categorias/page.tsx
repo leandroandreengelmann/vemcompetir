@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { EventCategoryManager } from '@/components/panel/EventCategoryManager';
 import { requireTenantScope } from '@/lib/auth-guards';
@@ -26,9 +26,9 @@ export default async function AcademyEventCategoriesPage(props: { params: Promis
         <div className="space-y-6">
             <Link
                 href={`/academia-equipe/dashboard/eventos`}
-                className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+                className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
             >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeftIcon size={16} weight="duotone" className="mr-2" />
                 Voltar
             </Link>
 

@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Receipt, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { MagnifyingGlassIcon, ReceiptIcon, CaretLeftIcon, CaretRightIcon, EyeIcon } from '@phosphor-icons/react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { RegistrationDetailsDialog } from './RegistrationDetailsDialog';
 
@@ -60,20 +61,20 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
     const renderStatusBadge = (status: string) => {
         if (status === 'paga' || status === 'pago' || status === 'confirmado') {
             return (
-                <Badge variant="outline" className="text-label px-2 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
                     PAGO
                 </Badge>
             );
         }
         if (status === 'pendente' || status === 'aguardando_pagamento') {
             return (
-                <Badge variant="outline" className="text-label px-2 font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                     PENDENTE
                 </Badge>
             );
         }
         return (
-            <Badge variant="outline" className="text-label px-2 font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
+            <Badge variant="outline" className="text-panel-sm font-semibold px-2 font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
                 NA CESTA DE COMPRAS
             </Badge>
         );
@@ -97,7 +98,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
         else if (lowerBelt.includes('verde')) bgClass = "bg-green-600 text-white border-green-700 shadow-sm";
 
         return (
-            <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 mt-1", bgClass)}>
+            <Badge variant="outline" className={cn("text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5 mt-1", bgClass)}>
                 {belt}
             </Badge>
         );
@@ -110,8 +111,8 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                 description="Consulte todos os registros de atletas neste evento."
                 rightElement={
                     <Link href="/academia-equipe/dashboard">
-                        <Button variant="outline" pill className="h-12 gap-2 text-ui font-semibold shadow-sm">
-                            <ArrowLeft className="h-4 w-4" />
+                        <Button variant="outline" pill className="h-12 gap-2 text-panel-sm font-semibold shadow-sm">
+                            <ArrowLeftIcon size={16} weight="duotone" />
                             Voltar ao Dashboard
                         </Button>
                     </Link>
@@ -123,7 +124,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                         <div className="flex flex-wrap items-center gap-3">
                             <div className="relative w-full md:w-80 group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <Input
                                     placeholder="Buscar por nome ou CPF..."
                                     variant="lg"
@@ -152,7 +153,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                 disabled={page === 1}
                                 onClick={() => setPage(page - 1)}
                             >
-                                <ChevronLeft className="h-4 w-4" />
+                                <CaretLeftIcon size={16} weight="duotone" />
                             </Button>
                             <span className="text-xs font-bold text-muted-foreground px-2">
                                 Página {page} de {totalPages || 1}
@@ -164,7 +165,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                 disabled={page >= totalPages}
                                 onClick={() => setPage(page + 1)}
                             >
-                                <ChevronRight className="h-4 w-4" />
+                                <CaretRightIcon size={16} weight="duotone" />
                             </Button>
                         </div>
                     </div>
@@ -173,12 +174,12 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="hover:bg-transparent border-border/50">
-                                    <TableHead className="text-label h-11">Atleta</TableHead>
-                                    <TableHead className="text-label h-11">CPF</TableHead>
-                                    <TableHead className="text-label h-11">Categoria / Faixa</TableHead>
-                                    <TableHead className="text-label h-11">Status</TableHead>
-                                    <TableHead className="text-label h-11 text-right">Valor</TableHead>
-                                    <TableHead className="text-label h-11 text-center w-[80px]">Ações</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">Atleta</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">CPF</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">Categoria / Faixa</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">Status</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-right">Valor</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center w-[80px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -203,24 +204,29 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                                 setIsDialogOpen(true);
                                             }}
                                         >
-                                            <TableCell className="text-ui font-bold py-4">{reg.athlete?.full_name}</TableCell>
-                                            <TableCell className="text-caption text-muted-foreground">{formatCPF(reg.athlete?.cpf)}</TableCell>
+                                            <TableCell className="text-panel-sm font-bold py-4">{reg.athlete?.full_name}</TableCell>
+                                            <TableCell className="text-panel-sm text-muted-foreground">{formatCPF(reg.athlete?.cpf)}</TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col items-start gap-1">
-                                                    <span className="text-ui font-medium truncate max-w-[300px]" title={reg.category?.categoria_completa}>{reg.category?.categoria_completa}</span>
+                                                    <span className="text-panel-sm font-medium truncate max-w-[300px]" title={reg.category?.categoria_completa}>{reg.category?.categoria_completa}</span>
                                                     {renderBeltBadge(reg.athlete?.belt_color)}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 {renderStatusBadge(reg.status)}
                                             </TableCell>
-                                            <TableCell className="text-right text-ui font-bold">
+                                            <TableCell className="text-right text-panel-sm font-bold">
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(reg.price || 0))}
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mx-auto">
-                                                    <Eye className="w-4 h-4" />
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mx-auto">
+                                                            <EyeIcon size={16} weight="duotone" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Ver detalhes da inscrição</TooltipContent>
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, CircleNotchIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,9 +95,9 @@ export default function NovoEventoPage() {
                 <div className="space-y-6">
                     <Link
                         href="/academia-equipe/dashboard/eventos"
-                        className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+                        className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={16} weight="duotone" className="mr-2" />
                         Voltar para a lista
                     </Link>
 
@@ -109,7 +109,7 @@ export default function NovoEventoPage() {
                 </div>
 
                 {error && (
-                    <div className="p-3 bg-destructive/15 text-destructive text-ui rounded-lg text-center animate-in fade-in zoom-in duration-300">
+                    <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center animate-in fade-in zoom-in duration-300">
                         {error}
                     </div>
                 )}
@@ -118,13 +118,13 @@ export default function NovoEventoPage() {
                     <div className="grid gap-8 md:grid-cols-2">
                         {/* Informações Básicas */}
                         <div className="space-y-6">
-                            <h3 className="text-h3 border-b pb-2">
+                            <h3 className="text-panel-md font-semibold border-b pb-2">
                                 Dados do Evento
                             </h3>
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label htmlFor="title" className="text-label text-muted-foreground">
+                                    <label htmlFor="title" className="text-panel-sm font-semibold text-muted-foreground">
                                         Título do Evento *
                                     </label>
                                     <Input
@@ -138,7 +138,7 @@ export default function NovoEventoPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="event_date" className="text-label text-muted-foreground">
+                                    <label htmlFor="event_date" className="text-panel-sm font-semibold text-muted-foreground">
                                         Data do Evento *
                                     </label>
                                     <Input
@@ -152,7 +152,7 @@ export default function NovoEventoPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="location" className="text-label text-muted-foreground">
+                                    <label htmlFor="location" className="text-panel-sm font-semibold text-muted-foreground">
                                         Local (Nome da Arena/Ginásio)
                                     </label>
                                     <Input
@@ -169,20 +169,20 @@ export default function NovoEventoPage() {
 
                         {/* Endereço e Imagem */}
                         <div className="space-y-6">
-                            <h3 className="text-h3 border-b pb-2">
+                            <h3 className="text-panel-md font-semibold border-b pb-2">
                                 Endereço
                             </h3>
 
                             <div className="grid gap-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                     <div className="sm:col-span-3 space-y-2">
-                                        <label htmlFor="address_street" className="text-label text-muted-foreground">
+                                        <label htmlFor="address_street" className="text-panel-sm font-semibold text-muted-foreground">
                                             Rua *
                                         </label>
                                         <Input id="address_street" name="address_street" variant="lg" required disabled={loading} placeholder="Rua..." />
                                     </div>
                                     <div className="space-y-2">
-                                        <label htmlFor="address_number" className="text-label text-muted-foreground">
+                                        <label htmlFor="address_number" className="text-panel-sm font-semibold text-muted-foreground">
                                             Nº
                                         </label>
                                         <Input id="address_number" name="address_number" variant="lg" disabled={loading} placeholder="123" />
@@ -191,13 +191,13 @@ export default function NovoEventoPage() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label htmlFor="address_neighborhood" className="text-label text-muted-foreground">
+                                        <label htmlFor="address_neighborhood" className="text-panel-sm font-semibold text-muted-foreground">
                                             Bairro
                                         </label>
                                         <Input id="address_neighborhood" name="address_neighborhood" variant="lg" disabled={loading} placeholder="Centro" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label htmlFor="address_zip" className="text-label text-muted-foreground">
+                                        <label htmlFor="address_zip" className="text-panel-sm font-semibold text-muted-foreground">
                                             CEP
                                         </label>
                                         <Input id="address_zip" name="address_zip" variant="lg" disabled={loading} placeholder="00000-000" />
@@ -206,13 +206,13 @@ export default function NovoEventoPage() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div className="sm:col-span-2 space-y-2">
-                                        <label htmlFor="address_city" className="text-label text-muted-foreground">
+                                        <label htmlFor="address_city" className="text-panel-sm font-semibold text-muted-foreground">
                                             Cidade *
                                         </label>
                                         <Input id="address_city" name="address_city" variant="lg" required disabled={loading} placeholder="Cidade" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label htmlFor="address_state" className="text-label text-muted-foreground">
+                                        <label htmlFor="address_state" className="text-panel-sm font-semibold text-muted-foreground">
                                             Estado *
                                         </label>
                                         <Input id="address_state" name="address_state" variant="lg" required disabled={loading} placeholder="UF" maxLength={2} className="uppercase" />
@@ -221,7 +221,7 @@ export default function NovoEventoPage() {
                             </div>
 
                             <div className="space-y-4 pt-4">
-                                <h3 className="text-h3 border-b pb-2">
+                                <h3 className="text-panel-md font-semibold border-b pb-2">
                                     Imagem do Evento
                                 </h3>
 
@@ -239,7 +239,7 @@ export default function NovoEventoPage() {
                                                 <button
                                                     type="button"
                                                     onClick={removeImage}
-                                                    className="absolute top-2 right-2 px-3 py-1 bg-destructive text-white text-[10px] font-bold rounded-full hover:scale-105 transition-transform shadow-lg"
+                                                    className="absolute top-2 right-2 px-3 py-1 bg-destructive text-white text-panel-sm font-bold rounded-full hover:scale-105 transition-transform shadow-lg"
                                                 >
                                                     Remover
                                                 </button>
@@ -248,8 +248,8 @@ export default function NovoEventoPage() {
                                             <div
                                                 className="flex flex-col items-center transition-opacity"
                                             >
-                                                <span className="text-label opacity-60">ENVIAR IMAGEM</span>
-                                                <span className="text-caption mt-1 opacity-40">Recomendado: 200×200</span>
+                                                <span className="text-panel-sm font-semibold opacity-60">ENVIAR IMAGEM</span>
+                                                <span className="text-panel-sm mt-1 opacity-40">Recomendado: 200×200</span>
                                             </div>
                                         )}
                                     </div>
@@ -275,7 +275,7 @@ export default function NovoEventoPage() {
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
                                     Criando...
                                 </>
                             ) : (

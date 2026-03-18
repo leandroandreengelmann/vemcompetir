@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeftIcon, UsersIcon } from '@phosphor-icons/react/dist/ssr';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { TeamCard } from './components/TeamCard';
@@ -50,11 +51,16 @@ export default async function EventTeamsPage(props: TeamsPageProps) {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground">
-                    <Link href="/academia-equipe/dashboard/eventos">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <Link href="/academia-equipe/dashboard/eventos">
+                                <ArrowLeftIcon size={20} weight="duotone" />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Voltar para eventos</TooltipContent>
+                </Tooltip>
                 <div className="flex-1">
                     <SectionHeader
                         title={`Equipes — ${event.title}`}
@@ -75,11 +81,11 @@ export default async function EventTeamsPage(props: TeamsPageProps) {
             {teams.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
                     <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center">
-                        <Users className="h-7 w-7 text-muted-foreground" />
+                        <UsersIcon size={28} weight="duotone" className="text-muted-foreground" />
                     </div>
                     <div>
-                        <p className="text-ui font-medium">Nenhuma equipe inscrita ainda</p>
-                        <p className="text-caption text-muted-foreground mt-1">
+                        <p className="text-panel-sm font-medium">Nenhuma equipe inscrita ainda</p>
+                        <p className="text-panel-sm text-muted-foreground mt-1">
                             Equipes aparecem aqui conforme atletas são inscritos no evento.
                         </p>
                     </div>

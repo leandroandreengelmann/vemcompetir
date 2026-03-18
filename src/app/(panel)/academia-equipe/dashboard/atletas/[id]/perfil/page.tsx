@@ -3,7 +3,8 @@ import { redirect, notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getBeltStyle } from '@/lib/belt-theme';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -122,14 +123,19 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
         <div className="space-y-8 max-w-5xl mx-auto">
             {/* Header / Actions */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild className="rounded-full">
-                    <Link href="/academia-equipe/dashboard/atletas">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" asChild className="rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <Link href="/academia-equipe/dashboard/atletas">
+                                <ArrowLeftIcon size={24} weight="duotone" />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Voltar para lista de atletas</TooltipContent>
+                </Tooltip>
                 <div>
-                    <h1 className="text-h2 tracking-tight">Perfil do Atleta</h1>
-                    <p className="text-muted-foreground text-sm">Visualização detalhada e histórico de inscrições</p>
+                    <h1 className="text-panel-lg font-bold tracking-tight">Perfil do Atleta</h1>
+                    <p className="text-panel-sm text-muted-foreground">Visualização detalhada e histórico de inscrições</p>
                 </div>
             </div>
 
@@ -148,17 +154,17 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
                     <div className="flex flex-col gap-4 w-full">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                                <h2 className="text-panel-lg font-black text-foreground tracking-tight">
                                     {athleteProfile.full_name}
                                 </h2>
-                                <p className="text-muted-foreground text-sm font-medium mt-1">
+                                <p className="text-panel-sm text-muted-foreground font-medium mt-1">
                                     {athleteProfile.gym_name || orgProfile?.gym_name || 'Academia não informada'}
                                 </p>
                             </div>
                             <Badge
                                 variant="outline"
                                 style={getBeltStyle(athleteProfile.belt_color || '')}
-                                className="px-4 py-1.5 text-xs sm:text-sm font-bold uppercase tracking-wider self-start sm:self-auto border-2 border-border/50"
+                                className="px-4 py-1.5 text-panel-sm font-bold uppercase tracking-wider self-start sm:self-auto border-2 border-border/50"
                             >
                                 {athleteProfile.belt_color || 'Faixa não informada'}
                             </Badge>
@@ -166,15 +172,15 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
 
                         {/* Details grid */}
                         <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2">
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-panel-sm">
                                 <span className="font-semibold text-muted-foreground mr-1.5">Idade:</span>
                                 <span className="font-medium text-foreground">{age !== '-' ? `${age} anos` : 'N/A'}</span>
                             </div>
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-panel-sm">
                                 <span className="font-semibold text-muted-foreground mr-1.5">Peso:</span>
                                 <span className="font-medium text-foreground">{athleteProfile.weight ? `${athleteProfile.weight} kg` : 'N/A'}</span>
                             </div>
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-panel-sm">
                                 <span className="font-semibold text-muted-foreground mr-1.5">Sexo:</span>
                                 <span className="font-medium text-foreground capitalize">{athleteProfile.sexo || 'N/A'}</span>
                             </div>
@@ -186,7 +192,7 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
             {/* Registrations History */}
             <Card className="rounded-2xl shadow-sm border-border/50">
                 <CardHeader className="pb-4">
-                    <CardTitle className="text-xl flex items-center gap-2">
+                    <CardTitle className="text-panel-md flex items-center gap-2">
                         Histórico de Campeonatos
                     </CardTitle>
                 </CardHeader>
@@ -214,15 +220,15 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
                                             {/* @ts-ignore - Supabase join typing */}
                                             {reg.event?.title || 'Evento Desconhecido'}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground text-sm max-w-[250px] truncate">
+                                        <TableCell className="text-panel-sm text-muted-foreground max-w-[250px] truncate">
                                             {/* @ts-ignore */}
                                             {reg.category?.categoria_completa || '-'}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground text-sm">
+                                        <TableCell className="text-panel-sm text-muted-foreground">
                                             {format(new Date(reg.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
                                         </TableCell>
                                         <TableCell className="text-right pr-6">
-                                            <Badge variant="outline" className={`font-semibold border uppercase text-[10px] tracking-wider px-2 py-0.5 ${getStatusBadgeVariant(reg.status)}`}>
+                                            <Badge variant="outline" className={`font-semibold border uppercase text-panel-sm tracking-wider px-2 py-0.5 ${getStatusBadgeVariant(reg.status)}`}>
                                                 {getStatusLabel(reg.status)}
                                             </Badge>
                                         </TableCell>

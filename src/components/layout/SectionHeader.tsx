@@ -1,10 +1,10 @@
-import { LucideIcon } from "lucide-react";
+import { Icon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 interface SectionHeaderProps {
     title: string;
     description?: string;
-    icon?: LucideIcon;
+    icon?: Icon;
     rightElement?: React.ReactNode;
     className?: string;
     descriptionClassName?: string;
@@ -23,13 +23,13 @@ export function SectionHeader({
             <div className="flex items-center gap-4">
                 {Icon && (
                     <div className="p-2.5 bg-primary/5 rounded-xl text-primary border border-primary/10">
-                        <Icon className="h-6 w-6" />
+                        <Icon size={24} weight="duotone" />
                     </div>
                 )}
                 <div className="space-y-1">
-                    <h1 className="text-h1 tracking-tight">{title}</h1>
+                    <h1 className="text-panel-lg font-bold tracking-tight">{title}</h1>
                     {description && (
-                        <p className={cn("text-caption text-muted-foreground", descriptionClassName)}>
+                        <p className={cn("text-panel-sm text-muted-foreground", descriptionClassName)}>
                             {description}
                         </p>
                     )}

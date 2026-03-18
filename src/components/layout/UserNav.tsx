@@ -10,7 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User } from "lucide-react";
+import { SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -65,27 +65,27 @@ export function UserNav({ user }: UserNavProps) {
                 {user.role === 'admin_geral' ? (
                     <DropdownMenuItem asChild className="cursor-pointer focus:bg-muted focus:text-foreground">
                         <Link href="/admin/dashboard/configuracoes">
-                            <User className="mr-2 h-4 w-4" />
+                            <UserIcon size={16} weight="duotone" className="mr-2" />
                             <span>Perfil</span>
                         </Link>
                     </DropdownMenuItem>
                 ) : user.role === 'academia/equipe' ? (
                     <DropdownMenuItem asChild className="cursor-pointer focus:bg-muted focus:text-foreground">
                         <Link href="/academia-equipe/dashboard/perfil">
-                            <User className="mr-2 h-4 w-4" />
+                            <UserIcon size={16} weight="duotone" className="mr-2" />
                             <span>Perfil</span>
                         </Link>
                     </DropdownMenuItem>
                 ) : (
                     <DropdownMenuItem asChild className="cursor-pointer focus:bg-muted focus:text-foreground">
                         <Link href="/atleta/dashboard/perfil">
-                            <User className="mr-2 h-4 w-4" />
+                            <UserIcon size={16} weight="duotone" className="mr-2" />
                             <span>Perfil</span>
                         </Link>
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 cursor-pointer focus:bg-muted">
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <SignOutIcon size={16} weight="duotone" className="mr-2" />
                     <span>Sair</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>

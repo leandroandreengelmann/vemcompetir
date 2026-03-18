@@ -4,7 +4,8 @@ import { SectionHeader } from "@/components/layout/SectionHeader";
 import { RegistrationForm } from '../../components/registration-form';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getSystemSetting, getSystemSettingsMap } from '@/lib/dal/system-settings';
 
 interface SubscribePageProps {
@@ -76,11 +77,16 @@ export default async function SubscribePage(props: SubscribePageProps) {
     return (
         <div className="space-y-6 container mx-auto max-w-4xl">
             <div className="flex items-center gap-4 mb-8">
-                <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground hover:bg-foreground hover:text-background transition-colors">
-                    <Link href={`/academia-equipe/dashboard/eventos/disponiveis`}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <Link href={`/academia-equipe/dashboard/eventos/disponiveis`}>
+                                <ArrowLeftIcon size={20} weight="duotone" />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Voltar para eventos disponíveis</TooltipContent>
+                </Tooltip>
                 <div className="flex-1">
                     <SectionHeader
                         title="Nova Inscrição"

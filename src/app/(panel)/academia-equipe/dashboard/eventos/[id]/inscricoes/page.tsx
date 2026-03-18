@@ -5,7 +5,8 @@ import { getEventRegistrationsAction } from '../../registrations-actions';
 import { RegistrationList } from '../../components/registration-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EventRegistrationsPageProps {
     params: Promise<{ id: string }>;
@@ -59,11 +60,16 @@ export default async function EventRegistrationsPage(props: EventRegistrationsPa
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground transition-colors">
-                    <Link href="/academia-equipe/dashboard/eventos">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <Link href="/academia-equipe/dashboard/eventos">
+                                <ArrowLeftIcon size={20} weight="duotone" />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Voltar para eventos</TooltipContent>
+                </Tooltip>
                 <div className="flex-1">
                     <SectionHeader
                         title={`Inscrições: ${event.title}`}

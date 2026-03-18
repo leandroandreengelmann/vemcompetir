@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { CircleNotchIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type PersonType = 'PF' | 'PJ';
@@ -161,7 +161,7 @@ export default function CriarSubcontaPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-h2 font-bold">Criar subconta Asaas</h1>
+                <h1 className="text-panel-md font-bold font-bold">Criar subconta Asaas</h1>
                 <p className="text-sm text-muted-foreground mt-1">
                     Informe os dados para criar sua conta no gateway de pagamentos.
                 </p>
@@ -170,7 +170,7 @@ export default function CriarSubcontaPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                     <Alert variant="destructive" className="rounded-xl border shadow-sm">
-                        <AlertDescription className="text-ui font-medium">{error}</AlertDescription>
+                        <AlertDescription className="text-panel-sm font-medium">{error}</AlertDescription>
                     </Alert>
                 )}
 
@@ -189,7 +189,7 @@ export default function CriarSubcontaPage() {
                                     updateField('cpfCnpj', '');
                                 }}
                                 pill
-                                className={`flex-1 h-12 font-semibold ${personType === 'PF' ? 'text-primary-foreground' : 'text-foreground text-ui'}`}
+                                className={`flex-1 h-12 font-semibold ${personType === 'PF' ? 'text-primary-foreground' : 'text-foreground text-panel-sm'}`}
                             >
                                 Pessoa Física
                             </Button>
@@ -201,7 +201,7 @@ export default function CriarSubcontaPage() {
                                     updateField('cpfCnpj', '');
                                 }}
                                 pill
-                                className={`flex-1 h-12 font-semibold ${personType === 'PJ' ? 'text-primary-foreground' : 'text-foreground text-ui'}`}
+                                className={`flex-1 h-12 font-semibold ${personType === 'PJ' ? 'text-primary-foreground' : 'text-foreground text-panel-sm'}`}
                             >
                                 Pessoa Jurídica
                             </Button>
@@ -216,7 +216,7 @@ export default function CriarSubcontaPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name" className="text-ui font-medium">{personType === 'PF' ? 'Nome completo' : 'Razão social'}</Label>
+                            <Label htmlFor="name" className="text-panel-sm font-medium">{personType === 'PF' ? 'Nome completo' : 'Razão social'}</Label>
                             <Input variant="lg"
                                 id="name"
                                 value={form.name}
@@ -227,7 +227,7 @@ export default function CriarSubcontaPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-ui font-medium">E-mail</Label>
+                            <Label htmlFor="email" className="text-panel-sm font-medium">E-mail</Label>
                             <Input variant="lg"
                                 id="email"
                                 type="email"
@@ -240,7 +240,7 @@ export default function CriarSubcontaPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="cpfCnpj" className="text-ui font-medium">{personType === 'PF' ? 'CPF' : 'CNPJ'}</Label>
+                                <Label htmlFor="cpfCnpj" className="text-panel-sm font-medium">{personType === 'PF' ? 'CPF' : 'CNPJ'}</Label>
                                 <Input variant="lg"
                                     id="cpfCnpj"
                                     value={form.cpfCnpj}
@@ -255,7 +255,7 @@ export default function CriarSubcontaPage() {
 
                             {personType === 'PF' && (
                                 <div className="space-y-2">
-                                    <Label htmlFor="birthDate" className="text-ui font-medium">Data de nascimento</Label>
+                                    <Label htmlFor="birthDate" className="text-panel-sm font-medium">Data de nascimento</Label>
                                     <Input variant="lg"
                                         id="birthDate"
                                         type="date"
@@ -269,12 +269,12 @@ export default function CriarSubcontaPage() {
 
                             {personType === 'PJ' && (
                                 <div className="space-y-2">
-                                    <Label htmlFor="companyType" className="text-ui font-medium">Tipo de empresa</Label>
+                                    <Label htmlFor="companyType" className="text-panel-sm font-medium">Tipo de empresa</Label>
                                     <select
                                         id="companyType"
                                         value={form.companyType}
                                         onChange={(e) => updateField('companyType', e.target.value)}
-                                        className="flex h-12 w-full min-w-0 rounded-xl border border-input bg-transparent px-4 py-1 text-body shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        className="flex h-12 w-full min-w-0 rounded-xl border border-input bg-transparent px-4 py-1 text-panel-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                         required
                                     >
                                         <option value="">Selecione...</option>
@@ -290,7 +290,7 @@ export default function CriarSubcontaPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="phone" className="text-ui font-medium">Telefone fixo</Label>
+                                <Label htmlFor="phone" className="text-panel-sm font-medium">Telefone fixo</Label>
                                 <Input variant="lg"
                                     id="phone"
                                     value={form.phone}
@@ -300,7 +300,7 @@ export default function CriarSubcontaPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="mobilePhone" className="text-ui font-medium">Celular *</Label>
+                                <Label htmlFor="mobilePhone" className="text-panel-sm font-medium">Celular *</Label>
                                 <Input variant="lg"
                                     id="mobilePhone"
                                     value={form.mobilePhone}
@@ -312,9 +312,9 @@ export default function CriarSubcontaPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="incomeValue" className="text-ui font-medium">{personType === 'PF' ? 'Renda mensal' : 'Faturamento mensal'}</Label>
+                            <Label htmlFor="incomeValue" className="text-panel-sm font-medium">{personType === 'PF' ? 'Renda mensal' : 'Faturamento mensal'}</Label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-body text-muted-foreground font-medium">R$</span>
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-panel-sm text-muted-foreground font-medium">R$</span>
                                 <Input variant="lg"
                                     id="incomeValue"
                                     value={form.incomeValue}
@@ -337,7 +337,7 @@ export default function CriarSubcontaPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="postalCode" className="text-ui font-medium">CEP</Label>
+                                <Label htmlFor="postalCode" className="text-panel-sm font-medium">CEP</Label>
                                 <Input variant="lg"
                                     id="postalCode"
                                     value={form.postalCode}
@@ -348,7 +348,7 @@ export default function CriarSubcontaPage() {
                                 />
                             </div>
                             <div className="md:col-span-2 space-y-2">
-                                <Label htmlFor="address" className="text-ui font-medium">Rua</Label>
+                                <Label htmlFor="address" className="text-panel-sm font-medium">Rua</Label>
                                 <Input variant="lg"
                                     id="address"
                                     value={form.address}
@@ -361,7 +361,7 @@ export default function CriarSubcontaPage() {
 
                         <div className="grid grid-cols-4 gap-4">
                             <div className="col-span-1 space-y-2">
-                                <Label htmlFor="addressNumber" className="text-ui font-medium">Nº</Label>
+                                <Label htmlFor="addressNumber" className="text-panel-sm font-medium">Nº</Label>
                                 <Input variant="lg"
                                     id="addressNumber"
                                     value={form.addressNumber}
@@ -371,7 +371,7 @@ export default function CriarSubcontaPage() {
                                 />
                             </div>
                             <div className="col-span-3 space-y-2">
-                                <Label htmlFor="complement" className="text-ui font-medium">Complemento</Label>
+                                <Label htmlFor="complement" className="text-panel-sm font-medium">Complemento</Label>
                                 <Input variant="lg"
                                     id="complement"
                                     value={form.complement}
@@ -383,7 +383,7 @@ export default function CriarSubcontaPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="province" className="text-ui font-medium">Bairro</Label>
+                                <Label htmlFor="province" className="text-panel-sm font-medium">Bairro</Label>
                                 <Input variant="lg"
                                     id="province"
                                     value={form.province}
@@ -393,7 +393,7 @@ export default function CriarSubcontaPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="city" className="text-ui font-medium">Cidade</Label>
+                                <Label htmlFor="city" className="text-panel-sm font-medium">Cidade</Label>
                                 <Input variant="lg"
                                     id="city"
                                     value={form.city}
@@ -403,7 +403,7 @@ export default function CriarSubcontaPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="state" className="text-ui font-medium">UF</Label>
+                                <Label htmlFor="state" className="text-panel-sm font-medium">UF</Label>
                                 <Input variant="lg"
                                     id="state"
                                     value={form.state}
@@ -426,7 +426,7 @@ export default function CriarSubcontaPage() {
                         onClick={() => router.back()}
                         disabled={isLoading}
                         pill
-                        className="h-12 text-ui font-semibold transition-all hover:bg-accent px-8"
+                        className="h-12 text-panel-sm font-semibold transition-all hover:bg-accent px-8"
                     >
                         Cancelar
                     </Button>
@@ -434,11 +434,11 @@ export default function CriarSubcontaPage() {
                         type="submit"
                         disabled={isLoading}
                         pill
-                        className="h-12 px-8 text-ui font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98] text-primary-foreground"
+                        className="h-12 px-8 text-panel-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98] text-primary-foreground"
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                <CircleNotchIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                 Criando...
                             </>
                         ) : (

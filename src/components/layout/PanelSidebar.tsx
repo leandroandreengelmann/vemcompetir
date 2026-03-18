@@ -4,8 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, Users, Calendar, User, ChevronLeft, ChevronRight, Building2, MessageSquareQuote, Layers, Settings, Plug, Wallet, Landmark, HandCoins } from "lucide-react";
+import {
+    SquaresFourIcon,
+    UsersIcon,
+    CalendarIcon,
+    UserIcon,
+    CaretLeftIcon,
+    CaretRightIcon,
+    BuildingsIcon,
+    ChatCenteredIcon,
+    StackSimpleIcon,
+    GearIcon,
+    PlugIcon,
+    WalletIcon,
+    HandCoinsIcon,
+} from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import {
@@ -21,75 +34,79 @@ interface PanelSidebarProps {
 
 export function PanelSidebar({ role }: PanelSidebarProps) {
     const pathname = usePathname();
-    const [open, setOpen] = useState(false);
+    const [, setOpen] = useState(false);
     const { isCollapsed, toggleSidebar } = useSidebar();
 
     const routes = [
         {
             label: "Dashboard",
-            icon: LayoutDashboard,
+            icon: SquaresFourIcon,
             href: role === 'admin_geral' ? "/admin/dashboard" : "/academia-equipe/dashboard",
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
             label: "Equipes / Academias",
-            icon: Building2,
+            icon: BuildingsIcon,
             href: "/admin/dashboard/equipes-academias",
             roles: ['admin_geral'],
         },
         {
             label: "Sugestões",
-            icon: MessageSquareQuote,
+            icon: ChatCenteredIcon,
             href: "/admin/dashboard/comunidade",
             roles: ['admin_geral'],
         },
-
         {
             label: role === 'academia/equipe' ? "Meus Eventos" : "Eventos",
-            icon: Calendar,
+            icon: CalendarIcon,
             href: role === 'admin_geral' ? "/admin/dashboard/eventos" : "/academia-equipe/dashboard/eventos",
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
             label: "Categorias",
-            icon: Layers,
+            icon: StackSimpleIcon,
             href: "/admin/dashboard/categorias",
             roles: ['admin_geral'],
         },
         {
             label: "Atletas",
-            icon: Users,
+            icon: UsersIcon,
             href: "/academia-equipe/dashboard/atletas",
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
             label: "Eventos Disponíveis",
-            icon: Calendar,
+            icon: CalendarIcon,
             href: "/academia-equipe/dashboard/eventos/disponiveis",
             roles: ['academia/equipe'],
         },
         {
             label: "Financeiro Asaas",
-            icon: Wallet,
+            icon: WalletIcon,
             href: "/academia-equipe/dashboard/financeiro/asaas",
             roles: ['academia/equipe'],
         },
-
+        {
+            label: "Meu Perfil",
+            icon: UserIcon,
+            href: "/academia-equipe/dashboard/perfil",
+            roles: ['academia/equipe'],
+        },
         {
             label: "Cobrança Integral",
-            icon: HandCoins,
+            icon: HandCoinsIcon,
             href: "/admin/dashboard/cobranca-integral",
             roles: ['admin_geral'],
         },
         {
             label: "Configurações",
-            icon: Settings,
+            icon: GearIcon,
             href: "/admin/dashboard/configuracoes",
             roles: ['admin_geral'],
         },
         {
             label: "Integrações",
-            icon: Plug,
+            icon: PlugIcon,
             href: "/admin/dashboard/integracoes/asaas",
             roles: ['admin_geral'],
         },
@@ -105,12 +122,10 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                     ? pathname === route.href
                     : pathname === route.href || pathname.startsWith(route.href + '/');
 
-                // Special case to prevent "Meus Eventos" from highlighting when inside "Eventos Disponíveis"
                 if (route.href.endsWith('/eventos') && pathname.startsWith(route.href + '/disponiveis')) {
                     isActive = false;
                 }
 
-                // Collapsed Item (Desktop Only)
                 if (isCollapsed && !isMobile) {
                     return (
                         <TooltipProvider key={route.href} delayDuration={0}>
@@ -129,11 +144,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                                     >
                                         <Link href={route.href} aria-label={route.label}>
                                             <route.icon
+                                                size={24}
+                                                weight="duotone"
                                                 className={cn(
-                                                    "size-5 transition-colors",
+                                                    "transition-colors size-6",
                                                     isActive ? "text-foreground" : "text-muted-foreground"
                                                 )}
-                                                strokeWidth={1.8}
                                             />
                                         </Link>
                                     </Button>
@@ -146,7 +162,6 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                     );
                 }
 
-                // Expanded Item (Desktop & Mobile)
                 return (
                     <Button
                         key={route.href}
@@ -163,11 +178,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                     >
                         <Link href={route.href}>
                             <route.icon
+                                size={24}
+                                weight="duotone"
                                 className={cn(
-                                    "size-5 transition-colors",
+                                    "transition-colors size-6",
                                     isActive ? "text-foreground" : "text-muted-foreground"
                                 )}
-                                strokeWidth={1.8}
                             />
                             {(!isCollapsed || isMobile) && <span>{route.label}</span>}
                         </Link>
@@ -179,7 +195,6 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
 
     return (
         <>
-            {/* Desktop Sidebar */}
             <div
                 className={cn(
                     "hidden bg-sidebar md:block min-h-screen transition-all duration-300 ease-in-out border-r border-sidebar-border",
@@ -197,16 +212,8 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                         </div>
                     ) : (
                         <div className="flex items-center justify-center p-2">
-                            <img
-                                src="/simbolo-camaleao-black.png"
-                                alt="COMPETIR"
-                                className="w-8 h-8 object-contain dark:hidden"
-                            />
-                            <img
-                                src="/simbolo-camaleao-white.png"
-                                alt="COMPETIR"
-                                className="w-8 h-8 object-contain hidden dark:block"
-                            />
+                            <img src="/simbolo-camaleao-black.png" alt="COMPETIR" className="w-8 h-8 object-contain dark:hidden" />
+                            <img src="/simbolo-camaleao-white.png" alt="COMPETIR" className="w-8 h-8 object-contain hidden dark:block" />
                         </div>
                     )}
 
@@ -214,9 +221,9 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                         variant="ghost"
                         size="icon"
                         onClick={toggleSidebar}
-                        className={cn("h-8 w-8", isCollapsed ? "hidden" : "ml-auto")}
+                        className={cn("h-10 w-10", isCollapsed ? "hidden" : "ml-auto")}
                     >
-                        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                        {isCollapsed ? <CaretRightIcon size={18} className="size-[18px]" weight="duotone" /> : <CaretLeftIcon size={18} className="size-[18px]" weight="duotone" />}
                         <span className="sr-only">Toggle Sidebar</span>
                     </Button>
                 </div>
@@ -224,16 +231,15 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                 <div className="p-3 flex flex-col h-[calc(100vh-60px)]">
                     {sidebarContent()}
 
-                    {/* Botão de expandir quando recolhido */}
                     {isCollapsed && (
                         <div className="mt-auto flex justify-center pt-4 border-t border-sidebar-border/50">
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={toggleSidebar}
-                                className="size-9 hover:bg-muted/40 text-muted-foreground transition-all"
+                                className="size-10 hover:bg-muted/40 text-muted-foreground transition-all"
                             >
-                                <ChevronRight className="h-4 w-4" />
+                                <CaretRightIcon size={18} className="size-[18px]" weight="duotone" />
                             </Button>
                         </div>
                     )}

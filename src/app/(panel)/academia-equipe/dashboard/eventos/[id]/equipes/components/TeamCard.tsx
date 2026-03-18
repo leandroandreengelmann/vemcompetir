@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Users, Star, ChevronRight } from 'lucide-react';
+import { UsersIcon, StarIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,23 +18,23 @@ export function TeamCard({ team, eventId }: TeamCardProps) {
                 {/* Icon */}
                 <div className={`flex-shrink-0 h-12 w-12 rounded-xl flex items-center justify-center ${team.is_organizer ? 'bg-primary/15' : 'bg-muted/40'}`}>
                     {team.is_organizer
-                        ? <Star className="h-6 w-6 text-primary" />
-                        : <Users className="h-6 w-6 text-muted-foreground" />
+                        ? <StarIcon size={24} weight="duotone" className="text-primary" />
+                        : <UsersIcon size={24} weight="duotone" className="text-muted-foreground" />
                     }
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-ui font-semibold truncate">{team.team_name}</span>
+                        <span className="text-panel-sm font-semibold truncate">{team.team_name}</span>
                         {team.is_organizer && (
-                            <Badge className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground border-none">
+                            <Badge className="text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground border-none">
                                 Organizadora
                             </Badge>
                         )}
                     </div>
                     {team.master_name && (
-                        <p className="text-caption text-muted-foreground mt-0.5 truncate">
+                        <p className="text-panel-sm text-muted-foreground mt-0.5 truncate">
                             Mestre: {team.master_name}
                         </p>
                     )}
@@ -42,17 +43,22 @@ export function TeamCard({ team, eventId }: TeamCardProps) {
                 {/* Athlete count + action */}
                 <div className="flex-shrink-0 flex items-center gap-3">
                     <div className="text-center">
-                        <div className="text-h2 font-bold tabular-nums">{team.total_athletes}</div>
-                        <div className="text-caption text-muted-foreground">
+                        <div className="text-panel-md font-bold font-bold tabular-nums">{team.total_athletes}</div>
+                        <div className="text-panel-sm text-muted-foreground">
                             {team.total_athletes === 1 ? 'atleta' : 'atletas'}
                         </div>
                     </div>
-                    <Button variant="ghost" size="icon" asChild pill className="h-9 w-9 text-muted-foreground hover:text-foreground">
-                        <Link href={`/academia-equipe/dashboard/eventos/${eventId}/equipes/${encodeURIComponent(team.team_slug)}`}>
-                            <ChevronRight className="h-5 w-5" />
-                            <span className="sr-only">Ver atletas de {team.team_name}</span>
-                        </Link>
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" asChild pill className="h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                                <Link href={`/academia-equipe/dashboard/eventos/${eventId}/equipes/${encodeURIComponent(team.team_slug)}`}>
+                                    <CaretRightIcon size={20} weight="duotone" />
+                                    <span className="sr-only">Ver atletas de {team.team_name}</span>
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left">Ver atletas da equipe</TooltipContent>
+                    </Tooltip>
                 </div>
             </CardContent>
         </Card>

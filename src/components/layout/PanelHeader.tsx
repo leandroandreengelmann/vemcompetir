@@ -20,14 +20,14 @@ export function PanelHeader({ user, role }: PanelHeaderProps) {
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
                 {role === 'academia/equipe' && user?.gym_name && (
-                    <span className="hidden md:inline-block text-lg font-bold text-foreground mr-3 truncate max-w-[300px]">
+                    <span className="hidden md:inline-block text-panel-sm font-semibold text-foreground mr-3 truncate max-w-[300px]">
                         {user.gym_name}
                     </span>
                 )}
                 <CartTrigger />
                 <CartSheet />
                 <AnimatedThemeToggler
-                    className="inline-flex items-center justify-center rounded-md text-ui font-medium transition-colors hover:bg-muted hover:text-foreground h-9 w-9 cursor-pointer"
+                    className="inline-flex items-center justify-center rounded-md text-panel-sm font-medium transition-colors hover:bg-muted hover:text-foreground h-9 w-9 cursor-pointer"
                 />
                 <UserNav user={user} />
             </div>

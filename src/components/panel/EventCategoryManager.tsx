@@ -62,6 +62,22 @@ export function EventCategoryManager({ eventId, isSuperAdmin }: EventCategoryMan
         setSaving(false);
     };
 
+    const handleUnlink = async (tableId: string) => {
+        if (!confirm("Tem certeza que deseja desvincular este grupo de categorias? Isso não removerá as inscrições já existentes, mas impedirá novas buscas unificadas.")) {
+            return;
+        }
+
+        setSaving(true);
+        const result = await unlinkCategoryTable(eventId, tableId);
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success("Categoria desvinculada com sucesso.");
+            loadData();
+        }
+        setSaving(false);
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
@@ -126,7 +142,7 @@ export function EventCategoryManager({ eventId, isSuperAdmin }: EventCategoryMan
                 </Card>
 
                 {/* Currently Linked */}
-                <Card className="w-full md:w-80">
+                <Card className="w-full md:w-[400px]">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <ListChecks className="h-5 w-5" />
@@ -147,11 +163,23 @@ export function EventCategoryManager({ eventId, isSuperAdmin }: EventCategoryMan
                                             <Badge className="text-label px-2 py-0.5 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 border-none rounded-full">
                                                 {table.count} categorias
                                             </Badge>
-                                            <Button variant="outline" size="sm" asChild pill className="h-8">
-                                                <Link href={`/admin/dashboard/eventos/${eventId}/categorias/${table.id}/precos`}>
-                                                    Editar Valores
-                                                </Link>
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    pill
+                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                                    onClick={() => handleUnlink(table.id)}
+                                                    disabled={saving}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="outline" size="sm" asChild pill className="h-8">
+                                                    <Link href={`/admin/dashboard/eventos/${eventId}/categorias/${table.id}/precos`}>
+                                                        Editar Valores
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))

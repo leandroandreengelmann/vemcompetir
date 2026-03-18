@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,11 +50,16 @@ export default async function TeamDetailPage(props: TeamDetailPageProps) {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground">
-                    <Link href={`/academia-equipe/dashboard/eventos/${id}/equipes`}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" asChild pill className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <Link href={`/academia-equipe/dashboard/eventos/${id}/equipes`}>
+                                <ArrowLeftIcon size={20} weight="duotone" />
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Voltar para equipes</TooltipContent>
+                </Tooltip>
                 <div className="flex-1">
                     <SectionHeader
                         title={teamDisplayName}
@@ -65,7 +71,7 @@ export default async function TeamDetailPage(props: TeamDetailPageProps) {
             {/* Athletes table */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-h3">Atletas da Equipe</CardTitle>
+                    <CardTitle className="text-panel-md font-semibold">Atletas da Equipe</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <AthleteTeamList athletes={athletes} />

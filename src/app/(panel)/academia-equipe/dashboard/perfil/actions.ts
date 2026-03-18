@@ -9,21 +9,19 @@ export async function updateAcademiaProfile(formData: FormData) {
         const { user } = await requireRole(['academia/equipe', 'admin_geral']);
         const admin = createAdminClient();
 
-        const fullName = formData.get('fullName') as string;
+        const gymName = formData.get('gymName') as string;
         const cpf = formData.get('cpf') as string;
+        const phone = formData.get('phone') as string;
 
-        if (!fullName) {
-            return { error: 'O nome é obrigatório.' };
-        }
-
-        // Clean CPF/CNPJ (remove non-digits) before saving
         const rawCpf = cpf ? cpf.replace(/\D/g, '') : null;
+        const rawPhone = phone ? phone.replace(/\D/g, '') : null;
 
         const { error } = await admin
             .from('profiles')
             .update({
-                full_name: fullName,
+                gym_name: gymName || null,
                 cpf: rawCpf,
+                phone: rawPhone,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', user.id);

@@ -53,7 +53,7 @@ export function RegistrationDetailsDialog({
         else if (lowerBelt.includes('verde')) bgClass = "bg-green-600 text-white border-green-700 shadow-sm";
 
         return (
-            <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 mt-1", bgClass)}>
+            <Badge variant="outline" className={cn("text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5 mt-1", bgClass)}>
                 {belt}
             </Badge>
         );
@@ -96,25 +96,25 @@ export function RegistrationDetailsDialog({
                 <div className="grid gap-8 pb-4">
                     {/* Atleta Section */}
                     <div>
-                        <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
+                        <h4 className="text-panel-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">
                             Dados do Atleta
                         </h4>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">NOME COMPLETO</span>
+                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">NOME COMPLETO</span>
                                 <p className="text-base font-semibold text-foreground tracking-tight">{athlete.full_name || 'Desconhecido'}</p>
                             </div>
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">CPF</span>
+                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">CPF</span>
                                 <p className="text-base font-semibold text-foreground tracking-tight">{formatCPF(athlete.cpf) || 'Não informado'}</p>
                             </div>
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">EQUIPE / ACADEMIA</span>
+                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">EQUIPE / ACADEMIA</span>
                                 <p className="text-base font-semibold text-foreground tracking-tight">{athlete.gym_name || 'Sem Equipe (Independente)'}</p>
                             </div>
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">FAIXA</span>
+                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">FAIXA</span>
                                 <div>
                                     {renderBeltBadge(athlete.belt_color)}
                                 </div>
@@ -126,26 +126,26 @@ export function RegistrationDetailsDialog({
 
                     {/* Inscrição Section */}
                     <div>
-                        <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
+                        <h4 className="text-panel-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">
                             Dados da Inscrição
                         </h4>
 
                         <div className="space-y-6">
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">CATEGORIA</span>
+                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">CATEGORIA</span>
                                 <p className="text-base font-semibold text-foreground tracking-tight leading-relaxed">{category}</p>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-6 gap-x-4">
                                 <div>
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">VALOR</span>
+                                    <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">VALOR</span>
                                     <p className="text-xl font-bold text-foreground tracking-tight">
                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(registration.price || 0))}
                                     </p>
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">STATUS</span>
+                                    <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">STATUS</span>
                                     <div>
                                         {renderStatusBadge(registration.status)}
                                     </div>
@@ -153,7 +153,7 @@ export function RegistrationDetailsDialog({
                             </div>
 
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">DATA DO REGISTRO</span>
+                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">DATA DO REGISTRO</span>
                                 <p className="text-sm font-semibold text-foreground tracking-tight">
                                     {registration.created_at ? format(new Date(registration.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR }) : 'Data indisponível'}
                                 </p>

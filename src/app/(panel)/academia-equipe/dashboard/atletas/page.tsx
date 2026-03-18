@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Pencil, Eye } from 'lucide-react';
+import { PlusIcon, PencilSimpleIcon, EyeIcon } from '@phosphor-icons/react/dist/ssr';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import {
@@ -74,10 +75,10 @@ export default async function AthleteManagementPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-h1 tracking-tight">
+                    <h1 className="text-panel-lg font-bold tracking-tight">
                         {isAdmin ? 'Gestão Global de Atletas' : 'Meus Atletas'}
                     </h1>
-                    <p className="text-muted-foreground text-caption mt-1">
+                    <p className="text-muted-foreground text-panel-sm mt-1">
                         {isAdmin
                             ? 'Visualize e gerencie todos os atletas cadastrados na plataforma.'
                             : 'Gerencie os atletas da sua equipe/organização.'}
@@ -86,28 +87,16 @@ export default async function AthleteManagementPage() {
                 {isAcademy && (
                     <Button pill asChild>
                         <Link href="/academia-equipe/dashboard/atletas/novo">
-                            <Plus className="mr-2 h-4 w-4" />
+                            <PlusIcon size={24} weight="duotone" className="mr-2" />
                             Novo Atleta
                         </Link>
                     </Button>
                 )}
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total de Atletas</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-h2">{athletesWithEmails?.length || 0}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-xl">Lista de Atletas</CardTitle>
+                    <CardTitle className="text-panel-md font-semibold">Lista de Atletas</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
@@ -138,7 +127,7 @@ export default async function AthleteManagementPage() {
                                             <Badge
                                                 variant="outline"
                                                 style={getBeltStyle(athlete.belt_color || '')}
-                                                className="text-label"
+                                                className="text-panel-sm font-semibold uppercase tracking-wide"
                                             >
                                                 {athlete.belt_color || '-'}
                                             </Badge>
@@ -162,18 +151,28 @@ export default async function AthleteManagementPage() {
                                         </TableCell>
                                         <TableCell className="text-right pr-6">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button pill variant="ghost" size="icon" asChild title="Ver Perfil">
-                                                    <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}/perfil`}>
-                                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="sr-only">Ver Perfil</span>
-                                                    </Link>
-                                                </Button>
-                                                <Button pill variant="ghost" size="icon" asChild title="Editar">
-                                                    <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}`}>
-                                                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="sr-only">Editar</span>
-                                                    </Link>
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button pill variant="ghost" size="icon" asChild className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                                                            <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}/perfil`}>
+                                                                <EyeIcon size={24} weight="duotone" />
+                                                                <span className="sr-only">Ver Perfil</span>
+                                                            </Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Ver perfil completo</TooltipContent>
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button pill variant="ghost" size="icon" asChild className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                                                            <Link href={`/academia-equipe/dashboard/atletas/${athlete.id}`}>
+                                                                <PencilSimpleIcon size={24} weight="duotone" />
+                                                                <span className="sr-only">Editar</span>
+                                                            </Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Editar dados do atleta</TooltipContent>
+                                                </Tooltip>
                                             </div>
                                         </TableCell>
                                     </TableRow>

@@ -7,11 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Eye, Key } from 'lucide-react';
+import { EyeIcon, KeyIcon } from '@phosphor-icons/react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 
 export default function CategoriasReportPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: eventId } = use(params);
@@ -41,8 +42,8 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                 description="Contagem de inscrições agrupadas por categoria de luta."
                 rightElement={
                     <Link href="/academia-equipe/dashboard">
-                        <Button variant="outline" pill className="h-12 gap-2 text-ui font-semibold shadow-sm">
-                            <ArrowLeft className="h-4 w-4" />
+                        <Button variant="outline" pill className="h-12 gap-2 text-panel-sm font-semibold shadow-sm">
+                            <ArrowLeftIcon size={16} weight="duotone" />
                             Voltar ao Dashboard
                         </Button>
                     </Link>
@@ -55,13 +56,13 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="hover:bg-transparent border-border/50">
-                                    <TableHead className="text-label h-11 w-full max-w-[400px]">Categoria</TableHead>
-                                    <TableHead className="text-label h-11 text-center whitespace-nowrap hidden sm:table-cell">Na Cesta de Compras</TableHead>
-                                    <TableHead className="text-label h-11 text-center whitespace-nowrap">Pendentes</TableHead>
-                                    <TableHead className="text-label h-11 text-center whitespace-nowrap">Pagos</TableHead>
-                                    <TableHead className="text-label h-11 text-right whitespace-nowrap">Total</TableHead>
-                                    <TableHead className="text-label h-11 text-center whitespace-nowrap">Detalhes</TableHead>
-                                    <TableHead className="text-label h-11 text-center whitespace-nowrap">Chave</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 w-full max-w-[400px]">Categoria</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap hidden sm:table-cell">Na Cesta de Compras</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Pendentes</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Pagos</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-right whitespace-nowrap">Total</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Detalhes</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Chave</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -79,7 +80,7 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                                 ) : data.length > 0 ? (
                                     data.map((cat, idx) => (
                                         <TableRow key={idx} className="hover:bg-muted/20 transition-colors border-border/50">
-                                            <TableCell className="text-ui font-medium py-4">
+                                            <TableCell className="text-panel-sm font-medium py-4">
                                                 <span className="line-clamp-2" title={cat.name}>{cat.name}</span>
                                             </TableCell>
                                             <TableCell className="text-center hidden sm:table-cell">
@@ -103,18 +104,28 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/categorias/detalhes?categoria=${encodeURIComponent(cat.name)}`}>
-                                                    <Button pill variant="ghost" size="icon" className="h-8 w-8  text-muted-foreground hover:text-foreground">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/categorias/detalhes?categoria=${encodeURIComponent(cat.name)}`}>
+                                                            <Button pill variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                                                                <EyeIcon size={16} weight="duotone" />
+                                                            </Button>
+                                                        </Link>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Ver detalhes da categoria</TooltipContent>
+                                                </Tooltip>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/categorias/chaveamento?categoria=${encodeURIComponent(cat.name)}`}>
-                                                    <Button pill variant="ghost" size="icon" className="h-8 w-8  text-muted-foreground hover:text-amber-500">
-                                                        <Key className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/categorias/chaveamento?categoria=${encodeURIComponent(cat.name)}`}>
+                                                            <Button pill variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500 transition-colors">
+                                                                <KeyIcon size={16} weight="duotone" />
+                                                            </Button>
+                                                        </Link>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Ver chaveamento</TooltipContent>
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, Users, Calendar, User, Layers } from "lucide-react";
+import { ListIcon, SquaresFourIcon, UsersIcon, CalendarIcon, StackSimpleIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 interface MobileSidebarProps {
@@ -19,37 +19,37 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
     const routes = [
         {
             label: "Dashboard",
-            icon: LayoutDashboard,
+            icon: SquaresFourIcon,
             href: "/academia-equipe/dashboard",
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
             label: "Equipes / Academias",
-            icon: Users,
+            icon: UsersIcon,
             href: "/admin/dashboard/organizadores",
             roles: ['admin_geral'],
         },
         {
             label: role === 'academia/equipe' ? "Meus Eventos" : "Eventos",
-            icon: Calendar,
+            icon: CalendarIcon,
             href: role === 'admin_geral' ? "/admin/dashboard/eventos" : "/academia-equipe/dashboard/eventos",
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
             label: "Categorias",
-            icon: Layers,
+            icon: StackSimpleIcon,
             href: "/admin/dashboard/categorias",
             roles: ['admin_geral'],
         },
         {
             label: "Atletas",
-            icon: Users,
+            icon: UsersIcon,
             href: "/academia-equipe/dashboard/atletas",
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
             label: "Eventos Disponíveis",
-            icon: Calendar,
+            icon: CalendarIcon,
             href: "/academia-equipe/dashboard/eventos/disponiveis",
             roles: ['academia/equipe'],
         },
@@ -61,12 +61,12 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
-                    <Menu className="h-6 w-6" />
+                    <ListIcon size={24} className="size-6" weight="duotone" />
                     <span className="sr-only">Toggle Menu</span>
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[240px] p-4">
-                <div className="mb-6 px-2 text-h3 font-bold">COMPETIR</div>
+                <div className="mb-6 px-2 text-panel-md font-bold">COMPETIR</div>
                 <div className="flex flex-col gap-2 py-2">
                     {filteredRoutes.map((route) => {
                         const isDashboard = route.href.endsWith('/dashboard');
@@ -74,7 +74,6 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
                             ? pathname === route.href
                             : pathname === route.href || pathname.startsWith(route.href + '/');
 
-                        // Special case to prevent "Meus Eventos" from highlighting when inside "Eventos Disponíveis"
                         if (route.href.endsWith('/eventos') && pathname.startsWith(route.href + '/disponiveis')) {
                             isActive = false;
                         }
@@ -83,15 +82,12 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
                             <Button
                                 key={route.href}
                                 variant={isActive ? "secondary" : "ghost"}
-                                className={cn(
-                                    "justify-start gap-2",
-                                    isActive && "bg-secondary"
-                                )}
+                                className={cn("justify-start gap-2", isActive && "bg-secondary")}
                                 asChild
                                 onClick={() => setOpen(false)}
                             >
                                 <Link href={route.href}>
-                                    <route.icon className="h-4 w-4" />
+                                    <route.icon size={24} className="size-6" weight="duotone" />
                                     {route.label}
                                 </Link>
                             </Button>

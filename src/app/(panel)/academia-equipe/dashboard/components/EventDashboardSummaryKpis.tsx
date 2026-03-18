@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, LayoutGrid, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircleIcon, TrendUpIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 
 interface EventDashboardSummaryKpisProps {
@@ -20,36 +20,34 @@ export function EventDashboardSummaryKpis({ stats }: EventDashboardSummaryKpisPr
 
     const items = [
         {
-            label: "Pagamentos",
-            value: `${stats.paid_count} / ${stats.pending_count}`,
-            icon: CheckCircle2,
+            label: "Inscrições Pagas",
+            value: stats.paid_count,
+            icon: CheckCircleIcon,
             color: "text-emerald-500 dark:text-emerald-400",
             bgColor: "bg-emerald-500/10 dark:bg-emerald-400/10",
-            sub: "Pagas / Pendentes"
+            sub: `${stats.pending_count} pendente${stats.pending_count !== 1 ? 's' : ''}`
         },
         {
-            label: "Financeiro",
+            label: "Receita Confirmada",
             value: formatCurrency(stats.paid_amount),
-            icon: AlertCircle,
+            icon: TrendUpIcon,
             color: "text-amber-500 dark:text-amber-400",
             bgColor: "bg-amber-500/10 dark:bg-amber-400/10",
-            sub: `Total: ${formatCurrency(stats.paid_amount + stats.pending_amount)}`
+            sub: `Total potencial: ${formatCurrency(stats.paid_amount + stats.pending_amount)}`
         }
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-2 border-t border-border/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-4 py-3">
             {items.map((item, idx) => (
-                <div key={idx} className="flex flex-col gap-1 group/kpi">
-                    <div className="flex items-center gap-2">
-                        <div className={cn("p-2 rounded-xl transition-all duration-300", item.bgColor)}>
-                            <item.icon className={cn("h-4 w-4", item.color)} />
-                        </div>
-                        <span className="text-label text-muted-foreground font-medium uppercase tracking-wider">{item.label}</span>
+                <div key={idx} className="flex items-center gap-3 group/kpi">
+                    <div className={cn("p-2.5 rounded-xl shrink-0 transition-all duration-300", item.bgColor)}>
+                        <item.icon size={24} weight="duotone" className={cn(item.color)} />
                     </div>
-                    <div className="flex flex-col pl-10">
-                        <span className="text-h3 font-black tabular-nums leading-none tracking-tight">{item.value}</span>
-                        <span className="text-[10px] text-muted-foreground font-medium mt-1 opacity-70 group-hover/kpi:opacity-100 transition-opacity truncate">
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-panel-sm text-muted-foreground font-medium uppercase tracking-wide">{item.label}</span>
+                        <span className="text-panel-md font-black tabular-nums leading-none tracking-tight">{item.value}</span>
+                        <span className="text-panel-sm text-muted-foreground font-medium mt-0.5 opacity-70 group-hover/kpi:opacity-100 transition-opacity truncate">
                             {item.sub}
                         </span>
                     </div>

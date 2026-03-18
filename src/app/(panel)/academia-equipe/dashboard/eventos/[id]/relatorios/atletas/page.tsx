@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Search, ArrowLeft, Eye } from 'lucide-react';
+import { UsersIcon, MagnifyingGlassIcon, ArrowLeftIcon, EyeIcon } from '@phosphor-icons/react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from '@/components/ui/input';
 
 import Link from 'next/link';
@@ -73,8 +74,8 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
                 description="Listagem de atletas únicos inscritos e suas respectivas participaçōes."
                 rightElement={
                     <Link href="/academia-equipe/dashboard">
-                        <Button variant="outline" pill className="h-12 gap-2 text-ui font-semibold shadow-sm">
-                            <ArrowLeft className="h-4 w-4" />
+                        <Button variant="outline" pill className="h-12 gap-2 text-panel-sm font-semibold shadow-sm">
+                            <ArrowLeftIcon size={16} weight="duotone" />
                             Voltar ao Dashboard
                         </Button>
                     </Link>
@@ -82,7 +83,7 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
             />
 
             <div className="relative w-full md:w-[400px]">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input variant="lg"
                     placeholder="Buscar por nome ou CPF..."
                     className="pl-11 w-full bg-background shadow-sm border-input"
@@ -97,11 +98,11 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="hover:bg-transparent border-border/50">
-                                    <TableHead className="text-label h-11 px-6">Atleta</TableHead>
-                                    <TableHead className="text-label h-11">CPF</TableHead>
-                                    <TableHead className="text-label h-11">Faixa</TableHead>
-                                    <TableHead className="text-label h-11">Categorias Inscritas</TableHead>
-                                    <TableHead className="text-label h-11 text-center w-[80px]">Ações</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 px-6">Atleta</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">CPF</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">Faixa</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11">Categorias Inscritas</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold h-11 text-center w-[80px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -125,10 +126,10 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
                                                 setIsDialogOpen(true);
                                             }}
                                         >
-                                            <TableCell className="text-ui font-bold py-4 px-6">{athlete.full_name}</TableCell>
-                                            <TableCell className="text-caption text-muted-foreground">{formatCPF(athlete.cpf)}</TableCell>
+                                            <TableCell className="text-panel-sm font-bold py-4 px-6">{athlete.full_name}</TableCell>
+                                            <TableCell className="text-panel-sm text-muted-foreground">{formatCPF(athlete.cpf)}</TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className={`text-label px-2.5 py-0.5 font-bold uppercase tracking-wider ${getBeltBadgeStyle(athlete.belt_color)}`}>
+                                                <Badge variant="outline" className={`text-panel-sm font-semibold px-2.5 py-0.5 font-bold uppercase tracking-wider ${getBeltBadgeStyle(athlete.belt_color)}`}>
                                                     {athlete.belt_color || 'N/A'}
                                                 </Badge>
                                             </TableCell>
@@ -140,7 +141,7 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
                                                                 {athlete.categories[0]}
                                                             </span>
                                                             {athlete.categories.length > 1 && (
-                                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                                                                <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
                                                                     + {athlete.categories.length - 1} {athlete.categories.length - 1 === 1 ? 'categoria' : 'categorias'}
                                                                 </span>
                                                             )}
@@ -151,9 +152,14 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mx-auto">
-                                                    <Eye className="w-4 h-4" />
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mx-auto">
+                                                            <EyeIcon size={16} weight="duotone" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Ver detalhes do atleta</TooltipContent>
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -162,7 +168,7 @@ export default function AtletasReportPage({ params }: { params: Promise<{ id: st
                                         <TableCell colSpan={5} className="h-64 text-center">
                                             <div className="flex flex-col items-center justify-center space-y-3 text-muted-foreground">
                                                 <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
-                                                    <Users className="h-6 w-6" />
+                                                    <UsersIcon size={24} weight="duotone" />
                                                 </div>
                                                 <div className="text-sm font-medium">Nenhum atleta encontrado</div>
                                                 {searchTerm && (

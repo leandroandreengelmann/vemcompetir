@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { KeyIcon, CircleNotchIcon } from '@phosphor-icons/react';
 import {
     Tooltip,
     TooltipContent,
@@ -67,7 +67,7 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
                     <TooltipTrigger asChild>
                         <DialogTrigger asChild>
                             <Button pill size="sm" className="h-9 gap-2 w-full justify-center md:w-auto font-medium">
-                                <KeyRound className="h-4 w-4" />
+                                <KeyIcon size={16} weight="duotone" />
                                 Gerar Acesso
                             </Button>
                         </DialogTrigger>
@@ -86,14 +86,14 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
                 </DialogHeader>
 
                 {error && (
-                    <div className="p-3 bg-destructive/15 text-destructive text-sm rounded-lg text-center">
+                    <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center">
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        <label htmlFor="email" className="text-panel-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                             E-mail Real do Atleta
                         </label>
                         <Input variant="lg"
@@ -108,7 +108,7 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        <label htmlFor="password" className="text-panel-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                             Senha Inicial
                         </label>
                         <Input variant="lg"
@@ -124,7 +124,7 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="phone" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        <label htmlFor="phone" className="text-panel-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                             Telefone/WhatsApp (Opcional)
                         </label>
                         <Input variant="lg"
@@ -134,14 +134,14 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
                             value={phoneValue}
                             onChange={(e) => setPhoneValue(formatPhone(e.target.value))}
                             placeholder="(00) 00000-0000"
-                            className="bg-background h-12 text-ui rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="bg-background h-12 text-panel-sm rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                             disabled={loading}
                         />
                     </div>
 
                     <div className="flex justify-end pt-4">
                         <Button pill type="submit" disabled={loading} className="w-full md:w-auto h-11 px-6 font-medium">
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {loading && <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />}
                             Salvar Acesso
                         </Button>
                     </div>
