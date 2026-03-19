@@ -5,105 +5,130 @@ import {
     Text,
     View,
     StyleSheet,
+    Image,
 } from '@react-pdf/renderer';
 import { TeamSummary, ScoringConfig } from '../../../equipes-actions';
+import { PDF_COLORS, MEDAL_STYLES, MedalKey } from '@/lib/pdf-design-tokens';
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const COLUMNS = 2; // Number of columns per medal type
+const COLUMNS = 2;
+const C = PDF_COLORS;
 
+// ── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     page: {
         fontFamily: 'Helvetica',
-        padding: 28,
-        fontSize: 9,
-        backgroundColor: '#ffffff',
-        color: '#1a1a1a',
-    },
-    // ── Document header (first page only) ──
-    docHeader: {
-        marginBottom: 16,
-        borderBottom: '2 solid #1a1a1a',
-        paddingBottom: 8,
-    },
-    docTitle: {
-        fontSize: 14,
-        fontFamily: 'Helvetica-Bold',
-        marginBottom: 3,
-    },
-    docLegend: {
-        fontSize: 8,
-        color: '#555',
-    },
-    // ── Team header ──
-    teamHeader: {
-        backgroundColor: '#f3f4f6',
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-        borderRadius: 3,
-    },
-    teamHeaderOrganizer: {
-        backgroundColor: '#dbeafe',
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-        borderRadius: 3,
-    },
-    teamName: {
-        fontSize: 12,
-        fontFamily: 'Helvetica-Bold',
-    },
-    organizerTag: {
-        fontSize: 9,
-        color: '#1d4ed8',
-        marginLeft: 6,
-    },
-    teamMeta: {
-        fontSize: 9,
-        color: '#555',
-    },
-    // ── Fixed page banner ──
-    fixedBanner: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        paddingTop: 52,
         paddingHorizontal: 28,
-        paddingVertical: 5,
-        backgroundColor: '#1a1a1a',
-        color: '#ffffff',
+        paddingBottom: 28,
+        fontSize: 9,
+        backgroundColor: C.bgWhite,
+        color: C.textDark,
+    },
+    // ── Fixed brand header (repeats every page) ──
+    fixedHeader: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
+        backgroundColor: C.brand,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 28,
+        paddingTop: 9,
+        paddingBottom: 9,
     },
-    fixedBannerText: {
+    logo: {
+        width: 88,
+        height: 22,
+        objectFit: 'contain',
+    },
+    logoFallback: {
+        fontSize: 11,
+        fontFamily: 'Helvetica-Bold',
+        color: '#FFFFFF',
+        letterSpacing: 2,
+    },
+    headerRight: {
+        alignItems: 'flex-end',
+    },
+    headerEventTitle: {
+        fontSize: 9,
+        fontFamily: 'Helvetica-Bold',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+    },
+    headerTeamLabel: {
+        fontSize: 7,
+        color: '#94A3B8',
+        marginTop: 2,
+    },
+    // ── Gold accent line below header ──
+    goldLine: {
+        position: 'absolute',
+        top: 40,
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: C.gold,
+    },
+    // ── Team section header ──
+    teamHeader: {
+        backgroundColor: C.bgAlt,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+        borderLeft: `3 solid ${C.brand}`,
+    },
+    teamHeaderOrganizer: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+        borderLeft: `3 solid ${C.gold}`,
+    },
+    teamName: {
+        fontSize: 12,
+        fontFamily: 'Helvetica-Bold',
+        color: C.textDark,
+    },
+    organizerTag: {
         fontSize: 8,
         fontFamily: 'Helvetica-Bold',
-        color: '#ffffff',
+        color: C.gold,
+        marginLeft: 6,
     },
-    fixedBannerSub: {
-        fontSize: 7,
-        color: '#ccc',
+    teamMeta: {
+        fontSize: 8,
+        color: C.textMid,
     },
     // ── Medal section ──
     medalSection: {
         marginBottom: 14,
     },
-    medalTitle: {
-        fontSize: 10,
-        fontFamily: 'Helvetica-Bold',
-        backgroundColor: '#1a1a1a',
-        color: '#ffffff',
+    medalHeader: {
         paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingVertical: 5,
         marginBottom: 6,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
+    medalHeaderTitle: {
+        fontSize: 9,
+        fontFamily: 'Helvetica-Bold',
+    },
+    medalHeaderPts: {
+        fontSize: 8,
+    },
+    // ── Name rows ──
     columnsRow: {
         flexDirection: 'row',
         gap: 10,
@@ -111,7 +136,6 @@ const styles = StyleSheet.create({
     column: {
         flex: 1,
     },
-    // ── Each athlete name row ──
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -120,19 +144,48 @@ const styles = StyleSheet.create({
     lineNumber: {
         width: 16,
         fontSize: 7,
-        color: '#aaa',
+        color: C.textFaint,
     },
     nameLine: {
         flex: 1,
-        borderBottom: '0.5 solid #999',
+        borderBottom: `0.5 solid ${C.border}`,
         height: 13,
     },
     ptsLabel: {
-        width: 28,
+        width: 36,
         fontSize: 7,
         textAlign: 'right',
-        color: '#555',
+        color: C.textMid,
         marginLeft: 3,
+    },
+    // ── Legend bar ──
+    legendRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        backgroundColor: C.bgAlt,
+        borderRadius: 2,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    legendDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    legendText: {
+        fontSize: 7,
+        color: C.textMid,
+    },
+    legendBold: {
+        fontSize: 7,
+        fontFamily: 'Helvetica-Bold',
+        color: C.textDark,
     },
     // ── Subtotal ──
     subtotalRow: {
@@ -140,93 +193,101 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
         marginTop: 4,
-        gap: 4,
+        gap: 6,
     },
     subtotalLabel: {
         fontSize: 8,
         fontFamily: 'Helvetica-Bold',
-        color: '#444',
+        color: C.textMid,
     },
     subtotalBox: {
         width: 70,
-        borderBottom: '1 solid #555',
+        borderBottom: `1 solid ${C.textMid}`,
         height: 12,
     },
-    // ── Total row ──
+    // ── Total ──
     totalRow: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 12,
         paddingTop: 8,
-        borderTop: '2 solid #1a1a1a',
-        gap: 6,
+        borderTop: `2 solid ${C.brand}`,
+        gap: 8,
     },
     totalLabel: {
         fontSize: 10,
         fontFamily: 'Helvetica-Bold',
+        color: C.brand,
     },
     totalBox: {
         width: 90,
-        borderBottom: '2 solid #1a1a1a',
+        borderBottom: `2 solid ${C.brand}`,
         height: 14,
     },
+    // ── Footer ──
     footer: {
-        marginTop: 16,
+        marginTop: 10,
+        paddingTop: 6,
+        borderTop: `0.5 solid ${C.border}`,
         fontSize: 7,
-        color: '#bbb',
+        color: C.textFaint,
         textAlign: 'center',
     },
 });
 
-interface TeamScoringPDFProps {
-    eventTitle: string;
-    teams: TeamSummary[];
-    config: ScoringConfig;
-}
-
+// ── Types ───────────────────────────────────────────────────────────────────
 interface Medal {
     label: string;
     pts: number;
 }
 
-// Renders a single academy's scoring sheet (may span multiple pages)
-function TeamSheet({ team, idx, medals, isFirst, eventTitle, legendText, linesPerColumn }: {
+export interface TeamScoringPDFProps {
+    eventTitle: string;
+    teams: TeamSummary[];
+    config: ScoringConfig;
+    logoUrl?: string;
+}
+
+// ── TeamSheet ───────────────────────────────────────────────────────────────
+function TeamSheet({ team, idx, medals, eventTitle, linesPerColumn, logoUrl }: {
     team: TeamSummary;
     idx: number;
     medals: Medal[];
-    isFirst: boolean;
     eventTitle: string;
-    legendText: string;
     linesPerColumn: number;
+    logoUrl?: string;
 }) {
     return (
-        <Page size="A4" style={[styles.page, { paddingTop: 46 }]} break>
-            {/* Fixed team banner — repeats on every page for this academy */}
-            <View style={styles.fixedBanner} fixed>
-                <Text style={styles.fixedBannerText}>
-                    {idx + 1}. {team.team_name.toUpperCase()}
-                    {team.is_organizer ? '  (Organizadora)' : ''}
-                </Text>
-                <Text style={styles.fixedBannerSub}>{eventTitle}</Text>
+        <Page size="A4" style={styles.page} break>
+
+            {/* ── Fixed brand header ── */}
+            <View style={styles.fixedHeader} fixed>
+                {logoUrl ? (
+                    <Image src={logoUrl} style={styles.logo} />
+                ) : (
+                    <Text style={styles.logoFallback}>COMPETIR</Text>
+                )}
+                <View style={styles.headerRight}>
+                    <Text style={styles.headerEventTitle}>{eventTitle.toUpperCase()}</Text>
+                    <Text style={styles.headerTeamLabel}>
+                        {idx + 1}. {team.team_name.toUpperCase()}
+                        {team.is_organizer ? ' · ORGANIZADORA' : ''}
+                    </Text>
+                </View>
             </View>
 
-            {/* Show doc header only on the first page */}
-            {isFirst && (
-                <View style={styles.docHeader} fixed={false}>
-                    <Text style={styles.docTitle}>{eventTitle} — Pontuacao por Equipe</Text>
-                    <Text style={styles.docLegend}>{legendText}</Text>
-                </View>
-            )}
+            {/* ── Gold accent line ── */}
+            <View style={styles.goldLine} fixed />
 
-            {/* Team name header — also repeated on every page */}
-            <View style={team.is_organizer ? styles.teamHeaderOrganizer : styles.teamHeader} fixed>
+            {/* ── Team section header ── */}
+            <View style={team.is_organizer ? styles.teamHeaderOrganizer : styles.teamHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={styles.teamName}>
                         {idx + 1}. {team.team_name.toUpperCase()}
                     </Text>
                     {team.is_organizer && (
-                        <Text style={styles.organizerTag}>(Organizadora)</Text>
+                        <Text style={styles.organizerTag}>· ORGANIZADORA</Text>
                     )}
                 </View>
                 <Text style={styles.teamMeta}>
@@ -234,62 +295,92 @@ function TeamSheet({ team, idx, medals, isFirst, eventTitle, legendText, linesPe
                 </Text>
             </View>
 
-            {/* Medal sections */}
-            {medals.map(medal => (
-                <View key={medal.label} style={styles.medalSection} wrap={false}>
-                    <Text style={styles.medalTitle}>
-                        {medal.label}  ({medal.pts} pts cada)
-                    </Text>
+            {/* ── Legend summary bar ── */}
+            <View style={styles.legendRow}>
+                {medals.map(medal => {
+                    const mc = MEDAL_STYLES[medal.label as MedalKey] ?? {
+                        bg: C.medal4thBg, border: C.medal4thBorder, text: C.medal4thText, label: medal.label,
+                    };
+                    return (
+                        <View key={medal.label} style={styles.legendItem}>
+                            <View style={[styles.legendDot, { backgroundColor: mc.border }]} />
+                            <Text style={styles.legendBold}>{mc.label}</Text>
+                            <Text style={styles.legendText}>= {medal.pts} pt</Text>
+                        </View>
+                    );
+                })}
+            </View>
 
-                    {/* Two columns */}
-                    <View style={styles.columnsRow}>
-                        {Array.from({ length: COLUMNS }).map((_, colIdx) => (
-                            <View key={colIdx} style={styles.column}>
-                                {Array.from({ length: linesPerColumn }).map((_, lineIdx) => {
-                                    const globalNum = colIdx * linesPerColumn + lineIdx + 1;
-                                    return (
-                                        <View key={lineIdx} style={styles.nameRow}>
-                                            <Text style={styles.lineNumber}>{globalNum}.</Text>
-                                            <View style={styles.nameLine} />
-                                            <Text style={styles.ptsLabel}>={medal.pts}</Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        ))}
+            {/* ── Medal sections ── */}
+            {medals.map(medal => {
+                const mc = MEDAL_STYLES[medal.label as MedalKey] ?? {
+                    bg: C.medal4thBg, border: C.medal4thBorder, text: C.medal4thText, label: medal.label,
+                };
+                return (
+                    <View key={medal.label} style={styles.medalSection} wrap={false}>
+                        {/* Color-coded header */}
+                        <View style={[styles.medalHeader, {
+                            backgroundColor: mc.bg,
+                            borderLeft: `3 solid ${mc.border}`,
+                        }]}>
+                            <Text style={[styles.medalHeaderTitle, { color: mc.text }]}>
+                                {mc.label}
+                            </Text>
+                            <Text style={[styles.medalHeaderPts, { color: mc.text }]}>
+                                {medal.pts} pts cada
+                            </Text>
+                        </View>
+
+                        {/* Two columns of name lines */}
+                        <View style={styles.columnsRow}>
+                            {Array.from({ length: COLUMNS }).map((_, colIdx) => (
+                                <View key={colIdx} style={styles.column}>
+                                    {Array.from({ length: linesPerColumn }).map((_, lineIdx) => {
+                                        const globalNum = colIdx * linesPerColumn + lineIdx + 1;
+                                        return (
+                                            <View key={lineIdx} style={styles.nameRow}>
+                                                <Text style={styles.lineNumber}>{globalNum}.</Text>
+                                                <View style={styles.nameLine} />
+                                                <Text style={styles.ptsLabel}>={medal.pts} pt</Text>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            ))}
+                        </View>
+
+                        <View style={styles.subtotalRow}>
+                            <Text style={styles.subtotalLabel}>Subtotal {mc.label}:</Text>
+                            <View style={styles.subtotalBox} />
+                        </View>
                     </View>
+                );
+            })}
 
-                    <View style={styles.subtotalRow}>
-                        <Text style={styles.subtotalLabel}>Subtotal {medal.label}:</Text>
-                        <View style={styles.subtotalBox} />
-                    </View>
-                </View>
-            ))}
-
-            {/* Total */}
+            {/* ── Grand total ── */}
             <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>TOTAL GERAL:</Text>
                 <View style={styles.totalBox} />
             </View>
 
-            <Text style={styles.footer}>
-                Gerado por Competir · {new Date().toLocaleDateString('pt-BR')}
+            {/* ── Footer ── */}
+            <Text style={styles.footer} fixed>
+                Competir · Pontuação por Equipe · Gerado em {new Date().toLocaleDateString('pt-BR')}
             </Text>
         </Page>
     );
 }
 
-export function TeamScoringPDF({ eventTitle, teams, config }: TeamScoringPDFProps) {
+// ── Document root ────────────────────────────────────────────────────────────
+export function TeamScoringPDF({ eventTitle, teams, config, logoUrl }: TeamScoringPDFProps) {
     const linesPerColumn = config.lines_per_column || 10;
 
     const medals: Medal[] = [
-        { label: 'OURO', pts: config.gold },
-        { label: 'PRATA', pts: config.silver },
-        { label: 'BRONZE', pts: config.bronze },
+        { label: 'OURO',    pts: config.gold },
+        { label: 'PRATA',   pts: config.silver },
+        { label: 'BRONZE',  pts: config.bronze },
         ...(config.fourth > 0 ? [{ label: '4 LUGAR', pts: config.fourth }] : []),
     ];
-
-    const legendText = medals.map(m => `${m.label} = ${m.pts} pts`).join('   |   ');
 
     return (
         <Document>
@@ -299,10 +390,9 @@ export function TeamScoringPDF({ eventTitle, teams, config }: TeamScoringPDFProp
                     team={team}
                     idx={i}
                     medals={medals}
-                    isFirst={i === 0}
                     eventTitle={eventTitle}
-                    legendText={legendText}
                     linesPerColumn={linesPerColumn}
+                    logoUrl={logoUrl}
                 />
             ))}
         </Document>

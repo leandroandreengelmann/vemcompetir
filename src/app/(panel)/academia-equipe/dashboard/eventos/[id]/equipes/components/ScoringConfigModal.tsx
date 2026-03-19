@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileTextIcon, CircleNotchIcon } from '@phosphor-icons/react';
+import { FileTextIcon, CircleNotchIcon, MedalIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,11 +40,16 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
         try {
             await saveScoringConfigAction(eventId, config);
 
+            const logoUrl = typeof window !== 'undefined'
+                ? `${window.location.origin}/logo-white.png`
+                : undefined;
+
             const blob = await pdf(
                 <TeamScoringPDF
                     eventTitle={eventTitle}
                     teams={teams}
                     config={config}
+                    logoUrl={logoUrl}
                 />
             ).toBlob();
 
@@ -79,21 +84,24 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Configurar Pontuação por Medalha</DialogTitle>
+                        <DialogTitle className="text-panel-md font-bold tracking-tight">Configurar Pontuação por Medalha</DialogTitle>
                     </DialogHeader>
 
                     {/* Medal point values */}
                     <div className="grid grid-cols-2 gap-4 py-2">
                         {(
                             [
-                                { key: 'gold', label: '🥇 Ouro' },
-                                { key: 'silver', label: '🥈 Prata' },
-                                { key: 'bronze', label: '🥉 Bronze' },
-                                { key: 'fourth', label: '4º Lugar (0 = não usar)' },
-                            ] as { key: keyof ScoringConfig; label: string }[]
-                        ).map(({ key, label }) => (
+                                { key: 'gold', label: 'Ouro', iconClass: 'text-amber-500' },
+                                { key: 'silver', label: 'Prata', iconClass: 'text-slate-400' },
+                                { key: 'bronze', label: 'Bronze', iconClass: 'text-orange-700' },
+                                { key: 'fourth', label: '4º Lugar (0 = não usar)', iconClass: 'text-muted-foreground' },
+                            ] as { key: keyof ScoringConfig; label: string; iconClass: string }[]
+                        ).map(({ key, label, iconClass }) => (
                             <div key={key} className="space-y-1">
-                                <Label className="text-sm">{label}</Label>
+                                <Label className="text-panel-sm font-semibold">
+                                    <MedalIcon size={16} weight="fill" className={iconClass} />
+                                    {label}
+                                </Label>
                                 <Input
                                     type="number"
                                     min={0}
@@ -107,7 +115,7 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
 
                     {/* Divider */}
                     <div className="border-t pt-3 space-y-1">
-                        <Label className="text-sm">Linhas por coluna (por medalha)</Label>
+                        <Label className="text-panel-sm font-semibold">Linhas por coluna (por medalha)</Label>
                         <Input
                             type="number"
                             min={1}
@@ -116,7 +124,7 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
                             value={config.lines_per_column}
                             onChange={e => handleChange('lines_per_column', e.target.value)}
                         />
-                        <p className="text-xs text-muted-foreground pt-0.5">
+                        <p className="text-panel-sm text-muted-foreground pt-0.5">
                             2 colunas × {config.lines_per_column || 10} linhas = <strong>{totalSlots} slots por medalha</strong>
                         </p>
                     </div>

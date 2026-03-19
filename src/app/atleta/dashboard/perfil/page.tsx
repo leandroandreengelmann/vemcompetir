@@ -24,7 +24,7 @@ export default async function AthletePerfil() {
                     description="Mantenha seus dados atualizados para participar dos eventos."
                     backHref="/atleta/dashboard"
                     // @ts-ignore
-                    beltColor={profile?.belt_color}
+                    beltColor={profile?.belt_color || 'branca'}
                 />
 
                 {/* Form Section */}

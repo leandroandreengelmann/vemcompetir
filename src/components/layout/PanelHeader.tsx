@@ -1,3 +1,5 @@
+'use client';
+
 import { UserNav } from "./UserNav";
 import { MobileSidebar } from "./MobileSidebar";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";

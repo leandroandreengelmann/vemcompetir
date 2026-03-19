@@ -22,7 +22,6 @@ export async function registerMasterAction(formData: FormData) {
         master_id: null
     };
 
-    if (tenantId) updatePayload.tenant_id = tenantId;
     if (gymName) updatePayload.gym_name = gymName;
 
     const { error } = await supabase

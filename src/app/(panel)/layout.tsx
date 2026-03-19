@@ -13,16 +13,11 @@ export default async function PanelLayout({
     const userEmail = user.email || "";
 
     return (
-        <PanelLayoutClient>
-            <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
-                <PanelSidebar role={profile.role} />
-                <div className="flex flex-col flex-1 min-w-0">
-                    <PanelHeader user={{ ...profile, email: userEmail }} role={profile.role} />
-                    <main className="flex-1 p-4 md:p-6 bg-muted/30">
-                        {children}
-                    </main>
-                </div>
-            </div>
+        <PanelLayoutClient
+            sidebar={<PanelSidebar role={profile.role} />}
+            header={<PanelHeader user={{ ...profile, email: userEmail }} role={profile.role} />}
+        >
+            {children}
         </PanelLayoutClient>
     );
 }

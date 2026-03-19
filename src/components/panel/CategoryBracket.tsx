@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
-import { Athlete, Match, Round, generateBracketLogic } from "@/lib/bracket-utils";
+import { Athlete, Round, generateBracketLogic } from "@/lib/bracket-utils";
 
 interface CategoryBracketProps {
     athletes: Athlete[];
@@ -334,7 +334,7 @@ export function CategoryBracket({ athletes, title }: CategoryBracketProps) {
                         if (rounds.length === 0) return null;
                         const rIdx = rounds.length - 1;
                         const round = rounds[rIdx];
-                        const { mt, gap } = getSpacing(rIdx);
+                        const { mt } = getSpacing(rIdx);
                         const match = round.matches[0];
                         return (
                             <div className="flex flex-col relative w-[220px]">
@@ -489,47 +489,75 @@ export function CategoryBracket({ athletes, title }: CategoryBracketProps) {
             </div>
 
             {/* Phantom DOM for PDF */}
-            <div id={wrapperId} className="fixed top-[-9999px] left-[-9999px] flex flex-col opacity-0 pointer-events-none bg-gray-50">
+            <div id={wrapperId} className="fixed top-[-9999px] left-[-9999px] flex flex-col opacity-0 pointer-events-none">
                 {pdfPages.map((page, pIdx) => (
-                    <div key={`pdf-page-${pIdx}`} className="pdf-page bg-white relative flex flex-col p-12 overflow-hidden shrink-0" style={{ width: 1122, height: 794 }}>
-                        <div className="flex flex-col items-center justify-center mb-8 w-full text-center shrink-0">
-                            <h2 className="text-4xl font-black tracking-widest text-[#111827] uppercase leading-tight whitespace-nowrap">{title}</h2>
-                            <p className="text-lg text-gray-500 mt-2 font-medium tracking-wide whitespace-nowrap">
-                                Chave Única • Eliminatória Simples • {athletes.length} Atletas
-                            </p>
+                    <div
+                        key={`pdf-page-${pIdx}`}
+                        className="pdf-page relative flex flex-col overflow-hidden shrink-0"
+                        style={{ width: 1122, height: 794, backgroundColor: '#ffffff', fontFamily: 'system-ui, sans-serif' }}
+                    >
+                        {/* ── Brand header ── */}
+                        <div style={{ backgroundColor: '#1A2235', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '10px 40px', flexShrink: 0 }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/logo-white.png" alt="Competir" style={{ height: 24, width: 'auto', objectFit: 'contain' }} />
+                            <div style={{ textAlign: 'right' }}>
+                                <p style={{ color: '#ffffff', fontSize: 14, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', margin: 0, lineHeight: 1.2 }}>
+                                    {title}
+                                </p>
+                                <p style={{ color: '#94A3B8', fontSize: 10, margin: '2px 0 0', fontWeight: 500 }}>
+                                    {athletes.length} Atletas · Eliminatória Simples · Pág. {pIdx + 1}/{pdfPages.length}
+                                </p>
+                            </div>
                         </div>
-                        <div className="flex-1 content-start mt-2 flex flex-col gap-6 w-full">
+                        {/* Gold accent line */}
+                        <div style={{ height: 3, backgroundColor: '#D4A017', flexShrink: 0 }} />
+
+                        {/* ── Content ── */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 40px 12px', gap: 16, overflow: 'hidden' }}>
                             {page.rounds.map((rConfig, rIdx) => (
-                                <div key={`pdf-r-${pIdx}-${rIdx}`} className="w-full">
-                                    <h3 className="text-xl font-bold text-gray-800 uppercase tracking-widest mb-5 border-b border-gray-200 pb-2">{rConfig.name}</h3>
-                                    <div className="grid grid-cols-4 gap-x-6 gap-y-8 w-full">
+                                <div key={`pdf-r-${pIdx}-${rIdx}`} style={{ width: '100%' }}>
+                                    {/* Round title with gold underline */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                                        <h3 style={{ fontSize: 11, fontWeight: 800, color: '#1A2235', textTransform: 'uppercase', letterSpacing: 2, margin: 0, whiteSpace: 'nowrap' }}>
+                                            {rConfig.name}
+                                        </h3>
+                                        <div style={{ flex: 1, height: 1.5, backgroundColor: '#D4A017' }} />
+                                    </div>
+
+                                    {/* Match cards grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px 16px' }}>
                                         {rConfig.matches.map((match: any) => (
-                                            <div key={match.globalId} className="relative h-[90px] w-full shrink-0 flex flex-col justify-between py-1 bg-white rounded-lg border border-gray-300 shadow-sm px-3">
-                                                <div className="absolute -top-3 -left-2 bg-gray-800 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
-                                                    {`LUTA ${match.globalId}`}
+                                            <div key={match.globalId} style={{ position: 'relative', height: 96, backgroundColor: '#ffffff', border: '1.5px solid #E4E7EC', borderRadius: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '12px 10px 6px' }}>
+                                                {/* LUTA badge */}
+                                                <div style={{ position: 'absolute', top: -9, left: 8, backgroundColor: '#1A2235', color: '#ffffff', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap', letterSpacing: 0.5 }}>
+                                                    LUTA {match.globalId}
                                                 </div>
-                                                <div className="h-10 flex flex-col justify-end border-b border-gray-300 pb-1">
-                                                    {match.athleteA === "BYE" ? (
-                                                        <span className="text-[14px] font-bold text-gray-400 uppercase">BYE</span>
+
+                                                {/* Athlete A */}
+                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderBottom: '1px solid #E4E7EC', paddingBottom: 4 }}>
+                                                    {match.athleteA === 'BYE' ? (
+                                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>BYE</span>
                                                     ) : match.athleteA ? (
-                                                        <div className="flex flex-col leading-tight pr-4">
-                                                            <span className="text-[13px] font-bold text-black uppercase truncate">{match.athleteA}</span>
-                                                            {match.teamA && <span className="text-[9px] text-gray-500 uppercase tracking-wider truncate">{match.teamA}</span>}
-                                                        </div>
+                                                        <>
+                                                            <span style={{ fontSize: 12, fontWeight: 800, color: '#0F1623', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{match.athleteA}</span>
+                                                            {match.teamA && <span style={{ fontSize: 9, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{match.teamA}</span>}
+                                                        </>
                                                     ) : (
-                                                        <span className="text-[11px] font-medium text-gray-400 italic">{match.originAText}</span>
+                                                        <span style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>{match.originAText}</span>
                                                     )}
                                                 </div>
-                                                <div className="h-10 flex flex-col justify-end pb-1">
-                                                    {match.athleteB === "BYE" ? (
-                                                        <span className="text-[14px] font-bold text-gray-400 uppercase">BYE</span>
+
+                                                {/* Athlete B */}
+                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 4 }}>
+                                                    {match.athleteB === 'BYE' ? (
+                                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>BYE</span>
                                                     ) : match.athleteB ? (
-                                                        <div className="flex flex-col leading-tight pr-4">
-                                                            <span className="text-[13px] font-bold text-black uppercase truncate">{match.athleteB}</span>
-                                                            {match.teamB && <span className="text-[9px] text-gray-500 uppercase tracking-wider truncate">{match.teamB}</span>}
-                                                        </div>
+                                                        <>
+                                                            <span style={{ fontSize: 12, fontWeight: 800, color: '#0F1623', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{match.athleteB}</span>
+                                                            {match.teamB && <span style={{ fontSize: 9, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{match.teamB}</span>}
+                                                        </>
                                                     ) : (
-                                                        <span className="text-[11px] font-medium text-gray-400 italic">{match.originBText}</span>
+                                                        <span style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>{match.originBText}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -538,24 +566,27 @@ export function CategoryBracket({ athletes, title }: CategoryBracketProps) {
                                 </div>
                             ))}
 
+                            {/* ── Podium (last page only) ── */}
                             {pIdx === pdfPages.length - 1 && (
-                                <div className="mt-6 w-full border-t-2 border-dashed border-gray-300 pt-6 mt-auto shrink-0">
-                                    <h3 className="text-xl font-black text-gray-800 uppercase tracking-widest mb-6 text-center">Pódio Oficial</h3>
-                                    <div className="flex flex-row justify-center gap-6 w-full mt-2 pb-4">
+                                <div style={{ marginTop: 'auto', borderTop: '1.5px solid #E4E7EC', paddingTop: 14 }}>
+                                    <h3 style={{ textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#1A2235', textTransform: 'uppercase', letterSpacing: 2, margin: '0 0 12px' }}>
+                                        Pódio Oficial
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: 20 }}>
                                         {[
-                                            { label: "1º LUGAR (CAMPEÃO)", color: "bg-yellow-500" },
-                                            { label: "2º LUGAR (VICE)", color: "bg-gray-400" },
-                                            { label: "3º LUGAR", color: "bg-[#cd7f32]" },
-                                        ].map((pos, idx) => (
-                                            <div key={idx} className="relative w-[240px] flex flex-col justify-end pt-6 pb-2 bg-white rounded-lg border border-gray-300 shadow-sm px-4 h-[75px]">
-                                                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-white text-[10px] font-bold px-3 py-0.5 rounded shadow-sm whitespace-nowrap ${pos.color}`}>
+                                            { label: '1º LUGAR — CAMPEÃO', bg: '#D4A017', text: '#ffffff' },
+                                            { label: '2º LUGAR — VICE',    bg: '#8E9BAE', text: '#ffffff' },
+                                            { label: '3º LUGAR',           bg: '#A0673A', text: '#ffffff' },
+                                        ].map((pos, i) => (
+                                            <div key={i} style={{ position: 'relative', width: 240, height: 72, backgroundColor: '#ffffff', border: '1.5px solid #E4E7EC', borderRadius: 6, padding: '22px 12px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                                                <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: pos.bg, color: pos.text, fontSize: 9, fontWeight: 800, padding: '3px 10px', borderRadius: 4, whiteSpace: 'nowrap', letterSpacing: 0.5 }}>
                                                     {pos.label}
                                                 </div>
-                                                <div className="border-b border-gray-300 h-6 w-full flex items-end pb-1 mb-2">
-                                                    <span className="text-[10px] text-gray-400 italic">Nome:</span>
+                                                <div style={{ borderBottom: '1px solid #E4E7EC', height: 22, display: 'flex', alignItems: 'flex-end', paddingBottom: 3, marginBottom: 6 }}>
+                                                    <span style={{ fontSize: 9, color: '#9CA3AF', fontStyle: 'italic' }}>Nome:</span>
                                                 </div>
-                                                <div className="border-b border-gray-300 h-6 w-full flex items-end pb-1">
-                                                    <span className="text-[10px] text-gray-400 italic">Equipe:</span>
+                                                <div style={{ borderBottom: '1px solid #E4E7EC', height: 22, display: 'flex', alignItems: 'flex-end', paddingBottom: 3 }}>
+                                                    <span style={{ fontSize: 9, color: '#9CA3AF', fontStyle: 'italic' }}>Equipe:</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -563,9 +594,11 @@ export function CategoryBracket({ athletes, title }: CategoryBracketProps) {
                                 </div>
                             )}
                         </div>
-                        <div className="mt-auto w-full text-gray-400 text-xs border-t border-gray-100 pt-4 shrink-0 flex justify-between px-4">
-                            <span><strong>Competir</strong> • Plataforma Oficial de Gestão</span>
-                            <span>Gerado em: {new Date().toLocaleDateString('pt-BR')}</span>
+
+                        {/* ── Footer ── */}
+                        <div style={{ borderTop: '1px solid #E4E7EC', padding: '7px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                            <span style={{ fontSize: 9, color: '#9CA3AF' }}><strong style={{ color: '#4B5563' }}>COMPETIR</strong> · Plataforma Oficial de Gestão</span>
+                            <span style={{ fontSize: 9, color: '#9CA3AF' }}>Gerado em: {new Date().toLocaleDateString('pt-BR')}</span>
                         </div>
                     </div>
                 ))}
