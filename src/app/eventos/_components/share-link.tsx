@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Link as LinkIcon, Check, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { Link as LinkIcon } from 'lucide-react';
 
 interface Topic {
     title: string;
@@ -94,25 +92,6 @@ function buildWhatsAppMessage({
 }
 
 export function ShareLink(props: ShareLinkProps) {
-    const { canonicalUrl } = props;
-    const [displayUrl, setDisplayUrl] = useState(canonicalUrl);
-    const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        setDisplayUrl(window.location.href);
-    }, []);
-
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(canonicalUrl);
-            setCopied(true);
-            toast.success('Link copiado com sucesso!');
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            toast.error('Erro ao copiar o link.');
-        }
-    };
-
     const handleWhatsApp = async () => {
         const message = buildWhatsAppMessage(props);
 
@@ -138,40 +117,25 @@ export function ShareLink(props: ShareLinkProps) {
                 Compartilhe este evento
             </p>
 
-            {/* Copy link */}
-            <div
-                onClick={handleCopy}
-                className="group relative flex items-center justify-between gap-4 p-4 rounded-[7px] bg-muted/20 border border-border/40 cursor-pointer hover:bg-muted/30 hover:border-border/80 transition-all duration-300"
-            >
-                <div className="flex flex-col gap-0.5 overflow-hidden">
-                    <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground/60">
-                        Clique para copiar o link do evento
-                    </span>
-                    <span className="text-sm font-medium text-foreground truncate max-w-[280px] sm:max-w-md">
-                        {displayUrl}
-                    </span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-background border flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        {copied ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                            <Copy className="h-4 w-4 text-muted-foreground" />
-                        )}
-                    </div>
-                </div>
-                {copied && (
-                    <div className="absolute inset-0 bg-green-500/5 rounded-[7px] pointer-events-none" />
-                )}
-            </div>
-
-            {/* WhatsApp button */}
+            {/* WhatsApp share card */}
             <button
                 onClick={handleWhatsApp}
-                className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-[7px] bg-[#25D366] hover:bg-[#20bb59] text-white font-black text-[12px] uppercase tracking-widest transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm"
+                className="w-full group flex items-center gap-5 p-5 rounded-[7px] bg-[#25D366] hover:bg-[#20bb59] active:scale-[0.99] text-white transition-all duration-200 shadow-sm hover:shadow-md text-left"
             >
-                <WhatsAppIcon />
-                Compartilhar no WhatsApp
+                {/* Icon */}
+                <div className="shrink-0 h-12 w-12 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <WhatsAppIcon />
+                </div>
+
+                {/* Text */}
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-[13px] font-black uppercase tracking-widest leading-tight">
+                        Compartilhar no WhatsApp
+                    </span>
+                    <span className="text-[11px] font-medium text-white/80 leading-snug">
+                        Envia nome, data, local e informacoes completas do evento
+                    </span>
+                </div>
             </button>
         </div>
     );
