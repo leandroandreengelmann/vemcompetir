@@ -113,8 +113,21 @@ export function ShareLink(props: ShareLinkProps) {
         }
     };
 
-    const handleWhatsApp = () => {
+    const handleWhatsApp = async () => {
         const message = buildWhatsAppMessage(props);
+
+        // Mobile: Web Share API passa o texto direto ao OS sem URL encoding
+        // Emojis chegam intactos ao WhatsApp
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({ text: message });
+                return;
+            } catch {
+                // Usuário cancelou ou share falhou — fallback abaixo
+            }
+        }
+
+        // Desktop: wa.me com URL encoding (emojis funcionam na maioria dos browsers desktop)
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
