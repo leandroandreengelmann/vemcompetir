@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Trash2, Check, Info } from "lucide-react";
+import { TrashIcon, CheckIcon, InfoIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -39,10 +39,10 @@ export function CancelRegistrationButton({
             toast.custom((t) => (
                 <div className="flex items-center justify-between gap-3 w-full sm:w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
                     <div className="flex items-center gap-3">
-                        <Check className="h-6 w-6 shrink-0" />
+                        <CheckIcon size={24} weight="duotone" className="shrink-0" />
                         <div className="flex flex-col">
-                            <p className="text-base font-bold">Inscrição removida</p>
-                            <p className="text-sm opacity-90">Sua inscrição pendente foi cancelada.</p>
+                            <p className="text-panel-md font-bold">Inscrição removida</p>
+                            <p className="text-panel-sm opacity-90">Sua inscrição pendente foi cancelada.</p>
                         </div>
                     </div>
                 </div>
@@ -59,10 +59,10 @@ export function CancelRegistrationButton({
             toast.custom((t) => (
                 <div className="flex items-center justify-between gap-3 w-full sm:w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
                     <div className="flex items-center gap-3">
-                        <Info className="h-6 w-6 shrink-0" />
+                        <InfoIcon size={24} weight="duotone" className="shrink-0" />
                         <div className="flex flex-col">
-                            <p className="text-base font-bold">Erro ao remover</p>
-                            <p className="text-sm opacity-90">{msg}</p>
+                            <p className="text-panel-md font-bold">Erro ao remover</p>
+                            <p className="text-panel-sm opacity-90">{msg}</p>
                         </div>
                     </div>
                 </div>
@@ -82,7 +82,7 @@ export function CancelRegistrationButton({
                     className={cn("h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-50 border-transparent hover:border-red-100 transition-colors rounded-full shadow-none shrink-0", className)}
                     title="Remover inscrição pendente"
                 >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <TrashIcon size={14} weight="duotone" />
                 </Button>
             </DialogTrigger>
             <DialogContent onClick={(e) => e.stopPropagation()}>

@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import AthleteEventDetail from '../components/AthleteEventDetail';
 import { requireRole } from '@/lib/auth-guards';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 import { AthletePageHeader } from '../../components/athlete-page-header';

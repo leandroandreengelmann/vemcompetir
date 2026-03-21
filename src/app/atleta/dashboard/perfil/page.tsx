@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth-guards';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from 'lucide-react';
 import { AthleteProfileForm } from '../profile-form';
 
 const BELTS = [

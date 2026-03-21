@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/auth-guards';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ClipboardList, Search, Trophy, Calendar, MapPin } from 'lucide-react';
+import { CaretLeftIcon, ClipboardTextIcon, MagnifyingGlassIcon, TrophyIcon, CalendarIcon, MapPinIcon } from '@phosphor-icons/react/dist/ssr';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -11,6 +11,7 @@ import { AthleteProfileForm } from '../profile-form';
 import { AthletePageHeader } from '../components/athlete-page-header';
 import { ReactivatePaymentButton } from './ReactivatePaymentButton';
 import { CancelRegistrationWrapper } from './CancelRegistrationWrapper';
+import { PassportButton } from './PassportButton';
 
 const BELTS = [
     'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde',
@@ -52,15 +53,15 @@ id,
         switch (status) {
             case 'pago':
             case 'confirmado':
-                return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 uppercase text-[10px] whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Confirmada</Badge>;
+                return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Confirmada</Badge>;
             case 'aguardando_pagamento':
             case 'pendente':
-                return <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 uppercase text-[10px] whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Aguardando Pagamento</Badge>;
+                return <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Aguardando Pagamento</Badge>;
             case 'cancelado':
             case 'reembolsado':
-                return <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 uppercase text-[10px] whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Cancelada</Badge>;
+                return <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Cancelada</Badge>;
             default:
-                return <Badge variant="outline" className="uppercase text-[10px] whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">{status.replace('_', ' ')}</Badge>;
+                return <Badge variant="outline" className="uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">{status.replace('_', ' ')}</Badge>;
         }
     }
 
@@ -81,17 +82,17 @@ id,
                         const pendentes = inscricoes.filter((i: any) => ['aguardando_pagamento', 'pendente'].includes(i.status)).length;
                         return (
                             <>
-                                <span className="text-sm font-semibold text-muted-foreground">
+                                <span className="text-panel-sm font-semibold text-muted-foreground">
                                     {inscricoes.length} {inscricoes.length === 1 ? 'inscrição' : 'inscrições'}
                                 </span>
                                 {confirmadas > 0 && (
-                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span className="inline-flex items-center gap-1.5 text-panel-sm font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                         {confirmadas} confirmada{confirmadas > 1 ? 's' : ''}
                                     </span>
                                 )}
                                 {pendentes > 0 && (
-                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span className="inline-flex items-center gap-1.5 text-panel-sm font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                                         {pendentes} aguardando
                                     </span>
@@ -107,14 +108,14 @@ id,
                 {inscricoes.length === 0 ? (
                     <div className="text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
                         <div className="mx-auto bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mb-6">
-                            <ClipboardList className="h-10 w-10 text-primary" />
+                            <ClipboardTextIcon size={40} weight="duotone" className="text-primary" />
                         </div>
 
                         <div className="space-y-2">
-                            <h2 className="text-h2 text-foreground">
+                            <h2 className="text-panel-md font-bold text-foreground">
                                 Você não está inscrito em nenhum campeonato
                             </h2>
-                            <p className="text-ui text-muted-foreground max-w-xs mx-auto">
+                            <p className="text-panel-sm text-muted-foreground max-w-xs mx-auto">
                                 Seus eventos ativos e seu histórico aparecerão aqui assim que você concluir uma inscrição.
                             </p>
                         </div>
@@ -122,7 +123,7 @@ id,
                         <div className="flex flex-col gap-3 pt-4">
                             <Button pill asChild className="w-full h-12  font-bold gap-2 shadow-sm transition-all active:scale-[0.98]">
                                 <Link href="/atleta/dashboard/campeonatos">
-                                    <Search className="h-4 w-4" />
+                                    <MagnifyingGlassIcon size={16} weight="duotone" />
                                     Explorar Campeonatos
                                 </Link>
                             </Button>
@@ -135,7 +136,7 @@ id,
                     </div>
                 ) : (
                     <div className="w-full space-y-4 pt-4">
-                        <h2 className="text-h3 font-bold text-brand-950 mb-2">Histórico de Inscrições</h2>
+                        <h2 className="text-panel-sm font-bold text-brand-950 mb-2">Histórico de Inscrições</h2>
                         <div className="grid gap-4 w-full">
                             {inscricoes.map((inscricao: any) => (
                                 <Link key={inscricao.id} href={`/atleta/dashboard/campeonatos/${inscricao.event?.id}`} className="block group">
@@ -150,14 +151,14 @@ id,
                                                 />
                                             ) : (
                                                 <div className="absolute inset-0 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 transition-colors">
-                                                    <Trophy className="h-8 w-8 text-primary/20" />
+                                                    <TrophyIcon size={32} weight="duotone" className="text-primary/20" />
                                                 </div>
                                             )}
                                         </div>
                                         {/* Detalhes da Inscrição */}
                                         <div className="p-5 flex-1 flex flex-col justify-center">
                                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
-                                                <h3 className="font-bold text-lg leading-tight line-clamp-2 text-brand-950 group-hover:text-primary transition-colors">
+                                                <h3 className="font-bold text-panel-lg leading-tight line-clamp-2 text-brand-950 group-hover:text-primary transition-colors">
                                                     {inscricao.event?.title}
                                                 </h3>
                                                 <div className="shrink-0 flex items-center gap-2">
@@ -167,28 +168,31 @@ id,
                                                             <CancelRegistrationWrapper registrationId={inscricao.id} />
                                                         </>
                                                     )}
+                                                    {['pago', 'confirmado', 'isento'].includes(inscricao.status) && (
+                                                        <PassportButton registrationId={inscricao.id} />
+                                                    )}
                                                     {getStatusBadge(inscricao.status)}
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-panel-sm text-muted-foreground mb-3">
                                                 {inscricao.event?.event_date && (
                                                     <div className="flex items-center gap-1.5">
-                                                        <Calendar className="h-4 w-4 shrink-0 text-brand-950/40" />
+                                                        <CalendarIcon size={16} weight="duotone" className="shrink-0 text-brand-950/40" />
                                                         <span className="font-medium text-brand-950/70">{format(new Date(inscricao.event.event_date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
                                                     </div>
                                                 )}
                                                 {inscricao.event?.city && (
                                                     <div className="flex items-center gap-1.5">
-                                                        <MapPin className="h-4 w-4 shrink-0 text-brand-950/40" />
+                                                        <MapPinIcon size={16} weight="duotone" className="shrink-0 text-brand-950/40" />
                                                         <span className="font-medium text-brand-950/70">{inscricao.event.city}</span>
                                                     </div>
                                                 )}
                                             </div>
 
                                             <div className="bg-[#f8f9fa] rounded-md p-3 border border-slate-100 mt-auto">
-                                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Categoria Inscrita</span>
-                                                <p className="text-sm font-bold text-slate-700">
+                                                <span className="text-panel-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Categoria Inscrita</span>
+                                                <p className="text-panel-sm font-bold text-slate-700">
                                                     {inscricao.category?.categoria_completa || 'Categoria não informada no sistema'}
                                                 </p>
                                             </div>

@@ -25,11 +25,11 @@ export function EventSummary({ date, location, city }: EventSummaryProps) {
             <div className="grid grid-cols-2 gap-4">
                 {/* 4) Metadados: Data + Local (Lado a lado no MOBILE v2.13 - Prompt Restritivo) */}
                 <div className="space-y-1 min-w-0">
-                    <p className="text-label uppercase tracking-wide text-muted-foreground">
+                    <p className="text-panel-sm uppercase tracking-wide text-muted-foreground">
                         Data do Evento
                     </p>
                     <p
-                        className="text-ui font-medium leading-snug break-words truncate"
+                        className="text-panel-sm font-medium leading-snug break-words truncate"
                         title={formattedDate}
                     >
                         {formattedDate}
@@ -37,11 +37,11 @@ export function EventSummary({ date, location, city }: EventSummaryProps) {
                 </div>
 
                 <div className="space-y-1 min-w-0">
-                    <p className="text-label uppercase tracking-wide text-muted-foreground">
+                    <p className="text-panel-sm uppercase tracking-wide text-muted-foreground">
                         Localização
                     </p>
                     <p
-                        className="text-ui font-medium leading-snug break-words truncate"
+                        className="text-panel-sm font-medium leading-snug break-words truncate"
                         title={fullLocation}
                     >
                         {fullLocation}
@@ -52,7 +52,7 @@ export function EventSummary({ date, location, city }: EventSummaryProps) {
             {isEndingSoon && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
                     <div className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                    <p className="text-caption font-bold text-amber-700 uppercase tracking-tighter">
+                    <p className="text-panel-sm font-bold text-amber-700 uppercase tracking-tighter">
                         Últimos dias para inscrição! Lote termina em breve.
                     </p>
                 </div>

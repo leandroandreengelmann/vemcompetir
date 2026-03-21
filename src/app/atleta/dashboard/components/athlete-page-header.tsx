@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 
 interface AthletePageHeaderProps {
@@ -37,17 +37,17 @@ export function AthletePageHeader({ title, description, backHref, beltColor = 'b
                 className={`w-fit group flex items-center gap-2 transition-all md:pl-5 ${accentColor}`}
                 aria-label="Voltar"
             >
-                <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform cursor-pointer" />
-                <span className="hidden md:inline text-sm font-semibold">Voltar</span>
+                <ArrowLeftIcon size={20} weight="duotone" className="group-hover:-translate-x-1 transition-transform cursor-pointer" />
+                <span className="hidden md:inline text-panel-sm font-semibold">Voltar</span>
             </Link>
 
             {/* Título com borda-acento lateral no desktop */}
             <div className={`space-y-2 md:pl-5 md:border-l-[3px] ${borderColor}`}>
-                <h1 className={`text-h1 md:text-4xl md:font-black tracking-tight ${accentColor}`}>
+                <h1 className={`text-panel-lg font-bold tracking-tight ${accentColor}`}>
                     {title}
                 </h1>
                 {description && (
-                    <p className="text-ui text-muted-foreground">
+                    <p className="text-panel-sm text-muted-foreground">
                         {description}
                     </p>
                 )}

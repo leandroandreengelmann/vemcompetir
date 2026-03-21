@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeftIcon, CircleNotchIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { registerMasterAction } from './actions';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSearchParams } from 'next/navigation';
@@ -57,11 +57,11 @@ export default function CadastrarMestre() {
                 {/* Header */}
                 <div className="flex flex-col gap-8">
                     <Link href="/atleta/dashboard/perfil" className="w-fit" aria-label="Voltar">
-                        <ArrowLeft className="h-6 w-6 text-primary hover:opacity-80 transition-opacity cursor-pointer" />
+                        <ArrowLeftIcon size={24} weight="duotone" className="text-primary hover:opacity-80 transition-opacity cursor-pointer" />
                     </Link>
 
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-primary">Cadastrar mestre</h1>
+                        <h1 className="text-panel-lg font-bold tracking-tight text-primary">Cadastrar mestre</h1>
                         <p className="text-muted-foreground">
                             Como você não encontrou seu mestre/professor, cadastre abaixo para usar no seu perfil.
                         </p>
@@ -70,7 +70,7 @@ export default function CadastrarMestre() {
 
                 {error && (
                     <Alert variant="destructive" className="animate-in fade-in zoom-in duration-300">
-                        <AlertCircle className="h-4 w-4" />
+                        <WarningCircleIcon size={16} weight="duotone" />
                         <AlertTitle>Erro</AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
@@ -82,7 +82,7 @@ export default function CadastrarMestre() {
 
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="master_name" className="text-sm font-medium text-muted-foreground">Nome do mestre / professor responsável</Label>
+                            <Label htmlFor="master_name" className="text-panel-sm font-medium text-muted-foreground">Nome do mestre / professor responsável</Label>
                             <Input
                                 id="master_name"
                                 name="master_name"
@@ -98,12 +98,12 @@ export default function CadastrarMestre() {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className={`w-1/2 h-12 rounded-full font-semibold text-lg transition-all active:scale-[0.98] ${isWhiteBelt
+                            className={`w-1/2 h-12 rounded-full font-semibold text-panel-lg transition-all active:scale-[0.98] ${isWhiteBelt
                                 ? "bg-background text-foreground border border-brand-950/20 shadow-none hover:bg-muted/40"
                                 : "bg-primary text-primary-foreground shadow-lg hover:opacity-90"
                                 }`}
                         >
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                            {loading ? <CircleNotchIcon size={20} weight="bold" className="animate-spin mr-2" /> : null}
                             Salvar
                         </Button>
 

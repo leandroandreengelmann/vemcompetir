@@ -2,7 +2,7 @@
 
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { BeltKnot } from '@/components/athlete/belt-knot';
-import { LogOut } from 'lucide-react';
+import { SignOutIcon } from '@phosphor-icons/react';
 import { signOutAction } from '../dashboard/actions';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -45,10 +45,10 @@ export function AthleteDesktopSidebar({ fullName, beltColor = 'branca' }: Athlet
 
                 {/* Nome e graduação — conectados ao nó */}
                 <div className="text-center px-6">
-                    <p className={`font-black text-base leading-tight tracking-wide ${nameColor}`}>
+                    <p className={`font-bold text-panel-md leading-tight tracking-wide ${nameColor}`}>
                         {displayName}
                     </p>
-                    <p className={`mt-1.5 text-[11px] uppercase tracking-[0.2em] font-semibold ${beltLabelColor}`}>
+                    <p className={`mt-1.5 text-panel-sm uppercase tracking-[0.2em] font-semibold ${beltLabelColor}`}>
                         Faixa {beltColor}
                     </p>
                 </div>
@@ -75,8 +75,8 @@ export function AthleteDesktopSidebar({ fullName, beltColor = 'branca' }: Athlet
                             : 'text-white font-bold hover:bg-white/20 bg-white/10 border border-white/10'
                     }`}
                 >
-                    <LogOut className={`w-4 h-4 transition-transform group-hover:-translate-x-0.5 ${isLoggingOut ? 'animate-pulse' : ''}`} />
-                    <span className="text-xs font-black uppercase tracking-widest text-inherit">
+                    <SignOutIcon size={16} weight="duotone" className={`transition-transform group-hover:-translate-x-0.5 ${isLoggingOut ? 'animate-pulse' : ''}`} />
+                    <span className="text-panel-sm font-bold uppercase tracking-widest text-inherit">
                         {isLoggingOut ? 'Saindo...' : 'Sair'}
                     </span>
                 </button>

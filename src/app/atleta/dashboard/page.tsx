@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { User, ArrowRight, Trophy, ClipboardList } from 'lucide-react';
+import { UserIcon, ArrowRightIcon, TrophyIcon, ClipboardTextIcon } from '@phosphor-icons/react/dist/ssr';
 import { AthleteProfileForm } from './profile-form';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
@@ -51,10 +51,10 @@ export default async function AthleteDashboard() {
             : "bg-primary border-white/10 hover:brightness-110"}`;
 
     const getTitleClasses = (isWhite: boolean) =>
-        `text-h2 leading-tight ${isWhite ? "text-foreground" : "text-primary-foreground"}`;
+        `text-panel-md font-bold leading-tight ${isWhite ? "text-foreground" : "text-primary-foreground"}`;
 
     const getDescClasses = (isWhite: boolean) =>
-        `text-label ${isWhite ? "text-muted-foreground" : "text-primary-foreground/80"}`;
+        `text-panel-sm ${isWhite ? "text-muted-foreground" : "text-primary-foreground/80"}`;
 
     const getIconClasses = (isWhite: boolean) =>
         `absolute bottom-3 right-3 h-6 w-6 transition-all ${isWhite ? "text-brand-950" : "text-primary-foreground opacity-80 group-hover:opacity-100 group-hover:translate-x-1"}`;
@@ -71,10 +71,10 @@ export default async function AthleteDashboard() {
                     <Avatar className="h-10 w-10 shadow-sm border border-gray-100">
                         {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name || 'Avatar'} />}
                         <AvatarFallback className="bg-brand-950 text-white">
-                            <User className="h-5 w-5" />
+                            <UserIcon size={20} weight="duotone" />
                         </AvatarFallback>
                     </Avatar>
-                    <span className={`mt-9 text-h3 ${isWhiteBelt ? "text-brand-950" : "text-primary"}`}>
+                    <span className={`mt-9 text-panel-sm font-semibold ${isWhiteBelt ? "text-brand-950" : "text-primary"}`}>
                         Olá, {profile?.full_name?.split(' ')[0] || 'Atleta'}
                     </span>
                 </div>
@@ -105,10 +105,10 @@ export default async function AthleteDashboard() {
                                     Ver eventos disponíveis
                                 </CardDescription>
                             </div>
-                            <ArrowRight className={getIconClasses(isWhiteBelt)} />
+                            <ArrowRightIcon weight="duotone" className={getIconClasses(isWhiteBelt)} />
                         </CardHeader>
                         {/* Ícone decorativo — visível apenas no desktop */}
-                        <Trophy className={`hidden md:block absolute bottom-4 right-6 h-24 w-24 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 ${
+                        <TrophyIcon size={96} weight="duotone" className={`hidden md:block absolute bottom-4 right-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 ${
                             isWhiteBelt ? 'text-brand-950/8' : 'text-white/10'
                         }`} />
                     </Card>
@@ -126,9 +126,9 @@ export default async function AthleteDashboard() {
                                     Acompanhar histórico
                                 </CardDescription>
                             </div>
-                            <ArrowRight className={getIconClasses(isWhiteBelt)} />
+                            <ArrowRightIcon weight="duotone" className={getIconClasses(isWhiteBelt)} />
                         </CardHeader>
-                        <ClipboardList className={`hidden md:block absolute bottom-4 right-4 h-16 w-16 ${
+                        <ClipboardTextIcon size={64} weight="duotone" className={`hidden md:block absolute bottom-4 right-4 ${
                             isWhiteBelt ? 'text-brand-950/8' : 'text-white/10'
                         }`} />
                     </Card>
@@ -146,9 +146,9 @@ export default async function AthleteDashboard() {
                                     Gerenciar dados
                                 </CardDescription>
                             </div>
-                            <ArrowRight className={getIconClasses(isWhiteBelt)} />
+                            <ArrowRightIcon weight="duotone" className={getIconClasses(isWhiteBelt)} />
                         </CardHeader>
-                        <User className={`hidden md:block absolute bottom-4 right-4 h-16 w-16 ${
+                        <UserIcon size={64} weight="duotone" className={`hidden md:block absolute bottom-4 right-4 ${
                             isWhiteBelt ? 'text-brand-950/8' : 'text-white/10'
                         }`} />
                     </Card>
@@ -160,8 +160,8 @@ export default async function AthleteDashboard() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
                     <Card className="w-full max-w-xl animate-in zoom-in-95 fade-in duration-300 shadow-2xl overflow-hidden border-none rounded-2xl">
                         <CardHeader className="bg-slate-900 text-white py-6">
-                            <CardTitle className="text-h1">Complete seu perfil</CardTitle>
-                            <CardDescription className="text-ui text-slate-300">
+                            <CardTitle className="text-panel-lg font-bold">Complete seu perfil</CardTitle>
+                            <CardDescription className="text-panel-sm text-slate-300">
                                 Precisamos destes dados para suas futuras inscrições em eventos.
                             </CardDescription>
                         </CardHeader>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Info, Trophy, Loader2, ArrowLeft, Check } from 'lucide-react';
+import { MagnifyingGlassIcon, InfoIcon, TrophyIcon, CircleNotchIcon, CheckIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from '@/hooks/use-debounce';
@@ -130,19 +130,19 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                         {/* Incomplete Profile Alert (Moved here to stay near event summary on mobile/desktop) */}
                         {isIncomplete && (
                             <Alert className="bg-amber-50/50 border-amber-200 text-amber-800 rounded-2xl p-5 shadow-sm">
-                                <Info className="h-5 w-5 text-amber-600" />
+                                <InfoIcon size={20} weight="duotone" className="text-amber-600" />
                                 <div className="flex flex-col gap-2">
-                                    <AlertTitle className="text-h3 text-amber-900">Perfil Incompleto</AlertTitle>
-                                    <AlertDescription className="text-ui font-medium opacity-90 leading-relaxed">
+                                    <AlertTitle className="text-panel-sm font-semibold text-amber-900">Perfil Incompleto</AlertTitle>
+                                    <AlertDescription className="text-panel-sm font-medium opacity-90 leading-relaxed">
                                         Complete seu perfil para encontrarmos suas categorias automaticamente.
                                         {incompleteReasons.length > 0 && (
-                                            <span className="block mt-1 text-ui font-bold">
+                                            <span className="block mt-1 text-panel-sm font-bold">
                                                 Faltando: {incompleteReasons.join(', ')}
                                             </span>
                                         )}
                                     </AlertDescription>
                                     <Link href="/atleta/dashboard/perfil">
-                                        <Button size="sm" variant="outline" className="w-full sm:w-fit mt-2 border-amber-200 bg-white text-amber-900 hover:bg-amber-100 text-ui font-bold rounded-xl px-6 h-10 transition-all active:scale-[0.98]">
+                                        <Button size="sm" variant="outline" className="w-full sm:w-fit mt-2 border-amber-200 bg-white text-amber-900 hover:bg-amber-100 text-panel-sm font-bold rounded-xl px-6 h-10 transition-all active:scale-[0.98]">
                                             Completar Perfil
                                         </Button>
                                     </Link>
@@ -157,13 +157,13 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                             <TabsList className={`flex items-center justify-center w-full h-14 sm:h-16 p-1 rounded-full bg-muted/30 border shadow-sm overflow-hidden ${isWhiteBelt ? 'border-gray-200' : 'border-primary'}`}>
                                 <TabsTrigger
                                     value="sugestoes"
-                                    className="flex-1 h-full rounded-full px-4 py-2 text-ui font-bold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                                    className="flex-1 h-full rounded-full px-4 py-2 text-panel-sm font-bold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                                 >
                                     Sugestões para você
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="todas"
-                                    className="flex-1 h-full rounded-full px-4 py-2 text-ui font-bold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                                    className="flex-1 h-full rounded-full px-4 py-2 text-panel-sm font-bold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                                 >
                                     Todas as categorias
                                 </TabsTrigger>
@@ -172,8 +172,8 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                             {/* Suggestions Tab */}
                             <TabsContent value="sugestoes" className="space-y-6 outline-none animate-in fade-in duration-300">
                                 <div className="space-y-1">
-                                    <h2 className="text-h2 text-foreground">Categorias elegíveis</h2>
-                                    <p className="text-ui font-medium text-muted-foreground leading-relaxed">
+                                    <h2 className="text-panel-md font-bold text-foreground">Categorias elegíveis</h2>
+                                    <p className="text-panel-sm font-medium text-muted-foreground leading-relaxed">
                                         De acordo com a sua cor de faixa, peso, idade e sexo, aqui estão as categorias às quais você está apto a participar. Você pode verificar e se inscrever em mais de uma delas.
                                     </p>
                                 </div>
@@ -181,19 +181,19 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                 <div className="space-y-3">
                                     {loading && suggestions.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-24 animate-pulse">
-                                            <Loader2 className="h-10 w-10 text-primary/20 animate-spin mb-4" />
-                                            <p className="text-caption text-muted-foreground italic">Analisando elegibilidade...</p>
+                                            <CircleNotchIcon size={40} weight="bold" className="text-primary/20 animate-spin mb-4" />
+                                            <p className="text-panel-sm text-muted-foreground italic">Analisando elegibilidade...</p>
                                         </div>
                                     ) : suggestions.length === 0 ? (
                                         <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 px-6">
-                                            <Trophy className="h-14 w-14 text-muted-foreground/10" />
+                                            <TrophyIcon size={56} weight="duotone" className="text-muted-foreground/10" />
                                             <div className="space-y-1">
-                                                <p className="text-h3 text-foreground">Nenhuma sugestão encontrada</p>
-                                                <p className="text-caption text-muted-foreground max-w-[280px]">Não encontramos categorias compatíveis com seu perfil neste evento.</p>
+                                                <p className="text-panel-sm font-semibold text-foreground">Nenhuma sugestão encontrada</p>
+                                                <p className="text-panel-sm text-muted-foreground max-w-[280px]">Não encontramos categorias compatíveis com seu perfil neste evento.</p>
                                             </div>
                                             <Button
                                                 variant="outline"
-                                                className="text-ui font-bold border-primary/20 text-primary hover:bg-primary/5 rounded-xl px-8 h-11"
+                                                className="text-panel-sm font-bold border-primary/20 text-primary hover:bg-primary/5 rounded-xl px-8 h-11"
                                                 onClick={() => setActiveTab('todas')}
                                             >
                                                 Ver todas categorias
@@ -218,8 +218,8 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                                             });
                                                             toast.custom((t) => (
                                                                 <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <Check className="h-6 w-6 shrink-0" />
-                                                                    <p className="text-base font-bold">Adicionado à cesta!</p>
+                                                                    <CheckIcon size={24} weight="duotone" className="shrink-0" />
+                                                                    <p className="text-panel-md font-bold">Adicionado à cesta!</p>
                                                                 </div>
                                                             ), { duration: 4000 });
                                                             useAthleteCart.getState().fetchCart();
@@ -227,8 +227,8 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                                             const msg = err.message || 'Erro ao adicionar à cesta.';
                                                             toast.custom((t) => (
                                                                 <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <Info className="h-6 w-6 shrink-0" />
-                                                                    <p className="text-base font-bold">{msg}</p>
+                                                                    <InfoIcon size={24} weight="duotone" className="shrink-0" />
+                                                                    <p className="text-panel-md font-bold">{msg}</p>
                                                                 </div>
                                                             ), { duration: 5000 });
                                                             throw err;
@@ -244,23 +244,23 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                             {/* All Categories Tab */}
                             <TabsContent value="todas" className="space-y-6 outline-none animate-in fade-in duration-300">
                                 <div className="relative group">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                    <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <Input
                                         placeholder="Ex: Master, Meio-Pesado, Marrom..."
-                                        className="pl-12 h-14 text-ui rounded-2xl border border-border shadow-sm bg-card hover:border-primary/20 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all font-medium"
+                                        className="pl-12 h-14 text-panel-sm rounded-2xl border border-border shadow-sm bg-card hover:border-primary/20 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all font-medium"
                                         value={query}
                                         onChange={(e) => setQuery(e.target.value)}
                                     />
                                     {loading && (
-                                        <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-primary/30" />
+                                        <CircleNotchIcon size={20} weight="bold" className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-primary/30" />
                                     )}
                                 </div>
 
                                 <div className="space-y-3">
                                     {results.length === 0 && !loading ? (
                                         <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 px-6">
-                                            <Trophy className="h-14 w-14 text-muted-foreground/10" />
-                                            <p className="text-ui font-medium text-muted-foreground">Nenhuma categoria encontrada para essa busca.</p>
+                                            <TrophyIcon size={56} weight="duotone" className="text-muted-foreground/10" />
+                                            <p className="text-panel-sm font-medium text-muted-foreground">Nenhuma categoria encontrada para essa busca.</p>
                                         </div>
                                     ) : (
                                         results.slice(0, 30).map((row) => {
@@ -280,8 +280,8 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                                             });
                                                             toast.custom((t) => (
                                                                 <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <Check className="h-6 w-6 shrink-0" />
-                                                                    <p className="text-base font-bold">Adicionado à cesta!</p>
+                                                                    <CheckIcon size={24} weight="duotone" className="shrink-0" />
+                                                                    <p className="text-panel-md font-bold">Adicionado à cesta!</p>
                                                                 </div>
                                                             ), { duration: 4000 });
                                                             useAthleteCart.getState().fetchCart();
@@ -289,8 +289,8 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                                             const msg = err.message || 'Erro ao adicionar à cesta.';
                                                             toast.custom((t) => (
                                                                 <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <Info className="h-6 w-6 shrink-0" />
-                                                                    <p className="text-base font-bold">{msg}</p>
+                                                                    <InfoIcon size={24} weight="duotone" className="shrink-0" />
+                                                                    <p className="text-panel-md font-bold">{msg}</p>
                                                                 </div>
                                                             ), { duration: 5000 });
                                                             throw err;

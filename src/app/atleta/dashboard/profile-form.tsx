@@ -22,7 +22,7 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, Check, Loader2, X, AlertCircle, CheckCircle2, ChevronRight, ArrowLeft, LogOut } from 'lucide-react';
+import { CheckIcon, CircleNotchIcon, XIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { updateAthleteProfile, searchGyms, searchMasters, signOutAction } from './actions';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -296,10 +296,10 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
             {/* Progress Bar */}
             <div className="space-y-4 px-1">
                 <div className="flex justify-between items-center mb-1">
-                    <span className="text-caption font-bold text-muted-foreground uppercase tracking-widest">
+                    <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest">
                         Passo {step} de 3
                     </span>
-                    <span className="text-caption font-bold text-primary uppercase">
+                    <span className="text-panel-sm font-bold text-primary uppercase">
                         {step === 1 ? 'Identidade' : step === 2 ? 'Vínculo' : 'Técnico'}
                     </span>
                 </div>
@@ -322,7 +322,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
             >
                 {message && (
                     <Alert variant={message.type === 'error' ? 'destructive' : 'default'} className={`animate-in fade-in zoom-in duration-300 ${message.type === 'success' ? 'border-green-500 text-green-700 bg-green-50 [&>svg]:text-green-600' : ''}`}>
-                        {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                        {message.type === 'success' ? <CheckCircleIcon size={16} weight="duotone" /> : <WarningCircleIcon size={16} weight="duotone" />}
                         <AlertTitle>{message.type === 'success' ? 'Sucesso!' : 'Erro'}</AlertTitle>
                         <AlertDescription>{message.text}</AlertDescription>
                     </Alert>
@@ -332,7 +332,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                     {/* STEP 1: IDENTIDADE */}
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 1 && "hidden")}>
                         <div className="space-y-2">
-                            <Label htmlFor="full_name" className="text-ui font-medium text-muted-foreground">Nome completo <span className="text-red-500 ml-1">*</span></Label>
+                            <Label htmlFor="full_name" className="text-panel-sm font-medium text-muted-foreground">Nome completo <span className="text-red-500 ml-1">*</span></Label>
                             <Input
                                 id="full_name"
                                 name="full_name"
@@ -340,13 +340,13 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                 placeholder="Seu nome oficial"
                                 required
                                 minLength={3}
-                                className="bg-background h-12 text-base rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                className="bg-background h-12 text-panel-md rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="sexo" className="text-ui font-medium text-muted-foreground">Sexo <span className="text-red-500 ml-1">*</span></Label>
+                                <Label htmlFor="sexo" className="text-panel-sm font-medium text-muted-foreground">Sexo <span className="text-red-500 ml-1">*</span></Label>
                                 <Select name="sexo" defaultValue={profile?.sexo || undefined}>
                                     <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
                                         <SelectValue placeholder="Selecione seu sexo" />
@@ -359,7 +359,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="birth_date" className="text-ui font-medium text-muted-foreground">Data de nascimento <span className="text-red-500 ml-1">*</span></Label>
+                                <Label htmlFor="birth_date" className="text-panel-sm font-medium text-muted-foreground">Data de nascimento <span className="text-red-500 ml-1">*</span></Label>
                                 <div className="flex flex-col gap-1.5">
                                     <Input
                                         id="birth_date"
@@ -372,7 +372,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                         style={{ accentColor: isWhiteBelt ? "black" : "hsl(var(--primary))" }}
                                     />
                                     {calculatedAge !== null && calculatedAge >= 0 && (
-                                        <p className="text-sm font-medium pl-1 text-[hsl(var(--primary))]">
+                                        <p className="text-panel-sm font-medium pl-1 text-[hsl(var(--primary))]">
                                             Sua idade é {calculatedAge} {calculatedAge === 1 ? 'ano' : 'anos'}
                                         </p>
                                     )}
@@ -381,7 +381,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="cpf" className="text-ui font-medium text-muted-foreground">CPF <span className="text-red-500 ml-1">*</span></Label>
+                            <Label htmlFor="cpf" className="text-panel-sm font-medium text-muted-foreground">CPF <span className="text-red-500 ml-1">*</span></Label>
                             <Input
                                 id="cpf"
                                 name="cpf"
@@ -403,11 +403,11 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                 required
                                 className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium ${cpfError ? 'border-red-500' : ''}`}
                             />
-                            {cpfError && <p className="text-xs text-red-500 font-medium">{cpfError}</p>}
+                            {cpfError && <p className="text-panel-sm text-red-500 font-medium">{cpfError}</p>}
                         </div>
 
                         <div className="space-y-2 pt-2">
-                            <Label htmlFor="email" className="text-ui font-medium text-muted-foreground">E-mail (login) <span className="text-red-500 ml-1">*</span></Label>
+                            <Label htmlFor="email" className="text-panel-sm font-medium text-muted-foreground">E-mail (login) <span className="text-red-500 ml-1">*</span></Label>
                             <Input
                                 id="email"
                                 name="email"
@@ -424,8 +424,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 2 && "hidden")}>
                         <div className="space-y-4 relative" ref={gymRef}>
                             <div className="space-y-1">
-                                <Label className="text-ui font-medium text-muted-foreground">Academia / equipe <span className="text-red-500 ml-1">*</span></Label>
-                                <p className="text-sm font-medium text-[hsl(var(--primary))] leading-tight">
+                                <Label className="text-panel-sm font-medium text-muted-foreground">Academia / equipe <span className="text-red-500 ml-1">*</span></Label>
+                                <p className="text-panel-sm font-medium text-[hsl(var(--primary))] leading-tight">
                                     {selectedGym
                                         ? "Para se desvincular desta academia e adicionar outra, basta clicar no X ao lado do nome. Isso limpará os campos para uma nova busca."
                                         : "Digite o nome da sua equipe / academia para buscar. Caso ela ainda não exista no sistema, você poderá cadastrá-la em seguida."
@@ -441,14 +441,14 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                         setGymQuery(value);
                                         if (selectedGym) setSelectedGym(null);
                                     }}
-                                    className="h-12 rounded-xl shadow-none pr-10 focus-visible:ring-0 focus-visible:ring-offset-0 text-ui font-medium"
+                                    className="h-12 rounded-xl shadow-none pr-10 focus-visible:ring-0 focus-visible:ring-offset-0 text-panel-sm font-medium"
                                     autoComplete="off"
                                 />
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    {isFetchingGyms && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                    {isFetchingGyms && <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />}
                                     {selectedGym ? (
                                         <button type="button" onClick={clearGym} className="text-muted-foreground hover:text-foreground">
-                                            <X className="h-5 w-5" />
+                                            <XIcon size={20} weight="duotone" />
                                         </button>
                                     ) : null}
                                 </div>
@@ -460,7 +460,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                         <div className="flex flex-wrap gap-2 p-3">
                                             {gymResults?.official?.map(g => (
                                                 <button key={g.id} type="button" onClick={() => handleGymSelect({ id: g.id, name: g.name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
+                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
                                                         ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
                                                         : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
                                                         }`}>
@@ -471,7 +471,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
                                             {gymResults?.community?.map(name => (
                                                 <button key={name} type="button" onClick={() => handleGymSelect({ name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
+                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
                                                         ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
                                                         : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
                                                         }`}>
@@ -481,20 +481,20 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                             ))}
 
                                             {(!gymResults?.official?.length && !gymResults?.community?.length) && (
-                                                <p className="w-full py-4 text-sm text-center text-muted-foreground">Nenhuma equipe encontrada.</p>
+                                                <p className="w-full py-4 text-panel-sm text-center text-muted-foreground">Nenhuma equipe encontrada.</p>
                                             )}
                                         </div>
                                     </div>
 
                                     <div className="p-4 bg-muted/30 mt-2 border-t border-border/60 space-y-3">
                                         <div className="space-y-1">
-                                            <p className="text-ui font-semibold text-slate-900">Não encontrou sua equipe/academia?</p>
-                                            <p className="text-caption text-muted-foreground">Você pode cadastrar agora e usar no seu perfil.</p>
+                                            <p className="text-panel-sm font-semibold text-slate-900">Não encontrou sua equipe/academia?</p>
+                                            <p className="text-panel-sm text-muted-foreground">Você pode cadastrar agora e usar no seu perfil.</p>
                                         </div>
                                         <Link href={`/atleta/dashboard/perfil/cadastrar-academia?belt=${currentBelt}`} className="block">
                                             <Button
                                                 type="button"
-                                                className={`w-full h-10 rounded-full text-sm font-bold ${isWhiteBelt
+                                                className={`w-full h-10 rounded-full text-panel-sm font-bold ${isWhiteBelt
                                                     ? "bg-background text-foreground border border-brand-950/20 shadow-none hover:bg-muted/40"
                                                     : "bg-primary text-primary-foreground border-none hover:opacity-90"
                                                     }`}
@@ -508,7 +508,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         </div>
 
                         <div className={cn("space-y-2 relative animate-in fade-in slide-in-from-top-2", !selectedGym && "opacity-50 pointer-events-none")} ref={masterRef}>
-                            <Label className="text-ui font-medium text-muted-foreground">Mestre / professor responsável <span className="text-red-500 ml-1">*</span></Label>
+                            <Label className="text-panel-sm font-medium text-muted-foreground">Mestre / professor responsável <span className="text-red-500 ml-1">*</span></Label>
                             <div className="relative">
                                 <Input
                                     placeholder="Quem é seu mestre?"
@@ -525,10 +525,10 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                     autoComplete="off"
                                 />
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    {isFetchingMasters && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                    {isFetchingMasters && <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />}
                                     {selectedMaster ? (
                                         <button type="button" onClick={clearMaster} className="text-muted-foreground hover:text-foreground">
-                                            <X className="h-5 w-5" />
+                                            <XIcon size={20} weight="duotone" />
                                         </button>
                                     ) : null}
                                 </div>
@@ -540,7 +540,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                         <div className="flex flex-wrap gap-2 p-3">
                                             {masterResults?.official?.map(m => (
                                                 <button key={m.id} type="button" onClick={() => handleMasterSelect({ id: m.id, name: m.full_name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
+                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
                                                         ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
                                                         : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
                                                         }`}>
@@ -551,7 +551,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
                                             {masterResults?.community?.map(name => (
                                                 <button key={name} type="button" onClick={() => handleMasterSelect({ name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
+                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
                                                         ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
                                                         : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
                                                         }`}>
@@ -561,15 +561,15 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                             ))}
 
                                             {(!masterResults?.official?.length && !masterResults?.community?.length) && (
-                                                <p className="w-full py-4 text-sm text-center text-muted-foreground">Nenhum mestre encontrado.</p>
+                                                <p className="w-full py-4 text-panel-sm text-center text-muted-foreground">Nenhum mestre encontrado.</p>
                                             )}
                                         </div>
                                     </div>
 
                                     <div className="p-4 bg-muted/30 mt-2 border-t border-border/60 space-y-3">
                                         <div className="space-y-1">
-                                            <p className="text-ui font-semibold text-slate-900">Não encontrou seu mestre?</p>
-                                            <p className="text-caption text-muted-foreground">Você pode cadastrar agora e usar no seu perfil.</p>
+                                            <p className="text-panel-sm font-semibold text-slate-900">Não encontrou seu mestre?</p>
+                                            <p className="text-panel-sm text-muted-foreground">Você pode cadastrar agora e usar no seu perfil.</p>
                                         </div>
                                         <Link
                                             href={`/atleta/dashboard/perfil/cadastrar-mestre?belt=${currentBelt}${selectedGym?.id ? `&tenantId=${selectedGym.id}` : ''}${selectedGym?.name ? `&gymName=${encodeURIComponent(selectedGym.name)}` : ''}`}
@@ -577,7 +577,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                         >
                                             <Button
                                                 type="button"
-                                                className={`w-full h-10 rounded-full text-sm font-bold ${isWhiteBelt
+                                                className={`w-full h-10 rounded-full text-panel-sm font-bold ${isWhiteBelt
                                                     ? "bg-background text-foreground border border-brand-950/20 shadow-none hover:bg-muted/40"
                                                     : "bg-primary text-primary-foreground border-none hover:opacity-90"
                                                     }`}
@@ -594,7 +594,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                     {/* STEP 3: TÉCNICO & CONTATO */}
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 3 && "hidden")}>
                         <div className="space-y-2">
-                            <Label htmlFor="belt_color" className="text-ui font-medium text-muted-foreground">Cor da faixa <span className="text-red-500 ml-1">*</span></Label>
+                            <Label htmlFor="belt_color" className="text-panel-sm font-medium text-muted-foreground">Cor da faixa <span className="text-red-500 ml-1">*</span></Label>
                             <Select
                                 name="belt_color"
                                 defaultValue={profile?.belt_color?.toLowerCase() || undefined}
@@ -615,7 +615,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="weight" className="text-ui font-medium text-muted-foreground">Peso (kg) <span className="text-red-500 ml-1">*</span></Label>
+                                <Label htmlFor="weight" className="text-panel-sm font-medium text-muted-foreground">Peso (kg) <span className="text-red-500 ml-1">*</span></Label>
                                 <Input
                                     id="weight"
                                     name="weight"
@@ -629,7 +629,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="phone" className="text-ui font-medium text-muted-foreground">Telefone / WhatsApp <span className="text-red-500 ml-1">*</span></Label>
+                                <Label htmlFor="phone" className="text-panel-sm font-medium text-muted-foreground">Telefone / WhatsApp <span className="text-red-500 ml-1">*</span></Label>
                                 <Input
                                     id="phone"
                                     name="phone"
@@ -644,7 +644,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         </div>
 
                         <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 mt-4">
-                            <p className="text-caption text-primary font-medium text-center italic">
+                            <p className="text-panel-sm text-primary font-medium text-center italic">
                                 Quase lá! Verifique se seus dados técnicos estão corretos para garantir sua categoria ideal nos eventos.
                             </p>
                         </div>
@@ -659,7 +659,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                             variant="outline"
                             className="flex-1 h-12  font-bold border-2"
                         >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            <ArrowLeftIcon size={16} weight="duotone" className="mr-2" />
                             Voltar
                         </Button>
                     )}
@@ -674,7 +674,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                 }`}
                         >
                             Próximo
-                            <ChevronRight className="ml-2 h-4 w-4" />
+                            <CaretRightIcon size={16} weight="duotone" className="ml-2" />
                         </Button>
                     ) : (
                         <Button
@@ -687,12 +687,12 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
                                     Salvando...
                                 </>
                             ) : (
                                 <>
-                                    <Check className="mr-2 h-4 w-4" />
+                                    <CheckIcon size={16} weight="duotone" className="mr-2" />
                                     Finalizar Perfil
                                 </>
                             )}
@@ -709,8 +709,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         variant="ghost"
                         className="text-muted-foreground hover:text-destructive h-10 px-4 flex items-center gap-2 transition-colors"
                     >
-                        <LogOut className="h-4 w-4" />
-                        <span className="text-ui font-medium">Sair do aplicativo</span>
+                        <SignOutIcon size={16} weight="duotone" />
+                        <span className="text-panel-sm font-medium">Sair do aplicativo</span>
                     </Button>
                 </div>
             </div >
@@ -720,11 +720,11 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                 <DialogContent className="max-w-[340px] rounded-3xl p-6 gap-6">
                     <DialogHeader className="items-center text-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                            <LogOut className="h-6 w-6 text-destructive" />
+                            <SignOutIcon size={24} weight="duotone" className="text-destructive" />
                         </div>
                         <div className="space-y-1">
-                            <DialogTitle className="text-h2 font-bold">Encerrar sessão?</DialogTitle>
-                            <DialogDescription className="text-ui">
+                            <DialogTitle className="text-panel-md font-bold">Encerrar sessão?</DialogTitle>
+                            <DialogDescription className="text-panel-sm">
                                 Tem certeza que deseja sair do aplicativo?
                             </DialogDescription>
                         </div>

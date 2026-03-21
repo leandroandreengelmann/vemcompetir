@@ -2,7 +2,7 @@
 
 import { useAthleteCart } from '@/hooks/use-athlete-cart';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBagIcon } from '@phosphor-icons/react';
 
 export function AthleteCartTrigger() {
     const { items, setOpen, isOpen } = useAthleteCart();
@@ -19,11 +19,11 @@ export function AthleteCartTrigger() {
         ? "relative h-11 w-11 bg-background hover:bg-amber-50 border-2 border-amber-500 transition-colors shadow-sm"
         : "relative h-11 w-11 bg-background hover:bg-primary/5 border-2 border-primary transition-colors shadow-sm";
 
-    const iconClasses = hasOnlyPending ? "h-5 w-5 text-amber-500" : "h-5 w-5 text-primary";
+    const iconClasses = hasOnlyPending ? "text-amber-500" : "text-primary";
 
     const badgeClasses = hasOnlyPending
-        ? "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white animate-in zoom-in shadow-sm"
-        : "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in shadow-sm";
+        ? "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-panel-sm font-bold text-white animate-in zoom-in shadow-sm"
+        : "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-panel-sm font-bold text-primary-foreground animate-in zoom-in shadow-sm";
 
     return (
         <Button pill variant="outline"
@@ -31,7 +31,7 @@ export function AthleteCartTrigger() {
             className={btnClasses}
             onClick={() => setOpen(true)}
         >
-            <ShoppingBag className={iconClasses} />
+            <ShoppingBagIcon size={20} weight="duotone" className={iconClasses} />
             <span className={badgeClasses}>
                 {displayCount}
             </span>

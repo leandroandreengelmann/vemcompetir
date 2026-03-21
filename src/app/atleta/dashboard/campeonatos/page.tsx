@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth-guards';
 import Link from 'next/link';
-import { Trophy, Calendar, MapPin, Search, ChevronRight } from 'lucide-react';
+import { TrophyIcon, CalendarIcon, MapPinIcon, MagnifyingGlassIcon, CaretRightIcon } from '@phosphor-icons/react/dist/ssr';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,14 +41,14 @@ export default async function AthleteCampeonatos() {
 
             {/* Contagem — desktop only */}
             {events && events.length > 0 && (
-                <p className="hidden md:block -mt-2 text-sm font-semibold text-muted-foreground">
+                <p className="hidden md:block -mt-2 text-panel-sm font-semibold text-muted-foreground">
                     {events.length} {events.length === 1 ? 'campeonato disponível' : 'campeonatos disponíveis'}
                 </p>
             )}
 
             {/* Search Bar */}
             <div className="relative md:max-w-lg">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                     placeholder="Pesquisar campeonatos..."
                     variant="lg"
@@ -60,9 +60,9 @@ export default async function AthleteCampeonatos() {
                 {!events || events.length === 0 ? (
                     <Card className="border-dashed py-12 col-span-full">
                         <CardContent className="flex flex-col items-center justify-center text-center">
-                            <Trophy className="h-12 w-12 text-muted-foreground/20 mb-4" />
-                            <p className="text-ui text-muted-foreground font-medium">Nenhum campeonato publicado no momento.</p>
-                            <p className="text-caption text-muted-foreground mt-1">Fique atento às atualizações da sua academia.</p>
+                            <TrophyIcon size={48} weight="duotone" className="text-muted-foreground/20 mb-4" />
+                            <p className="text-panel-sm text-muted-foreground font-medium">Nenhum campeonato publicado no momento.</p>
+                            <p className="text-panel-sm text-muted-foreground mt-1">Fique atento às atualizações da sua academia.</p>
                         </CardContent>
                     </Card>
                 ) : (
@@ -78,7 +78,7 @@ export default async function AthleteCampeonatos() {
                                         />
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
-                                            <Trophy className="h-12 w-12 text-primary/10" />
+                                            <TrophyIcon size={48} weight="duotone" className="text-primary/10" />
                                         </div>
                                     )}
                                     <div className="absolute top-4 right-4 text-white">
@@ -90,12 +90,12 @@ export default async function AthleteCampeonatos() {
                                             const isEndingSoon = diffDays > 0 && diffDays <= 14;
 
                                             return isEndingSoon ? (
-                                                <span className="inline-flex items-center gap-1.5 bg-amber-50/90 backdrop-blur-sm border border-amber-200 text-amber-700 text-[10px] font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
+                                                <span className="inline-flex items-center gap-1.5 bg-amber-50/90 backdrop-blur-sm border border-amber-200 text-amber-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
                                                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                                                     Lote termina em breve
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 bg-emerald-50/90 backdrop-blur-sm border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
+                                                <span className="inline-flex items-center gap-1.5 bg-emerald-50/90 backdrop-blur-sm border border-emerald-200 text-emerald-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
                                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                     Inscrições Abertas
                                                 </span>
@@ -104,14 +104,14 @@ export default async function AthleteCampeonatos() {
                                     </div>
                                 </div>
                                 <CardContent className="p-5 space-y-3 flex flex-col flex-1">
-                                    <h3 className={`font-bold text-h2 leading-tight transition-colors line-clamp-2 min-h-[3.5rem] ${(profile as any)?.belt_color?.toLowerCase() === 'branca' ? 'text-brand-950' : 'text-primary'}`}>
+                                    <h3 className={`font-bold text-panel-md leading-tight transition-colors line-clamp-2 min-h-[3.5rem] ${(profile as any)?.belt_color?.toLowerCase() === 'branca' ? 'text-brand-950' : 'text-primary'}`}>
                                         {event.title}
                                     </h3>
                                     <div className="space-y-1">
-                                        <p className="text-ui font-bold text-foreground">
+                                        <p className="text-panel-sm font-bold text-foreground">
                                             {format(new Date(event.event_date), "dd 'de' MMMM", { locale: ptBR })}
                                         </p>
-                                        <p className="text-caption font-medium text-muted-foreground truncate">
+                                        <p className="text-panel-sm font-medium text-muted-foreground truncate">
                                             {event.location || event.city}
                                         </p>
                                     </div>

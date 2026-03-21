@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Trophy } from 'lucide-react';
+import { TrophyIcon } from '@phosphor-icons/react';
 
 interface EventHeaderProps {
     title: string;
@@ -30,7 +30,7 @@ export function EventHeader({ title, imagePath, eventDate }: EventHeaderProps) {
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                        < Trophy className="h-16 w-16 text-muted-foreground/20" />
+                        <TrophyIcon size={64} weight="duotone" className="text-muted-foreground/20" />
                     </div>
                 )}
             </div>
@@ -40,12 +40,12 @@ export function EventHeader({ title, imagePath, eventDate }: EventHeaderProps) {
             {/* 3) Badge de status */}
             <div className="px-1">
                 {isEndingSoon ? (
-                    <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-label font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
+                    <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
                         <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                         Lote termina em breve
                     </span>
                 ) : (
-                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-label font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                         Inscrições Abertas
                     </span>
