@@ -20,11 +20,51 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import sanitizeHtml from 'sanitize-html';
+import type { Metadata } from 'next';
 
 export const revalidate = 1; // Revalidação quase instantânea para testes
 
 interface PageProps {
     params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { id } = await params;
+    const event = await getPublishedEventById(id);
+
+    if (!event) {
+        return { title: 'Evento não encontrado — VemCompetir' };
+    }
+
+    const coverUrl = getEventCoverUrl(event.cover_image_path || null);
+    const dateStr = event.starts_at
+        ? format(new Date(event.starts_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+        : null;
+    const locationParts = [event.venue_name, event.city, event.state].filter(Boolean);
+    const locationStr = locationParts.join(' · ');
+    const description = [dateStr, locationStr].filter(Boolean).join(' — ') + ' — Inscreva-se agora no VemCompetir!';
+
+    return {
+        title: `${event.title} — VemCompetir`,
+        description,
+        openGraph: {
+            title: event.title,
+            description,
+            url: `https://vemcompetir.com.br/eventos/${id}`,
+            siteName: 'VemCompetir',
+            type: 'website',
+            locale: 'pt_BR',
+            images: coverUrl
+                ? [{ url: coverUrl, width: 1200, height: 630, alt: event.title }]
+                : [],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: event.title,
+            description: [dateStr, locationStr].filter(Boolean).join(' — '),
+            images: coverUrl ? [coverUrl] : [],
+        },
+    };
 }
 
 export default async function PublicEventDetailPage({ params }: PageProps) {
@@ -73,6 +113,32 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
         .eq('event_id', id)
         .order('sort_order', { ascending: true });
 
+    // Contagem de inscritos confirmados
+    const { count: registrationCount } = await supabase
+        .from('event_registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', id)
+        .neq('status', 'carrinho');
+
+    // Preço mínimo das categorias do evento
+    const { data: categoryTables } = await supabase
+        .from('event_category_tables')
+        .select('registration_fee')
+        .eq('event_id', id)
+        .gt('registration_fee', 0);
+
+    const { data: categoryOverrides } = await supabase
+        .from('event_category_overrides')
+        .select('registration_fee')
+        .eq('event_id', id)
+        .gt('registration_fee', 0);
+
+    const allPrices = [
+        ...(categoryTables || []).map(r => Number(r.registration_fee)),
+        ...(categoryOverrides || []).map(r => Number(r.registration_fee)),
+    ].filter(p => p > 0);
+    const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
+
     // Agrupar anexos por tópico (com URL pública calculada no servidor)
     const topicsWithAssets = (topics || []).map(topic => ({
         ...topic,
@@ -95,6 +161,43 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
     }));
 
     const coverUrl = getEventCoverUrl(event.cover_image_path || null);
+
+    // Extrair texto puro dos tópicos para compartilhamento
+    function stripHtml(html: string): string {
+        return html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n')
+            .replace(/<\/li>/gi, '\n')
+            .replace(/<li[^>]*>/gi, '• ')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    const shareTopics = (topics || []).map(topic => {
+        let content = '';
+        if (topic.content) {
+            content = stripHtml(topic.content);
+        } else if (topic.text_content_json) {
+            try {
+                const json = typeof topic.text_content_json === 'string'
+                    ? JSON.parse(topic.text_content_json)
+                    : topic.text_content_json;
+                if (json.content && Array.isArray(json.content)) {
+                    content = json.content
+                        .map((n: any) => n.content?.map((c: any) => c.text).join('') || '')
+                        .filter(Boolean)
+                        .join('\n')
+                        .trim();
+                }
+            } catch { }
+        }
+        return { title: topic.title as string, content };
+    });
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
@@ -164,7 +267,17 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
 
                             {/* Share Section */}
                             <div className="max-w-md">
-                                <ShareLink />
+                                <ShareLink
+                                    eventTitle={event.title}
+                                    eventDate={event.starts_at ? format(new Date(event.starts_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : null}
+                                    eventVenue={event.venue_name}
+                                    eventCity={event.city}
+                                    eventState={event.state}
+                                    registrationCount={registrationCount ?? 0}
+                                    minPrice={minPrice}
+                                    topics={shareTopics}
+                                    canonicalUrl={`https://vemcompetir.com.br/eventos/${id}`}
+                                />
                             </div>
 
                             {/* CTA & Social Proof */}
