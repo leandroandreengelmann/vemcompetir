@@ -59,6 +59,23 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 404 });
         }
 
+        // Guard: atleta precisa ter aceito os termos para este evento
+        if (payer_type === 'ATHLETE') {
+            const { data: termAcceptance } = await supabase
+                .from('athlete_term_acceptances')
+                .select('id')
+                .eq('athlete_id', user.id)
+                .eq('event_id', event_id)
+                .maybeSingle();
+
+            if (!termAcceptance) {
+                return NextResponse.json(
+                    { error: 'Você precisa aceitar o Termo de Responsabilidade antes de realizar o pagamento.' },
+                    { status: 400 }
+                );
+            }
+        }
+
         const payer_ref = payer_type === 'ACADEMY' ? profile.tenant_id : user.id;
         if (!payer_ref) {
             return NextResponse.json({ error: 'Referência do pagador não encontrada.' }, { status: 400 });
@@ -67,7 +84,7 @@ export async function POST(request: NextRequest) {
         // 4. Fetch cart items for this event
         let cartQuery = admin
             .from('event_registrations')
-            .select('id, price, athlete_id, category_id')
+            .select('id, price, athlete_id, category_id, promo_source_id')
             .eq('event_id', event_id)
             .eq('status', 'carrinho');
 
@@ -86,6 +103,28 @@ export async function POST(request: NextRequest) {
 
         if (cartError || !cartItems || cartItems.length === 0) {
             return NextResponse.json({ error: 'Nenhum item no carrinho para este evento.' }, { status: 400 });
+        }
+
+        // 4.5. Validate promo companion items — ensure their source registration is in the same cart
+        const cartIds = new Set(cartItems.map(i => i.id));
+        for (const item of cartItems) {
+            const promoSourceId = (item as any).promo_source_id;
+            if (promoSourceId && !cartIds.has(promoSourceId)) {
+                // Source not in this cart batch — check if it's already paid/confirmed
+                const { data: sourceReg } = await admin
+                    .from('event_registrations')
+                    .select('status')
+                    .eq('id', promoSourceId)
+                    .eq('athlete_id', user.id)
+                    .maybeSingle();
+
+                if (!sourceReg || !['pago', 'confirmado', 'isento'].includes(sourceReg.status)) {
+                    return NextResponse.json(
+                        { error: 'Uma categoria gratuita no carrinho perdeu o benefício (a categoria Absoluto correspondente não está mais ativa). Por favor, remova-a e tente novamente.' },
+                        { status: 400 }
+                    );
+                }
+            }
         }
 
         // 5. Calculate
@@ -228,6 +267,23 @@ export async function POST(request: NextRequest) {
             const chargeValue = isOwnEvent ? fee_saas_bruta : total_inscricoes;
 
             if (chargeValue <= 0) {
+                // For ATHLETE payments with zero total, validate that every free item
+                // is legitimately free (genuinely priced at 0, not promo abuse).
+                // Companions (promo_source_id set) must have their source in the same
+                // batch — if the source is absent, it means the companion is alone and
+                // should never be confirmed for free.
+                if (payer_type === 'ATHLETE') {
+                    const batchIds = new Set(cartItems.map((i: any) => i.id));
+                    for (const item of cartItems) {
+                        if ((item as any).promo_source_id && !batchIds.has((item as any).promo_source_id)) {
+                            return NextResponse.json(
+                                { error: 'Não é possível confirmar inscrição gratuita sem o pagamento da categoria Absoluto correspondente.' },
+                                { status: 400 }
+                            );
+                        }
+                    }
+                }
+
                 // No charge needed — just confirm registrations
                 const paymentId = crypto.randomUUID();
                 await admin.from('payments').insert({
@@ -246,6 +302,7 @@ export async function POST(request: NextRequest) {
                     payment_method: 'PIX',
                     status: 'PAID',
                     is_no_split: isNoSplit,
+                    is_authorized_free: true,
                 });
 
                 const registrationIds = cartItems.map(i => i.id);

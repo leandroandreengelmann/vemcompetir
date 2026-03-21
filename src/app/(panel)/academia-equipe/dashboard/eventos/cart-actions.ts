@@ -4,39 +4,74 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import {
+    isAbsolutoCategory,
+    isEligible,
+    isMasterLivre,
+    parseAgeRangeFromText,
+    AthleteProfile,
+    CategoryRow,
+} from '@/app/atleta/dashboard/campeonatos/lib/eligible-categories';
 
 // Add item to cart (create registration with status 'carrinho')
 export async function addToCartAction(item: { eventId: string, athleteId: string, categoryId: string, price: number }) {
     const { profile, tenant_id } = await requireTenantScope();
     const supabase = await createClient();
 
-    // Check if already exists (any status)
+    // Check if already exists (any active status)
     const { data: existing } = await supabase
         .from('event_registrations')
         .select('id, status')
         .eq('event_id', item.eventId)
         .eq('athlete_id', item.athleteId)
         .eq('category_id', item.categoryId)
-        .single();
+        .in('status', ['carrinho', 'aguardando_pagamento', 'pago', 'pendente', 'confirmado', 'isento'])
+        .maybeSingle();
 
     if (existing) {
         if (existing.status === 'carrinho') {
-            // Update price if re-adding (category is same due to query above)
             await supabase
                 .from('event_registrations')
-                .update({
-                    price: item.price
-                })
+                .update({ price: item.price })
                 .eq('id', existing.id);
-
             return { success: true, message: 'Item atualizado no carrinho.' };
         }
         return { error: 'Atleta já inscrito nesta categoria.' };
     }
 
+    // Check if this is own event — promo does NOT apply for own events
+    const { data: event } = await supabase
+        .from('events')
+        .select('tenant_id')
+        .eq('id', item.eventId)
+        .single();
+
+    const isOwnEvent = event?.tenant_id === tenant_id;
+
+    // Get category info for promo detection
+    const { data: category } = await supabase
+        .from('category_rows')
+        .select('table_id, categoria_completa')
+        .eq('id', item.categoryId)
+        .single();
+
+    let promoType: string | null = null;
+    if (!isOwnEvent && category?.table_id) {
+        const { data: override } = await supabase
+            .from('event_category_overrides')
+            .select('promo_type')
+            .eq('event_id', item.eventId)
+            .eq('category_id', item.categoryId)
+            .maybeSingle();
+        promoType = override?.promo_type ?? null;
+    }
+
+    const registrationId = crypto.randomUUID();
+
     const { error } = await supabase
         .from('event_registrations')
         .insert({
+            id: registrationId,
             event_id: item.eventId,
             athlete_id: item.athleteId,
             category_id: item.categoryId,
@@ -51,16 +86,206 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
         return { error: 'Erro ao adicionar ao carrinho.' };
     }
 
+    // PROMO: free_second_registration — only for third-party events
+    if (
+        promoType === 'free_second_registration' &&
+        category?.table_id &&
+        (await isAbsolutoCategory(category.categoria_completa))
+    ) {
+        const { data: athleteProfile } = await supabase
+            .from('profiles')
+            .select('sexo, belt_color, birth_date, weight')
+            .eq('id', item.athleteId)
+            .single();
+
+        if (athleteProfile) {
+            try {
+                const result = await applyAcademyFreeCompanionCategory({
+                    athleteId: item.athleteId,
+                    eventId: item.eventId,
+                    tableId: category.table_id,
+                    absolutoRegistrationId: registrationId,
+                    registeredBy: profile.id,
+                    tenantId: tenant_id,
+                    athleteProfile: {
+                        sexo: athleteProfile.sexo,
+                        belt_color: athleteProfile.belt_color,
+                        birth_date: athleteProfile.birth_date,
+                        weight: athleteProfile.weight,
+                    },
+                });
+                revalidatePath('/academia-equipe/dashboard/eventos');
+                if (result?.companionAdded) {
+                    return { success: true, companionAdded: true, companionName: result.categoryName };
+                }
+            } catch (companionErr: any) {
+                console.error('[promo] Falha ao adicionar companion (academia):', companionErr);
+                revalidatePath('/academia-equipe/dashboard/eventos');
+                return {
+                    success: true,
+                    companionAdded: false,
+                    companionWarning: 'Não foi possível adicionar a categoria gratuita automaticamente. Tente novamente ou entre em contato com o suporte.',
+                };
+            }
+        }
+    }
+
     revalidatePath('/academia-equipe/dashboard/eventos');
     return { success: true };
+}
+
+async function applyAcademyFreeCompanionCategory({
+    athleteId,
+    eventId,
+    tableId,
+    absolutoRegistrationId,
+    registeredBy,
+    tenantId,
+    athleteProfile,
+}: {
+    athleteId: string;
+    eventId: string;
+    tableId: string;
+    absolutoRegistrationId: string;
+    registeredBy: string;
+    tenantId: string;
+    athleteProfile: AthleteProfile;
+}) {
+    const supabaseAdmin = createAdminClient();
+
+    const { data: event } = await supabaseAdmin
+        .from('events')
+        .select('event_date')
+        .eq('id', eventId)
+        .single();
+
+    const { data: alreadyRegistered } = await supabaseAdmin
+        .from('event_registrations')
+        .select('category_id')
+        .eq('event_id', eventId)
+        .eq('athlete_id', athleteId)
+        .in('status', ['carrinho', 'aguardando_pagamento', 'pago', 'pendente', 'confirmado', 'isento']);
+
+    const registeredCategoryIds = new Set(
+        alreadyRegistered?.map((r: any) => r.category_id) || []
+    );
+
+    const { data: linkedTables } = await supabaseAdmin
+        .from('event_category_tables')
+        .select('category_table_id')
+        .eq('event_id', eventId);
+
+    const allTableIds = [
+        tableId,
+        ...((linkedTables || [])
+            .map((lt: any) => lt.category_table_id)
+            .filter((id: string) => id !== tableId))
+    ];
+
+    const fetchCategoriesForTables = async (tableIds: string[]): Promise<any[]> => {
+        let result: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data: batch } = await supabaseAdmin
+                .from('category_rows')
+                .select('*')
+                .in('table_id', tableIds)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (!batch || batch.length === 0) {
+                hasMore = false;
+            } else {
+                result = [...result, ...batch];
+                hasMore = batch.length === pageSize;
+                page++;
+            }
+        }
+        return result;
+    };
+
+    const findBestCompanion = async (categories: any[]): Promise<{ cat: any; score: number } | null> => {
+        let bestCategory: any = null;
+        let bestScore = -1;
+
+        for (const cat of categories) {
+            if (await isAbsolutoCategory(cat.categoria_completa)) continue;
+            if (registeredCategoryIds.has(cat.id)) continue;
+
+            const match = await isEligible(athleteProfile, cat as CategoryRow, event?.event_date || null);
+            if (!match.eligible) continue;
+
+            let score = 0;
+            const masterLivre = await isMasterLivre(cat.divisao_idade, cat.peso_min_kg, cat.peso_max_kg);
+            if (!masterLivre) {
+                const ageRange = await parseAgeRangeFromText(cat.divisao_idade, cat.categoria_completa, cat.idade);
+                if (ageRange.parse_ok && !ageRange.wildcard) score += 1;
+                if (cat.peso_min_kg !== null || cat.peso_max_kg !== null) score += 1;
+            }
+
+            if (score > bestScore || (score === bestScore && bestCategory && cat.categoria_completa < bestCategory.categoria_completa)) {
+                bestScore = score;
+                bestCategory = cat;
+            }
+        }
+
+        return bestCategory ? { cat: bestCategory, score: bestScore } : null;
+    };
+
+    // Pass 1: same table
+    const sameTableCategories = await fetchCategoriesForTables([tableId]);
+    let found = await findBestCompanion(sameTableCategories);
+
+    // Pass 2: all event tables (fallback)
+    if (!found && allTableIds.length > 1) {
+        const allCategories = await fetchCategoriesForTables(allTableIds);
+        found = await findBestCompanion(allCategories);
+    }
+
+    const bestCategory = found?.cat ?? null;
+
+    if (!bestCategory) {
+        console.log('[promo] Nenhuma categoria companion elegível encontrada para atleta', athleteId);
+        return { companionAdded: false };
+    }
+
+    const { error: companionError } = await supabaseAdmin
+        .from('event_registrations')
+        .insert({
+            event_id: eventId,
+            athlete_id: athleteId,
+            category_id: bestCategory.id,
+            registered_by: registeredBy,
+            tenant_id: tenantId,
+            status: 'carrinho',
+            price: 0,
+            promo_type_applied: 'free_second_registration',
+            promo_source_id: absolutoRegistrationId,
+        });
+
+    if (companionError) {
+        console.error('[promo] Erro ao inserir companion (academia):', companionError);
+        throw new Error(`Erro ao adicionar categoria gratuita: ${companionError.message}`);
+    }
+
+    return { companionAdded: true, categoryName: bestCategory.categoria_completa };
 }
 
 // Remove from cart (delete registration if status is 'carrinho')
 export async function removeFromCartAction(registrationId: string) {
     const { profile } = await requireTenantScope();
+    const supabaseAdmin = createAdminClient();
     const supabase = await createClient();
 
-    console.log(`[removeFromCart] Attempting to delete ${registrationId} for user ${profile.id}`);
+    // Cascade: remove any companion granted by this registration
+    await supabaseAdmin
+        .from('event_registrations')
+        .delete()
+        .eq('promo_source_id', registrationId)
+        .eq('registered_by', profile.id)
+        .eq('status', 'carrinho');
 
     const { error, count } = await supabase
         .from('event_registrations')
@@ -75,10 +300,6 @@ export async function removeFromCartAction(registrationId: string) {
     }
 
     if (count === 0) {
-        console.warn('[removeFromCart] No rows deleted. Possible mismatch of ID, User, or Status.');
-        // We return success to simple UI, but in reality it failed to find item.
-        // It's possible someone else deleted it or status changed?
-        // Let's return error to alert user/dev.
         return { error: 'Item não encontrado ou não pode ser removido.' };
     }
 
@@ -101,6 +322,8 @@ export async function getCartItemsAction() {
             price,
             athlete_id,
             category_id,
+            promo_type_applied,
+            promo_source_id,
             athlete:profiles!athlete_id (full_name),
             category:category_rows!category_id (divisao_idade, categoria_peso, faixa, sexo, categoria_completa, peso_min_kg, peso_max_kg),
             event:events!event_id (title, event_date)
@@ -113,21 +336,6 @@ export async function getCartItemsAction() {
         console.error('Error fetching cart:', error);
         return [];
     }
-
-    // Process and group by event
-    // We can do grouping client-side or here.
-    // For now, return flat list with event info.
-
-    // We need price! 
-    // Price logic is complex (getEligibleCategoriesAction). 
-    // Ideally we should store price snapshot or fetch it.
-    // fetch price for each item? expensive.
-    // For V1, let's fetch basic info. Price might be tricky if not stored.
-    // Assuming we can fetch price again or it was stored? 
-    // The DB schema doesn't seem to have 'price' column in event_registrations.
-    // We might need to recalculate or add a column.
-    // For now, we will re-calculate or assume 0 if expensive.
-    // BETTER: The cart item addition should probably store the price if possible, or we fetch it.
 
     return data;
 }
@@ -160,14 +368,24 @@ export async function checkoutCartAction(eventIds?: string[]) {
 // Reactivate pending item back to cart
 export async function reactivateCartItemAction(registrationId: string) {
     const { profile } = await requireTenantScope();
-    const supabase = await createClient();
+    const supabaseAdmin = createAdminClient();
 
-    const { error } = await supabase
+    // Check if this is a companion — block individual reactivation
+    const { data: reg } = await supabaseAdmin
         .from('event_registrations')
-        .update({
-            status: 'carrinho',
-            payment_id: null
-        })
+        .select('promo_source_id')
+        .eq('id', registrationId)
+        .eq('registered_by', profile.id)
+        .single();
+
+    if (reg?.promo_source_id) {
+        return { error: 'Esta categoria foi adicionada gratuitamente com o Absoluto. Para reativá-la sem o Absoluto, cancele-a e adicione-a normalmente pelo valor cheio.' };
+    }
+
+    // Reactivate the source item
+    const { error } = await supabaseAdmin
+        .from('event_registrations')
+        .update({ status: 'carrinho', payment_id: null })
         .eq('id', registrationId)
         .eq('registered_by', profile.id)
         .eq('status', 'aguardando_pagamento');
@@ -177,6 +395,14 @@ export async function reactivateCartItemAction(registrationId: string) {
         return { error: 'Erro ao reativar item na cesta.' };
     }
 
+    // Cascade: reactivate companion if any
+    await supabaseAdmin
+        .from('event_registrations')
+        .update({ status: 'carrinho', payment_id: null })
+        .eq('promo_source_id', registrationId)
+        .eq('registered_by', profile.id)
+        .eq('status', 'aguardando_pagamento');
+
     revalidatePath('/academia-equipe/dashboard/eventos');
     return { success: true };
 }
@@ -185,6 +411,14 @@ export async function reactivateCartItemAction(registrationId: string) {
 export async function cancelPendingCartItemAction(registrationId: string) {
     const { profile } = await requireTenantScope();
     const supabaseAdmin = createAdminClient();
+
+    // Cascade: cancel any companion granted by this registration
+    await supabaseAdmin
+        .from('event_registrations')
+        .delete()
+        .eq('promo_source_id', registrationId)
+        .eq('registered_by', profile.id)
+        .in('status', ['aguardando_pagamento', 'pendente', 'carrinho']);
 
     const { data, error } = await supabaseAdmin
         .from('event_registrations')

@@ -24,6 +24,7 @@ export async function createAdminEventAction(formData: FormData) {
     const title = formData.get('title') as string;
     const location = formData.get('location') as string;
     const event_date = formData.get('event_date') as string;
+    const event_end_date = (formData.get('event_end_date') as string) || null;
     const tenant_id = formData.get('tenant_id') as string;
 
     // Address fields
@@ -45,6 +46,7 @@ export async function createAdminEventAction(formData: FormData) {
             title,
             location,
             event_date,
+            event_end_date,
             tenant_id,
             address_street,
             address_number,
@@ -94,6 +96,7 @@ export async function updateAdminEventAction(formData: FormData) {
     const title = formData.get('title') as string;
     const location = formData.get('location') as string;
     const event_date = formData.get('event_date') as string;
+    const event_end_date = (formData.get('event_end_date') as string) || null;
     const tenant_id = formData.get('tenant_id') as string;
 
     // Address fields
@@ -123,6 +126,7 @@ export async function updateAdminEventAction(formData: FormData) {
             title,
             location,
             event_date,
+            event_end_date,
             tenant_id, // Allow switching tenant
             address_street,
             address_number,

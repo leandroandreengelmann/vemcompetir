@@ -171,13 +171,15 @@ export async function getEligibleCategoriesAction(
     eventId: string,
     athleteId: string
 ) {
+    const { tenant_id } = await requireTenantScope();
     const supabase = await createClient();
 
-    // 1. Fetch Athlete Profile
+    // 1. Fetch Athlete Profile — only fields needed for eligibility, scoped to caller's tenant
     const { data: athlete } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, sexo, belt_color, birth_date, weight, tenant_id')
         .eq('id', athleteId)
+        .eq('tenant_id', tenant_id)
         .single();
 
     if (!athlete) return { error: 'Atleta não encontrado' };
@@ -231,10 +233,12 @@ export async function getEligibleCategoriesAction(
     // 4. Overrides
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee')
+        .select('category_id, registration_fee, description, promo_type')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
+    const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
+    const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
 
     // 4.5 Get enrolled athlete counts and previews
     const supabaseAdmin = createAdminClient();
@@ -281,7 +285,7 @@ export async function getEligibleCategoriesAction(
         .select('category_id, status')
         .eq('event_id', eventId)
         .eq('athlete_id', athleteId)
-        .in('status', ['pago', 'isento', 'confirmado', 'aguardando_pagamento', 'pendente']);
+        .in('status', ['pago', 'isento', 'confirmado', 'aguardando_pagamento', 'pendente', 'carrinho']);
 
     // 5. Process Eligibility
     const processed = await Promise.all(categories.map(async (cat: any) => {
@@ -302,6 +306,8 @@ export async function getEligibleCategoriesAction(
         return {
             ...cat,
             registration_fee: price,
+            description: overridesDescMap.get(cat.id) || null,
+            promo_type: overridesPromoMap.get(cat.id) || null,
             registered_count: registeredCount,
             preview_athletes: previewAthletes,
             match,

@@ -5,6 +5,7 @@ import {
     parseBelts,
     parseAgeRangeFromText,
     isMasterLivre,
+    isAbsolutoCategory,
     isEligible,
     AthleteProfile,
     CategoryRow
@@ -87,6 +88,16 @@ describe('isMasterLivre', () => {
     });
 });
 
+describe('isAbsolutoCategory', () => {
+    it('detects absoluto by word in categoria_completa', async () => {
+        expect(await isAbsolutoCategory('Absoluto Branca, Azul, Roxa, Marrom, Preta Feminino')).toBe(true);
+        expect(await isAbsolutoCategory('ABSOLUTO Masculino')).toBe(true);
+        expect(await isAbsolutoCategory('absoluto misto')).toBe(true);
+        expect(await isAbsolutoCategory('Adulto - Branca - Medio')).toBe(false);
+        expect(await isAbsolutoCategory(null)).toBe(false);
+    });
+});
+
 describe('isEligible (Edge Cases)', () => {
     const defaultProfile: AthleteProfile = {
         sexo: 'Masculino',
@@ -163,5 +174,93 @@ describe('isEligible (Edge Cases)', () => {
 
         const res = await isEligible(pretaProfile, cat, '2026-01-01');
         expect(res.eligible).toBe(true);
+    });
+});
+
+describe('isEligible — Absoluto', () => {
+    const absolutoCategory: CategoryRow = {
+        id: 'abs-1',
+        table_id: 't1',
+        sexo: 'Feminino',
+        faixa: 'Branca, Azul, Roxa, Marrom, Preta',
+        idade: null,
+        divisao_idade: null,
+        peso_min_kg: null,
+        peso_max_kg: null,
+        categoria_completa: 'Absoluto Branca, Azul, Roxa, Marrom, Preta Feminino',
+        registration_fee: 100
+    };
+
+    it('match: mulher 20 anos, faixa azul → deve dar match', async () => {
+        const athlete: AthleteProfile = {
+            sexo: 'Feminino',
+            belt_color: 'Azul',
+            birth_date: '2006-01-01', // 20 anos em 2026
+            weight: null // peso não importa em absoluto
+        };
+        const res = await isEligible(athlete, absolutoCategory, '2026-06-01');
+        expect(res.eligible).toBe(true);
+        expect(res.reasons.weight).toBe(true);
+        expect(res.reasons.age).toBe(true);
+    });
+
+    it('não match: mulher 17 anos, faixa azul → abaixo de 18', async () => {
+        const athlete: AthleteProfile = {
+            sexo: 'Feminino',
+            belt_color: 'Azul',
+            birth_date: '2009-01-01', // 17 anos em 2026
+            weight: 60
+        };
+        const res = await isEligible(athlete, absolutoCategory, '2026-06-01');
+        expect(res.eligible).toBe(false);
+        expect(res.reasons.age).toBe(false);
+    });
+
+    it('não match: homem 25 anos, faixa azul → sexo errado', async () => {
+        const athlete: AthleteProfile = {
+            sexo: 'Masculino',
+            belt_color: 'Azul',
+            birth_date: '2001-01-01',
+            weight: 80
+        };
+        const res = await isEligible(athlete, absolutoCategory, '2026-06-01');
+        expect(res.eligible).toBe(false);
+        expect(res.reasons.sex).toBe(false);
+    });
+
+    it('não match: mulher 20 anos, faixa verde → faixa não listada', async () => {
+        const athlete: AthleteProfile = {
+            sexo: 'Feminino',
+            belt_color: 'Verde',
+            birth_date: '2006-01-01',
+            weight: 55
+        };
+        const res = await isEligible(athlete, absolutoCategory, '2026-06-01');
+        expect(res.eligible).toBe(false);
+        expect(res.reasons.belt).toBe(false);
+    });
+
+    it('match: atleta sem peso cadastrado → absoluto ignora peso', async () => {
+        const athlete: AthleteProfile = {
+            sexo: 'Feminino',
+            belt_color: 'Roxa',
+            birth_date: '2000-01-01', // 26 anos
+            weight: null
+        };
+        const res = await isEligible(athlete, absolutoCategory, '2026-06-01');
+        expect(res.eligible).toBe(true);
+        expect(res.reasons.weight).toBe(true);
+    });
+
+    it('match: exatamente 18 anos → limite mínimo', async () => {
+        const athlete: AthleteProfile = {
+            sexo: 'Feminino',
+            belt_color: 'Branca',
+            birth_date: '2008-06-15', // 18 anos em 2026
+            weight: 50
+        };
+        const res = await isEligible(athlete, absolutoCategory, '2026-06-01');
+        expect(res.eligible).toBe(true);
+        expect(res.reasons.age).toBe(true);
     });
 });

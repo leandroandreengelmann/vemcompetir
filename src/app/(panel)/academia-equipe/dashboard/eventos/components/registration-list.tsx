@@ -14,8 +14,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { PlusIcon } from '@phosphor-icons/react';
+import { PlusIcon, IdentificationCardIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
+import { PassportModal } from '@/components/passport/PassportModal';
 
 interface Registration {
     id: string;
@@ -128,13 +129,14 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                     <TableHead className="hidden sm:table-cell">Faixa</TableHead>
                                     <TableHead>Categoria</TableHead>
                                     <TableHead className="hidden md:table-cell">Inscrito Por</TableHead>
+                                    <TableHead className="hidden md:table-cell text-center">Passaporte</TableHead>
                                     <TableHead className="text-right pr-6">Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!registrations || registrations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                             Nenhuma inscrição encontrada.
                                         </TableCell>
                                     </TableRow>
@@ -160,6 +162,24 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-panel-sm font-medium hidden md:table-cell">
                                                 {reg.registered_by_profile?.full_name || '-'}
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell text-center py-4">
+                                                {['pago', 'paga', 'confirmado', 'isento'].includes(reg.status) && (
+                                                    <PassportModal
+                                                        registrationId={reg.id}
+                                                        trigger={
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-9 px-4 rounded-full font-bold text-xs tracking-wide text-primary border-primary/20 hover:bg-primary hover:text-white transition-colors"
+                                                                title="Ver Passaporte"
+                                                            >
+                                                                <IdentificationCardIcon size={16} weight="duotone" className="mr-1.5" />
+                                                                Passaporte
+                                                            </Button>
+                                                        }
+                                                    />
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-4">
                                                 {renderStatusBadge(reg.status)}

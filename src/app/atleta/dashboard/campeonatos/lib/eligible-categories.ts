@@ -217,6 +217,18 @@ export async function isMasterLivre(divisaoIdade: string | null, pesoMin: number
 }
 
 /**
+ * Detecta categoria Absoluto pela presença da palavra "absoluto" no nome completo.
+ * Regras especiais para absoluto:
+ *   - Peso: ignorado (qualquer peso participa)
+ *   - Idade: mínimo 18 anos (regra fixa)
+ *   - Sexo e Faixa: verificados normalmente
+ */
+export async function isAbsolutoCategory(categoriaCompleta: string | null): Promise<boolean> {
+    const text = await normalizeText(categoriaCompleta);
+    return text.includes("absoluto");
+}
+
+/**
  * Elegibilidade Determinística
  */
 export async function isEligible(
@@ -240,12 +252,16 @@ export async function isEligible(
     const validBelts = await parseBelts(category.faixa);
     reasons.belt = validBelts.includes(athleteBelt);
 
-    // 3. Idade (Master Livre ou Range)
+    // 3. Idade (Master Livre, Absoluto ou Range)
     const masterLivre = await isMasterLivre(category.divisao_idade, category.peso_min_kg, category.peso_max_kg);
+    const absoluto = await isAbsolutoCategory(category.categoria_completa);
     const athleteAge = await computeAgeOnDate(athlete.birth_date, eventDate);
 
     if (masterLivre) {
         reasons.age = true;
+    } else if (absoluto) {
+        // Absoluto: idade mínima fixa de 18 anos
+        reasons.age = athleteAge !== null && athleteAge >= 18;
     } else {
         const ageRange = await parseAgeRangeFromText(category.divisao_idade, category.categoria_completa, category.idade);
         if (athleteAge === null) {
@@ -264,7 +280,8 @@ export async function isEligible(
     }
 
     // 4. Peso
-    if (masterLivre) {
+    if (masterLivre || absoluto) {
+        // Absoluto = sem restrição de peso
         reasons.weight = true;
     } else {
         const isAbsolutoWeight = (category.peso_min_kg !== null && category.peso_min_kg <= 1) &&
@@ -272,7 +289,11 @@ export async function isEligible(
 
         if (isAbsolutoWeight) {
             reasons.weight = true;
+        } else if (category.peso_min_kg === null && category.peso_max_kg === null) {
+            // Sem restrição de peso → qualquer atleta passa, mesmo sem peso cadastrado
+            reasons.weight = true;
         } else if (athlete.weight === null) {
+            // Categoria com faixa de peso definida, atleta sem peso → não é possível validar
             reasons.weight = false;
         } else {
             const minOk = category.peso_min_kg === null || athlete.weight >= category.peso_min_kg;
@@ -347,23 +368,41 @@ export async function getEligibleCategories(eventId: string) {
     const tableIds = linkedTables.map(lt => lt.category_table_id);
     const tablePriceMap = new Map(linkedTables.map(lt => [lt.category_table_id, lt.registration_fee]));
 
-    const { data: categories } = await supabase
-        .from('category_rows')
-        .select('*')
-        .in('table_id', tableIds);
+    // Paginação: eventos grandes podem ter 2000+ categorias (limite padrão PostgREST = 1000)
+    const supabaseAdmin = createAdminClient();
+    let allCategories: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    if (!categories) return { suggestions: [], isIncomplete, profile: athlete, incompleteReasons };
+    while (hasMore) {
+        const { data: batch, error } = await supabaseAdmin
+            .from('category_rows')
+            .select('*')
+            .in('table_id', tableIds)
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error || !batch || batch.length === 0) {
+            hasMore = false;
+        } else {
+            allCategories = [...allCategories, ...batch];
+            hasMore = batch.length === pageSize;
+            page++;
+        }
+    }
+
+    const categories = allCategories;
+    if (categories.length === 0) return { suggestions: [], isIncomplete, profile: athlete, incompleteReasons };
 
     // 4. Overrides
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee')
+        .select('category_id, registration_fee, description, promo_type')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
-
-    // 4.5 Get enrolled athlete counts and previews
-    const supabaseAdmin = createAdminClient();
+    const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
+    const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
     const { data: countsData } = await supabaseAdmin
         .from('event_registrations')
         .select(`
@@ -422,6 +461,8 @@ export async function getEligibleCategories(eventId: string) {
         return {
             ...cat,
             registration_fee: price,
+            description: overridesDescMap.get(cat.id) || null,
+            promo_type: overridesPromoMap.get(cat.id) || null,
             registered_count: registeredCount,
             preview_athletes: previewAthletes,
             match,

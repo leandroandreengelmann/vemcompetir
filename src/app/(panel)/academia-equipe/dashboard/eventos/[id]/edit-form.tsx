@@ -17,6 +17,7 @@ interface EditEventFormProps {
         title: string;
         description: string | null;
         event_date: string | null;
+        event_end_date: string | null;
         location: string | null;
         address_street: string | null;
         address_number: string | null;
@@ -36,6 +37,9 @@ export default function EditEventForm({ event }: EditEventFormProps) {
     // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
     const formattedDate = event.event_date
         ? new Date(event.event_date).toISOString().slice(0, 16)
+        : '';
+    const formattedEndDate = event.event_end_date
+        ? event.event_end_date.slice(0, 10)
         : '';
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -176,6 +180,20 @@ export default function EditEventForm({ event }: EditEventFormProps) {
                                         defaultValue={formattedDate}
                                         variant="lg"
                                         required
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="event_end_date" className="text-panel-sm font-semibold text-muted-foreground">
+                                        Data de Término
+                                    </label>
+                                    <Input
+                                        id="event_end_date"
+                                        name="event_end_date"
+                                        type="date"
+                                        defaultValue={formattedEndDate}
+                                        variant="lg"
                                         disabled={loading}
                                     />
                                 </div>

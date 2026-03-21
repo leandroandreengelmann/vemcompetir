@@ -13,6 +13,8 @@ export interface CartItem {
     categoryTitle: string;
     price: number;
     status: string;
+    promoTypeApplied?: string | null;
+    promoSourceId?: string | null;
 }
 
 interface RegistrationCartState {
@@ -57,7 +59,9 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
                     peso_max_kg: d.category.peso_max_kg
                 }) : 'Categoria Desconhecida',
                 price: Number(d.price) || 0, // Read price from DB
-                status: d.status
+                status: d.status,
+                promoTypeApplied: d.promo_type_applied ?? null,
+                promoSourceId: d.promo_source_id ?? null,
             }));
             set({ items });
         } catch (error) {
@@ -84,6 +88,12 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
 
             await get().fetchCart(); // Refresh cart
             set({ isOpen: true });
+
+            if ((result as any).companionAdded) {
+                toast.success(`Categoria gratuita adicionada: ${(result as any).companionName}`);
+            } else if ((result as any).companionWarning) {
+                toast.warning((result as any).companionWarning);
+            }
         } catch (error) {
             toast.error('Erro ao adicionar');
         } finally {
@@ -92,9 +102,9 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
     },
 
     removeItem: async (id) => {
-        // Optimistic update
+        // Optimistic update — also remove any companion granted by this item
         const currentItems = get().items;
-        set({ items: currentItems.filter(i => i.id !== id) });
+        set({ items: currentItems.filter(i => i.id !== id && i.promoSourceId !== id) });
 
         try {
             const result = await removeFromCartAction(id);

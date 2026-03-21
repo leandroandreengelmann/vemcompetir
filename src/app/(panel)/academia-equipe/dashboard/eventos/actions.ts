@@ -13,6 +13,7 @@ export async function createEventAction(formData: FormData) {
     const title = formData.get('title') as string;
     const location = formData.get('location') as string;
     const event_date = formData.get('event_date') as string;
+    const event_end_date = (formData.get('event_end_date') as string) || null;
 
     // Address fields
     const address_street = formData.get('address_street') as string;
@@ -31,6 +32,7 @@ export async function createEventAction(formData: FormData) {
             title,
             location,
             event_date,
+            event_end_date,
             tenant_id,
             address_street,
             address_number,
@@ -79,6 +81,7 @@ export async function updateEventAction(formData: FormData) {
     const title = formData.get('title') as string;
     const location = formData.get('location') as string;
     const event_date = formData.get('event_date') as string;
+    const event_end_date = (formData.get('event_end_date') as string) || null;
 
     // Address fields
     const address_street = formData.get('address_street') as string;
@@ -97,6 +100,7 @@ export async function updateEventAction(formData: FormData) {
             title,
             location,
             event_date,
+            event_end_date,
             address_street,
             address_number,
             address_neighborhood,

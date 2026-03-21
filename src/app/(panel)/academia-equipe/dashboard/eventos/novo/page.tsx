@@ -152,6 +152,19 @@ export default function NovoEventoPage() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <label htmlFor="event_end_date" className="text-panel-sm font-semibold text-muted-foreground">
+                                        Data de Término
+                                    </label>
+                                    <Input
+                                        id="event_end_date"
+                                        name="event_end_date"
+                                        type="date"
+                                        variant="lg"
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
                                     <label htmlFor="location" className="text-panel-sm font-semibold text-muted-foreground">
                                         Local (Nome da Arena/Ginásio)
                                     </label>

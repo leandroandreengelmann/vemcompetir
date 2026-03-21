@@ -174,61 +174,192 @@ export async function updateEventCategoryIndividualPrice(eventId: string, catego
         if (!event) return { error: 'Evento não encontrado ou sem permissão.' };
     }
 
+    // Check if there's an existing override with a description (must not delete the row in that case)
+    const { data: existingOverride } = await supabase
+        .from('event_category_overrides')
+        .select('description')
+        .eq('event_id', eventId)
+        .eq('category_id', categoryId)
+        .single();
+
+    const hasDescription = !!existingOverride?.description;
+
     if (price === null) {
-        // Delete override
-        const { error } = await supabase
-            .from('event_category_overrides')
-            .delete()
-            .eq('event_id', eventId)
-            .eq('category_id', categoryId);
-
-        if (error) return { error: 'Erro ao remover preço individual.' };
-    } else {
-        // Intelligent Save: Fetch global price first
-        // 1. Get the table_id for this category
-        const { data: catData } = await supabase
-            .from('category_rows')
-            .select('table_id')
-            .eq('id', categoryId)
-            .single();
-
-        if (!catData) return { error: 'Categoria não encontrada.' };
-
-        // 2. Get global price for this table in this event
-        const { data: tableData } = await supabase
-            .from('event_category_tables')
-            .select('registration_fee')
-            .eq('event_id', eventId)
-            .eq('category_table_id', catData.table_id)
-            .single();
-
-        const globalPrice = tableData?.registration_fee || 0;
-
-        // 3. If price matches global, just delete the override (acts as a reset)
-        if (price === globalPrice) {
+        if (hasDescription) {
+            // Keep the row but clear the price override
             await supabase
+                .from('event_category_overrides')
+                .update({ registration_fee: null, updated_at: new Date().toISOString() })
+                .eq('event_id', eventId)
+                .eq('category_id', categoryId);
+        } else {
+            // No description — safe to delete the whole override row
+            const { error } = await supabase
                 .from('event_category_overrides')
                 .delete()
                 .eq('event_id', eventId)
                 .eq('category_id', categoryId);
 
-            return { success: true, reset: true };
+            if (error) return { error: 'Erro ao remover preço individual.' };
         }
+        return { success: true, reset: true };
+    }
 
-        // 4. Otherwise upsert override
+    // Intelligent Save: Fetch global price first
+    // 1. Get the table_id for this category
+    const { data: catData } = await supabase
+        .from('category_rows')
+        .select('table_id')
+        .eq('id', categoryId)
+        .single();
+
+    if (!catData) return { error: 'Categoria não encontrada.' };
+
+    // 2. Get global price for this table in this event
+    const { data: tableData } = await supabase
+        .from('event_category_tables')
+        .select('registration_fee')
+        .eq('event_id', eventId)
+        .eq('category_table_id', catData.table_id)
+        .single();
+
+    const globalPrice = tableData?.registration_fee || 0;
+
+    // 3. If price matches global, reset the price (but keep row if description exists)
+    if (price === globalPrice) {
+        if (hasDescription) {
+            await supabase
+                .from('event_category_overrides')
+                .update({ registration_fee: null, updated_at: new Date().toISOString() })
+                .eq('event_id', eventId)
+                .eq('category_id', categoryId);
+        } else {
+            await supabase
+                .from('event_category_overrides')
+                .delete()
+                .eq('event_id', eventId)
+                .eq('category_id', categoryId);
+        }
+        return { success: true, reset: true };
+    }
+
+    // 4. Otherwise upsert override
+    const { error } = await supabase
+        .from('event_category_overrides')
+        .upsert({
+            event_id: eventId,
+            category_id: categoryId,
+            registration_fee: price,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'event_id, category_id' });
+
+    if (error) {
+        console.error('Error updating individual price:', error);
+        return { error: 'Erro ao atualizar preço individual.' };
+    }
+
+    return { success: true };
+}
+
+export async function updateEventCategoryPromo(eventId: string, categoryId: string, promoType: string | null) {
+    const { profile, tenant_id } = await requireTenantScope();
+    const supabase = await createClient();
+
+    if (profile.role !== 'admin_geral') {
+        const { data: event } = await supabase
+            .from('events')
+            .select('id')
+            .eq('id', eventId)
+            .eq('tenant_id', tenant_id)
+            .single();
+
+        if (!event) return { error: 'Evento não encontrado ou sem permissão.' };
+    }
+
+    // Validate server-side that the category is Absoluto before allowing promo activation
+    if (promoType === 'free_second_registration') {
+        const { data: cat } = await supabase
+            .from('category_rows')
+            .select('categoria_completa')
+            .eq('id', categoryId)
+            .single();
+
+        const normalized = cat?.categoria_completa
+            ?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() ?? '';
+
+        if (!normalized.includes('absoluto')) {
+            return { error: 'Esta promoção é válida apenas para categorias Absoluto.' };
+        }
+    }
+
+    const { data: existing } = await supabase
+        .from('event_category_overrides')
+        .select('registration_fee')
+        .eq('event_id', eventId)
+        .eq('category_id', categoryId)
+        .single();
+
+    if (existing) {
         const { error } = await supabase
             .from('event_category_overrides')
-            .upsert({
-                event_id: eventId,
-                category_id: categoryId,
-                registration_fee: price,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'event_id, category_id' });
+            .update({ promo_type: promoType, updated_at: new Date().toISOString() })
+            .eq('event_id', eventId)
+            .eq('category_id', categoryId);
 
-        if (error) {
-            console.error('Error updating individual price:', error);
-            return { error: 'Erro ao atualizar preço individual.' };
-        }
+        if (error) return { error: 'Erro ao salvar promoção.' };
+    } else if (promoType) {
+        // Only create a new override row if there's a promo to set
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .insert({ event_id: eventId, category_id: categoryId, promo_type: promoType });
+
+        if (error) return { error: 'Erro ao salvar promoção.' };
+    }
+
+    return { success: true };
+}
+
+export async function updateEventCategoryDescription(eventId: string, categoryId: string, description: string | null) {
+    const { profile, tenant_id } = await requireTenantScope();
+    const supabase = await createClient();
+
+    if (profile.role !== 'admin_geral') {
+        const { data: event } = await supabase
+            .from('events')
+            .select('id')
+            .eq('id', eventId)
+            .eq('tenant_id', tenant_id)
+            .single();
+
+        if (!event) return { error: 'Evento não encontrado ou sem permissão.' };
+    }
+
+    const descValue = description?.trim() || null;
+
+    // Check if an override row already exists
+    const { data: existing } = await supabase
+        .from('event_category_overrides')
+        .select('registration_fee')
+        .eq('event_id', eventId)
+        .eq('category_id', categoryId)
+        .single();
+
+    if (existing) {
+        // Update description on existing row
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .update({ description: descValue, updated_at: new Date().toISOString() })
+            .eq('event_id', eventId)
+            .eq('category_id', categoryId);
+
+        if (error) return { error: 'Erro ao salvar descrição.' };
+    } else if (descValue) {
+        // Only create a new override row if there's actual content to save
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .insert({ event_id: eventId, category_id: categoryId, description: descValue });
+
+        if (error) return { error: 'Erro ao salvar descrição.' };
     }
 
     return { success: true };
@@ -287,11 +418,13 @@ export async function getEventCategoriesWithPrices(
     const categoryIds = categories.map(c => c.id);
     const { data: pageOverrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee')
+        .select('category_id, registration_fee, description, promo_type')
         .eq('event_id', eventId)
         .in('category_id', categoryIds);
 
     const pageOverridesMap = new Map(pageOverrides?.map(o => [o.category_id, o.registration_fee]));
+    const pageDescMap = new Map(pageOverrides?.map(o => [o.category_id, o.description]));
+    const pagePromoMap = new Map(pageOverrides?.map(o => [o.category_id, o.promo_type]));
 
     // 5. Get TOTAL overrides count for this table (for the summary card)
     // ONLY count categories where registration_fee is DIFFERENT from defaultPrice
@@ -349,6 +482,8 @@ export async function getEventCategoriesWithPrices(
                 override_price: finalOverridePrice,
                 registration_fee: finalOverridePrice ?? defaultPrice,
                 is_override: isDifferent,
+                override_description: pageDescMap.get(cat.id) || null,
+                promo_type: pagePromoMap.get(cat.id) || null,
                 registered_count: countMap.get(cat.id) || 0,
                 preview_athletes: previewMap.get(cat.id) || []
             };
@@ -400,10 +535,12 @@ export async function searchEventCategories(eventId: string, query: string) {
     // 3. Get all overrides for this event
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee')
+        .select('category_id, registration_fee, description, promo_type')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
+    const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
+    const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
 
     // 3.5 Get enrolled athlete counts and previews for this event
     const { data: { user } } = await supabase.auth.getUser();
@@ -457,6 +594,8 @@ export async function searchEventCategories(eventId: string, query: string) {
             return {
                 ...row,
                 registration_fee: overridePrice ?? defaultPrice,
+                description: overridesDescMap.get(row.id) || null,
+                promo_type: overridesPromoMap.get(row.id) || null,
                 registered_count: registeredCount,
                 preview_athletes: previewMap.get(row.id) || []
             };

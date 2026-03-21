@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ArrowRightIcon, ShoppingBagIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, ShoppingBagIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon, InfoIcon, GiftIcon } from '@phosphor-icons/react';
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { getCategoryEnrolledAthletes } from '@/app/(panel)/actions/event-categories';
@@ -17,6 +17,8 @@ interface CategoryResult {
     peso_min_kg?: number | null;
     peso_max_kg?: number | null;
     registration_fee: number;
+    description?: string | null;
+    promo_type?: string | null;
     registered_count?: number;
     preview_athletes?: string[];
     match?: {
@@ -33,11 +35,18 @@ interface CategoryCardProps {
     isSelected?: boolean;
     isWhiteBelt?: boolean;
     isInCart?: boolean;
+    isOwner?: boolean;
+    adminTax?: number;
 }
 
-export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCart, isSelected = false, isWhiteBelt = false, isInCart = false }: CategoryCardProps) {
+export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCart, isSelected = false, isWhiteBelt = false, isInCart = false, isOwner = false, adminTax = 0 }: CategoryCardProps) {
     const [adding, setAdding] = useState(false);
     const [added, setAdded] = useState(false);
+
+    // Reset local "added" state when the item is removed from cart externally
+    React.useEffect(() => {
+        if (!isInCart) setAdded(false);
+    }, [isInCart]);
 
     // Accordion state
     const [isExpanded, setIsExpanded] = useState(false);
@@ -94,14 +103,34 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                     </Badge>
                 </div>
 
+                {/* Promo: inscrição grátis na categoria regular */}
+                {category.promo_type === 'free_second_registration' && (
+                    <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-emerald-800">
+                        <GiftIcon size={16} weight="duotone" className="shrink-0 text-emerald-500" />
+                        <p className="text-panel-sm font-semibold leading-relaxed">
+                            Ao se inscrever nesta categoria, o atleta ganha gratuitamente sua categoria regular correspondente.
+                        </p>
+                    </div>
+                )}
+
+                {/* Descrição / Observação do organizador */}
+                {category.description && (
+                    <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-amber-800">
+                        <InfoIcon size={16} weight="duotone" className="mt-0.5 shrink-0 text-amber-500" />
+                        <p className="text-panel-sm leading-relaxed">{category.description}</p>
+                    </div>
+                )}
+
                 {/* Rodapé: Preço e Ação */}
                 <div className="flex items-center justify-between mt-auto pt-2">
                     <div className="flex items-center gap-2">
                         <span className="text-panel-sm font-semibold text-foreground whitespace-nowrap">
-                            Valor da inscrição
+                            {isOwner ? 'Taxa da plataforma' : 'Valor da inscrição'}
                         </span>
                         <span className={`text-panel-md font-bold tabular-nums ${isWhiteBelt && !isSelected ? 'text-brand-950' : 'text-primary'}`}>
-                            R$ {category.registration_fee}
+                            {isOwner
+                                ? (adminTax > 0 ? `R$ ${adminTax.toFixed(2)}` : 'Grátis')
+                                : `R$ ${category.registration_fee}`}
                         </span>
                     </div>
 

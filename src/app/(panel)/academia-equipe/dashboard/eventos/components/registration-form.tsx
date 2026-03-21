@@ -373,6 +373,8 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                                         isInCart={cartCategoryIds.has(cat.id)}
                                                         onAddToCart={() => addToCart(cat.id)}
                                                         isWhiteBelt={isWhiteBelt}
+                                                        isOwner={isOwner}
+                                                        adminTax={adminTax}
                                                     />
                                                 ))}
                                             </div>
@@ -446,6 +448,8 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                                 isInCart={cartCategoryIds.has(cat.id)}
                                                 onAddToCart={() => addToCart(cat.id)}
                                                 isWhiteBelt={isWhiteBelt}
+                                                isOwner={isOwner}
+                                                adminTax={adminTax}
                                             />
                                         ))}
                                         {filteredAllCategories.length > 50 && (

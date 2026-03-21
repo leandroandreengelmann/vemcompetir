@@ -32,6 +32,7 @@ interface AdminEventFormProps {
         title: string;
         location?: string;
         event_date: string;
+        event_end_date?: string | null;
         tenant_id: string;
         image_path?: string;
         address_street?: string;
@@ -287,6 +288,20 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                         defaultValue={initialData?.event_date ? new Date(initialData.event_date).toISOString().slice(0, 16) : ''}
                                         variant="lg"
                                         required
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="event_end_date" className="text-ui font-medium leading-none">
+                                        Data de Término
+                                    </label>
+                                    <Input
+                                        id="event_end_date"
+                                        name="event_end_date"
+                                        type="date"
+                                        defaultValue={initialData?.event_end_date ? initialData.event_end_date.slice(0, 10) : ''}
+                                        variant="lg"
                                         disabled={loading}
                                     />
                                 </div>

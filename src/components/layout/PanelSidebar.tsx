@@ -18,6 +18,7 @@ import {
     PlugIcon,
     WalletIcon,
     HandCoinsIcon,
+    FileTextIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -96,6 +97,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             label: "Cobrança Integral",
             icon: HandCoinsIcon,
             href: "/admin/dashboard/cobranca-integral",
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Termos de Uso",
+            icon: FileTextIcon,
+            href: "/admin/dashboard/termos",
             roles: ['admin_geral'],
         },
         {

@@ -23,7 +23,9 @@ import { toast } from "sonner";
 import {
     getEventCategoriesWithPrices,
     updateEventCategoryTablePrice,
-    updateEventCategoryIndividualPrice
+    updateEventCategoryIndividualPrice,
+    updateEventCategoryDescription,
+    updateEventCategoryPromo
 } from '@/app/(panel)/actions/event-categories';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Separator } from "@/components/ui/separator";
@@ -47,6 +49,8 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
     const [searchTerm, setSearchTerm] = useState('');
     const [bulkPrice, setBulkPrice] = useState<string>('');
     const [individualPrices, setIndividualPrices] = useState<Record<string, string>>({});
+    const [individualDescriptions, setIndividualDescriptions] = useState<Record<string, string>>({});
+    const [individualPromos, setIndividualPromos] = useState<Record<string, boolean>>({});
 
     const debouncedSearch = useSimpleDebounce(searchTerm, 500);
 
@@ -60,12 +64,22 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             setBulkPrice(result.defaultPrice.toString());
 
             const initialOverrides: Record<string, string> = {};
+            const initialDescriptions: Record<string, string> = {};
+            const initialPromos: Record<string, boolean> = {};
             result.categories.forEach((cat: any) => {
                 if (cat.override_price !== null) {
                     initialOverrides[cat.id] = cat.override_price.toString();
                 }
+                if (cat.override_description) {
+                    initialDescriptions[cat.id] = cat.override_description;
+                }
+                if (cat.promo_type === 'free_second_registration') {
+                    initialPromos[cat.id] = true;
+                }
             });
             setIndividualPrices(initialOverrides);
+            setIndividualDescriptions(initialDescriptions);
+            setIndividualPromos(initialPromos);
         } catch (error) {
             toast.error("Erro ao carregar dados.");
         } finally {
@@ -94,6 +108,30 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             toast.error(result.error);
         }
         setSavingBulk(false);
+    };
+
+    const handlePromoToggle = async (categoryId: string, enabled: boolean) => {
+        setIndividualPromos(prev => ({ ...prev, [categoryId]: enabled }));
+        const promoType = enabled ? 'free_second_registration' : null;
+        const result = await updateEventCategoryPromo(eventId, categoryId, promoType);
+        if (result.success) {
+            toast.success(enabled ? "Promoção ativada." : "Promoção removida.");
+        } else {
+            toast.error(result.error);
+            // Revert on error
+            setIndividualPromos(prev => ({ ...prev, [categoryId]: !enabled }));
+        }
+    };
+
+    const handleDescriptionSave = async (categoryId: string) => {
+        const desc = individualDescriptions[categoryId] || null;
+        const result = await updateEventCategoryDescription(eventId, categoryId, desc);
+        if (result.success) {
+            toast.success("Observação salva.");
+            loadData(currentPage, debouncedSearch);
+        } else {
+            toast.error(result.error);
+        }
     };
 
     const handleIndividualSave = async (categoryId: string) => {
@@ -221,53 +259,93 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                     </CardHeader>
 
                     <CardContent className="p-0 flex-1">
-                        <div className="divide-y divide-primary/5">
+                        <div>
                             {categories.length > 0 ? (
                                 categories.map((cat) => (
                                     <div
                                         key={cat.id}
-                                        className="group p-4 flex items-center justify-between hover:bg-primary/[0.02] transition-colors"
+                                        className="group p-4 flex flex-col gap-3 hover:bg-primary/[0.02] transition-colors border-b border-primary/5 last:border-0"
                                     >
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <h5 className="text-ui font-bold truncate">{cat.categoria_completa}</h5>
-                                                {cat.override_price !== null && (
-                                                    <span className="text-label px-1.5 py-0.5 bg-amber-100 text-amber-700 font-bold rounded">Específico</span>
-                                                )}
+                                        {/* Row 1: title + price */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <h5 className="text-ui font-bold truncate">{cat.categoria_completa}</h5>
+                                                    {cat.override_price !== null && (
+                                                        <span className="text-label px-1.5 py-0.5 bg-amber-100 text-amber-700 font-bold rounded">Específico</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1.5">
+                                                    <Badge
+                                                        variant="outline"
+                                                        style={getBeltStyle(cat.faixa)}
+                                                        className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider h-4 flex items-center"
+                                                    >
+                                                        {cat.faixa}
+                                                    </Badge>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 mt-1.5">
-                                                <Badge
-                                                    variant="outline"
-                                                    style={getBeltStyle(cat.faixa)}
-                                                    className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider h-4 flex items-center"
+
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-right flex flex-col">
+                                                    <span className="text-label text-muted-foreground mb-1 leading-none">Preço (R$)</span>
+                                                    <div className="relative w-28">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">R$</span>
+                                                        <Input
+                                                            value={individualPrices[cat.id] ?? ''}
+                                                            onChange={(e) => setIndividualPrices(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                                                            onBlur={() => handleIndividualSave(cat.id)}
+                                                            className="pl-8 h-9 rounded-xl border-primary/5 bg-muted/20 text-sm focus:border-primary/20 focus:bg-white text-right font-semibold"
+                                                            placeholder={cat.base_price.toString()}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <Button pill size="sm"
+                                                    variant="ghost"
+                                                    className="h-9 w-9 p-0 text-emerald-600 hover:bg-emerald-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all active:scale-95"
+                                                    onClick={() => handleIndividualSave(cat.id)}
                                                 >
-                                                    {cat.faixa}
-                                                </Badge>
+                                                    <Check className="h-4 w-4" strokeWidth={3} />
+                                                </Button>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-right flex flex-col">
-                                                <span className="text-label text-muted-foreground mb-1 leading-none">Preço (R$)</span>
-                                                <div className="relative w-28">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">R$</span>
-                                                    <Input
-                                                        value={individualPrices[cat.id] ?? ''}
-                                                        onChange={(e) => setIndividualPrices(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                                                        onBlur={() => handleIndividualSave(cat.id)}
-                                                        className="pl-8 h-9 rounded-xl border-primary/5 bg-muted/20 text-sm focus:border-primary/20 focus:bg-white text-right font-semibold"
-                                                        placeholder={cat.base_price.toString()}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <Button pill size="sm"
-                                                variant="ghost"
-                                                className="h-9 w-9 p-0  text-emerald-600 hover:bg-emerald-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all active:scale-95"
-                                                onClick={() => handleIndividualSave(cat.id)}
-                                            >
-                                                <Check className="h-4 w-4" strokeWidth={3} />
-                                            </Button>
+                                        {/* Row 2: description textarea */}
+                                        <div className="flex items-start gap-2">
+                                            <Info className="h-3.5 w-3.5 text-muted-foreground/50 mt-2 shrink-0" />
+                                            <textarea
+                                                value={individualDescriptions[cat.id] ?? ''}
+                                                onChange={(e) => setIndividualDescriptions(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                                                onBlur={() => handleDescriptionSave(cat.id)}
+                                                placeholder="Observação para atletas (ex: critérios de desempate, regras especiais...)"
+                                                rows={2}
+                                                className="flex-1 resize-none rounded-xl border border-primary/10 bg-muted/20 px-3 py-2 text-xs text-muted-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-amber-300 focus:bg-amber-50/30 transition-colors"
+                                            />
                                         </div>
+
+                                        {/* Row 3: promo toggle — only for Absoluto categories */}
+                                        {isAbsolutoName(cat.categoria_completa) && (
+                                            <label className="flex items-center gap-3 cursor-pointer select-none px-1">
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="sr-only"
+                                                        checked={individualPromos[cat.id] ?? false}
+                                                        onChange={(e) => handlePromoToggle(cat.id, e.target.checked)}
+                                                    />
+                                                    <div className={`w-9 h-5 rounded-full transition-colors ${individualPromos[cat.id] ? 'bg-emerald-500' : 'bg-muted-foreground/20'}`} />
+                                                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${individualPromos[cat.id] ? 'translate-x-4' : ''}`} />
+                                                </div>
+                                                <span className="text-xs font-medium text-muted-foreground">
+                                                    🎁 Inscrição grátis na categoria regular
+                                                </span>
+                                                {individualPromos[cat.id] && (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                                                        Ativo
+                                                    </span>
+                                                )}
+                                            </label>
+                                        )}
                                     </div>
                                 ))
                             ) : (
@@ -339,6 +417,15 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             </div>
         </div>
     );
+}
+
+function isAbsolutoName(categoriaCompleta: string | null): boolean {
+    if (!categoriaCompleta) return false;
+    return categoriaCompleta
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .includes('absoluto');
 }
 
 // Simple internal debounce if needed

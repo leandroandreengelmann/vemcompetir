@@ -16,6 +16,8 @@ interface AthleteCartItem {
     categoryTitle: string;
     price: number;
     status: string;
+    promoTypeApplied: string | null;
+    promoSourceId: string | null;
 }
 
 interface AthleteCartState {
@@ -56,6 +58,8 @@ export const useAthleteCart = create<AthleteCartState>((set, get) => ({
                 }) : 'Categoria Desconhecida',
                 price: Number(d.price) || 0,
                 status: d.status,
+                promoTypeApplied: d.promo_type_applied || null,
+                promoSourceId: d.promo_source_id || null,
             }));
             set({ items });
         } catch (error) {
@@ -67,17 +71,25 @@ export const useAthleteCart = create<AthleteCartState>((set, get) => ({
 
     addItem: async (item) => {
         try {
-            await addToAthleteCartAction(item);
+            const result = await addToAthleteCartAction(item);
             await get().fetchCart();
+            // Surface companion warning to the caller (UI can toast it)
+            if (result?.companionWarning) {
+                throw Object.assign(new Error(result.companionWarning), { isWarning: true });
+            }
         } catch (error: any) {
+            if (error?.isWarning) throw error;
             console.error('Failed to add to athlete cart', error);
             throw error;
         }
     },
 
     removeItem: async (registrationId) => {
+        // Optimistically remove the item AND any companion sponsored by it
         set((state) => ({
-            items: state.items.filter((i) => i.id !== registrationId),
+            items: state.items.filter(
+                (i) => i.id !== registrationId && i.promoSourceId !== registrationId
+            ),
         }));
         try {
             await removeFromAthleteCartAction(registrationId);
