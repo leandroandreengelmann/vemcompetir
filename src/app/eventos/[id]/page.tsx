@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const event = await getPublishedEventById(id);
 
     if (!event) {
-        return { title: 'Evento não encontrado — VemCompetir' };
+        return { title: 'Evento não encontrado — Competir' };
     }
 
     const coverUrl = getEventCoverUrl(event.cover_image_path || null);
@@ -42,16 +42,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         : null;
     const locationParts = [event.venue_name, event.city, event.state].filter(Boolean);
     const locationStr = locationParts.join(' · ');
-    const description = [dateStr, locationStr].filter(Boolean).join(' — ') + ' — Inscreva-se agora no VemCompetir!';
+    const description = [dateStr, locationStr].filter(Boolean).join(' — ') + ' — Inscreva-se agora no Competir!';
 
     return {
-        title: `${event.title} — VemCompetir`,
+        title: `${event.title} — Competir`,
         description,
         openGraph: {
             title: event.title,
             description,
-            url: `https://vemcompetir.com.br/eventos/${id}`,
-            siteName: 'VemCompetir',
+            url: `https://competir.com.br/eventos/${id}`,
+            siteName: 'Competir',
             type: 'website',
             locale: 'pt_BR',
             images: coverUrl
@@ -276,7 +276,7 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                     registrationCount={registrationCount ?? 0}
                                     minPrice={minPrice}
                                     topics={shareTopics}
-                                    canonicalUrl={`https://vemcompetir.com.br/eventos/${id}`}
+                                    canonicalUrl={`https://competir.com.br/eventos/${id}`}
                                 />
                             </div>
 

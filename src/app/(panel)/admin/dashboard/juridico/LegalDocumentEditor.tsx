@@ -5,37 +5,40 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { saveNewTermVersionAction, activateTermVersionAction, type Term } from './actions';
 import { PencilSimpleIcon, FloppyDiskIcon, XIcon, ClockCounterClockwiseIcon, CheckIcon } from '@phosphor-icons/react';
-import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import type { LegalDocument } from './actions';
 
-interface TermsEditorProps {
-    activeTerm: Term | null;
-    allTerms: Term[];
+interface LegalDocumentEditorProps {
+    activeDoc: LegalDocument | null;
+    allDocs: LegalDocument[];
+    onSave: (content: string) => Promise<{ error?: string }>;
+    onActivate: (id: string) => Promise<{ error?: string }>;
+    emptyLabel: string;
 }
 
-export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
+export function LegalDocumentEditor({ activeDoc, allDocs, onSave, onActivate, emptyLabel }: LegalDocumentEditorProps) {
     const [editing, setEditing] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
-    const [content, setContent] = useState(activeTerm?.content ?? '');
+    const [content, setContent] = useState(activeDoc?.content ?? '');
     const [isPending, startTransition] = useTransition();
 
     const handleSave = () => {
         startTransition(async () => {
-            const result = await saveNewTermVersionAction(content);
+            const result = await onSave(content);
             if (result.error) {
                 toast.error(result.error);
             } else {
-                toast.success('Nova versão do termo salva e ativada!');
+                toast.success('Nova versão salva e ativada!');
                 setEditing(false);
             }
         });
     };
 
-    const handleActivate = (termId: string) => {
+    const handleActivate = (id: string) => {
         startTransition(async () => {
-            const result = await activateTermVersionAction(termId);
+            const result = await onActivate(id);
             if (result.error) {
                 toast.error(result.error);
             } else {
@@ -46,72 +49,58 @@ export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
     };
 
     const handleEdit = () => {
-        setContent(activeTerm?.content ?? '');
+        setContent(activeDoc?.content ?? '');
         setEditing(true);
         setShowHistory(false);
     };
 
     const handleCancel = () => {
         setEditing(false);
-        setContent(activeTerm?.content ?? '');
+        setContent(activeDoc?.content ?? '');
     };
 
-    // Renderiza o termo com destaque nos placeholders
-    const renderTermPreview = (text: string) => {
-        return text.split('\n').map((line, i) => {
-            const isTitle = /^\d+\.\s/.test(line) || line.startsWith('TERMO DE');
-            const parts = line.split(/({{[A-Z_]+}})/g);
+    const renderPreview = (text: string) =>
+        text.split('\n').map((line, i) => {
+            const isTitle = /^\d+\./.test(line) || /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s—]{5,}$/.test(line.trim());
             return (
                 <p key={i} className={cn('leading-relaxed', isTitle && 'font-semibold mt-4 first:mt-0', !line && 'h-2')}>
-                    {parts.map((part, j) =>
-                        part.match(/^{{[A-Z_]+}}$/) ? (
-                            <span key={j} className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-1 rounded text-xs font-mono">
-                                {part}
-                            </span>
-                        ) : part
-                    )}
+                    {line}
                 </p>
             );
         });
-    };
 
     return (
         <div className="space-y-6">
-            {/* Cabeçalho com versão e ações */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
-                    {activeTerm ? (
+                    {activeDoc ? (
                         <>
                             <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
-                                Versão {activeTerm.version}
+                                Versão {activeDoc.version}
                             </Badge>
                             <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-0 text-xs font-bold">
                                 Ativa
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                                Criada em {new Date(activeTerm.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                Criada em {new Date(activeDoc.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
                             </span>
                         </>
                     ) : (
-                        <span className="text-sm text-muted-foreground">Nenhum termo ativo</span>
+                        <span className="text-sm text-muted-foreground">Nenhuma versão ativa</span>
                     )}
                 </div>
                 <div className="flex items-center gap-2">
                     {!editing && (
                         <>
-                            {allTerms.length > 1 && (
-                                <Button
-                                    variant="outline"
-                                    pill
-                                    onClick={() => setShowHistory(!showHistory)}
-                                >
+                            {allDocs.length > 1 && (
+                                <Button variant="outline" pill onClick={() => setShowHistory(!showHistory)}>
                                     <ClockCounterClockwiseIcon size={16} weight="duotone" className="mr-2" />
-                                    Histórico ({allTerms.length})
+                                    Histórico ({allDocs.length})
                                 </Button>
                             )}
                             <Button pill onClick={handleEdit}>
                                 <PencilSimpleIcon size={16} weight="duotone" className="mr-2" />
-                                Editar Termo
+                                Editar
                             </Button>
                         </>
                     )}
@@ -130,48 +119,24 @@ export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
                 </div>
             </div>
 
-            {/* Legenda de placeholders */}
-            {editing && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
-                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Placeholders dinâmicos disponíveis:</p>
-                    <div className="flex flex-wrap gap-2">
-                        {['{{NOME_ATLETA}}', '{{NOME_EVENTO}}', '{{ENDERECO_EVENTO}}', '{{CIDADE_UF}}', '{{DATA_INICIAL}}', '{{DATA_FINAL}}'].map(ph => (
-                            <code key={ph} className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded text-xs font-mono">
-                                {ph}
-                            </code>
-                        ))}
-                    </div>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
-                        Estes valores serão substituídos automaticamente pelos dados reais do atleta e do evento no momento da assinatura.
-                    </p>
-                </div>
-            )}
-
-            {/* Histórico de versões */}
             {showHistory && !editing && (
                 <div className="rounded-xl border bg-card p-4 space-y-3">
                     <p className="text-sm font-semibold">Histórico de versões</p>
-                    {allTerms.map((term) => (
-                        <div key={term.id} className="flex items-center justify-between gap-4 py-2 border-b last:border-0">
+                    {allDocs.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between gap-4 py-2 border-b last:border-0">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">Versão {term.version}</span>
-                                {term.is_active && (
+                                <span className="text-sm font-medium">Versão {doc.version}</span>
+                                {doc.is_active && (
                                     <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-0 text-xs">
                                         Ativa
                                     </Badge>
                                 )}
                                 <span className="text-xs text-muted-foreground">
-                                    {new Date(term.created_at).toLocaleDateString('pt-BR')}
+                                    {new Date(doc.created_at).toLocaleDateString('pt-BR')}
                                 </span>
                             </div>
-                            {!term.is_active && (
-                                <Button
-                                    variant="outline"
-                                    pill
-                                    size="sm"
-                                    onClick={() => handleActivate(term.id)}
-                                    disabled={isPending}
-                                >
+                            {!doc.is_active && (
+                                <Button variant="outline" pill size="sm" onClick={() => handleActivate(doc.id)} disabled={isPending}>
                                     <CheckIcon size={14} className="mr-1.5" />
                                     Ativar
                                 </Button>
@@ -181,20 +146,19 @@ export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
                 </div>
             )}
 
-            {/* Editor ou visualização */}
             {editing ? (
                 <Textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     className="min-h-[600px] font-mono text-sm resize-y"
-                    placeholder="Cole ou edite o conteúdo do termo aqui..."
+                    placeholder={`Cole ou edite o conteúdo aqui...`}
                 />
             ) : (
                 <ScrollArea className="h-[600px]">
                     <div className="rounded-xl border bg-muted/30 p-6 text-sm text-foreground space-y-1 pr-4">
-                        {activeTerm
-                            ? renderTermPreview(activeTerm.content)
-                            : <p className="text-muted-foreground text-center py-8">Nenhum termo cadastrado. Clique em "Editar Termo" para adicionar.</p>
+                        {activeDoc
+                            ? renderPreview(activeDoc.content)
+                            : <p className="text-muted-foreground text-center py-8">{emptyLabel}</p>
                         }
                     </div>
                 </ScrollArea>

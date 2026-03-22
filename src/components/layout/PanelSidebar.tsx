@@ -19,6 +19,7 @@ import {
     WalletIcon,
     HandCoinsIcon,
     FileTextIcon,
+    ScalesIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -103,6 +104,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             label: "Termos de Uso",
             icon: FileTextIcon,
             href: "/admin/dashboard/termos",
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Jurídico",
+            icon: ScalesIcon,
+            href: "/admin/dashboard/juridico",
             roles: ['admin_geral'],
         },
         {

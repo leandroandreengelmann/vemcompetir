@@ -327,7 +327,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     fontSize: '11px',
                     fontWeight: 500,
                 }}>
-                    vemcompetir.com.br
+                    competir.com.br
                 </span>
                 <img
                     src="/competir-icon-white.png"

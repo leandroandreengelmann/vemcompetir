@@ -10,7 +10,7 @@ import { PencilSimpleIcon, FloppyDiskIcon, XIcon, ClockCounterClockwiseIcon, Che
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const GUARDIAN_PLACEHOLDERS = [
+const ACADEMY_PLACEHOLDERS = [
     '{{atleta_nome}}',
     '{{responsavel_nome}}',
     '{{responsavel_cpf}}',
@@ -20,20 +20,54 @@ const GUARDIAN_PLACEHOLDERS = [
     '{{data}}',
 ];
 
+const SELF_REGISTER_PLACEHOLDERS = [
+    '{{atleta_nome}}',
+    '{{responsavel_nome}}',
+    '{{responsavel_cpf}}',
+    '{{responsavel_vinculo}}',
+    '{{responsavel_telefone}}',
+    '{{data}}',
+];
+
+const MINOR_EVENT_PLACEHOLDERS = [
+    '{{atleta_nome}}',
+    '{{responsavel_nome}}',
+    '{{responsavel_cpf}}',
+    '{{responsavel_vinculo}}',
+    '{{responsavel_telefone}}',
+    '{{evento_nome}}',
+    '{{evento_data}}',
+    '{{evento_local}}',
+    '{{data}}',
+];
+
+const ACADEMY_MANAGEMENT_PLACEHOLDERS = [
+    '{{atleta_nome}}',
+    '{{academia_nome}}',
+    '{{data}}',
+];
+
 interface GuardianTermEditorProps {
     activeTemplate: GuardianTemplate | null;
     allTemplates: GuardianTemplate[];
+    type?: 'academy' | 'self_register' | 'minor_event' | 'academy_management';
 }
 
-export function GuardianTermEditor({ activeTemplate, allTemplates }: GuardianTermEditorProps) {
+export function GuardianTermEditor({ activeTemplate, allTemplates, type = 'academy' }: GuardianTermEditorProps) {
     const [editing, setEditing] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [content, setContent] = useState(activeTemplate?.content ?? '');
     const [isPending, startTransition] = useTransition();
 
+    const placeholders =
+        type === 'self_register' ? SELF_REGISTER_PLACEHOLDERS :
+        type === 'minor_event' ? MINOR_EVENT_PLACEHOLDERS :
+        type === 'academy_management' ? ACADEMY_MANAGEMENT_PLACEHOLDERS :
+        ACADEMY_PLACEHOLDERS;
+
     const handleSave = () => {
         startTransition(async () => {
-            const result = await saveGuardianTemplateAction(content);
+            const result = await saveGuardianTemplateAction(content, type);
             if (result.error) {
                 toast.error(result.error);
             } else {
@@ -45,7 +79,7 @@ export function GuardianTermEditor({ activeTemplate, allTemplates }: GuardianTer
 
     const handleActivate = (templateId: string) => {
         startTransition(async () => {
-            const result = await activateGuardianTemplateAction(templateId);
+            const result = await activateGuardianTemplateAction(templateId, type);
             if (result.error) {
                 toast.error(result.error);
             } else {
@@ -110,28 +144,27 @@ export function GuardianTermEditor({ activeTemplate, allTemplates }: GuardianTer
                             {allTemplates.length > 1 && (
                                 <Button
                                     variant="outline"
-                                    size="sm"
+                                    pill
                                     onClick={() => setShowHistory(!showHistory)}
-                                    className="gap-2"
                                 >
-                                    <ClockCounterClockwiseIcon size={16} weight="duotone" />
+                                    <ClockCounterClockwiseIcon size={16} weight="duotone" className="mr-2" />
                                     Histórico ({allTemplates.length})
                                 </Button>
                             )}
-                            <Button size="sm" onClick={handleEdit} className="gap-2">
-                                <PencilSimpleIcon size={16} weight="duotone" />
+                            <Button pill onClick={handleEdit}>
+                                <PencilSimpleIcon size={16} weight="duotone" className="mr-2" />
                                 Editar Modelo
                             </Button>
                         </>
                     )}
                     {editing && (
                         <>
-                            <Button variant="outline" size="sm" onClick={handleCancel} className="gap-2" disabled={isPending}>
-                                <XIcon size={16} />
+                            <Button variant="outline" pill onClick={handleCancel} disabled={isPending}>
+                                <XIcon size={16} className="mr-2" />
                                 Cancelar
                             </Button>
-                            <Button size="sm" onClick={handleSave} disabled={isPending} className="gap-2">
-                                <FloppyDiskIcon size={16} weight="duotone" />
+                            <Button pill onClick={handleSave} disabled={isPending}>
+                                <FloppyDiskIcon size={16} weight="duotone" className="mr-2" />
                                 {isPending ? 'Salvando...' : 'Salvar Nova Versão'}
                             </Button>
                         </>
@@ -143,7 +176,7 @@ export function GuardianTermEditor({ activeTemplate, allTemplates }: GuardianTer
                 <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
                     <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Placeholders dinâmicos disponíveis:</p>
                     <div className="flex flex-wrap gap-2">
-                        {GUARDIAN_PLACEHOLDERS.map(ph => (
+                        {placeholders.map(ph => (
                             <code key={ph} className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded text-xs font-mono">
                                 {ph}
                             </code>
@@ -174,12 +207,12 @@ export function GuardianTermEditor({ activeTemplate, allTemplates }: GuardianTer
                             {!tpl.is_active && (
                                 <Button
                                     variant="outline"
+                                    pill
                                     size="sm"
                                     onClick={() => handleActivate(tpl.id)}
                                     disabled={isPending}
-                                    className="gap-1.5 text-xs h-7"
                                 >
-                                    <CheckIcon size={12} />
+                                    <CheckIcon size={14} className="mr-1.5" />
                                     Ativar
                                 </Button>
                             )}

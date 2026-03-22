@@ -87,7 +87,7 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
 
         // Fallback: WhatsApp text link
         const text = encodeURIComponent(
-            `Minha inscrição no ${data.event_title} está confirmada! 🥋\nCódigo: ${data.registration_code}\nvemcompetir.com.br`
+            `Minha inscrição no ${data.event_title} está confirmada! 🥋\nCódigo: ${data.registration_code}\ncompetir.com.br`
         );
         window.open(`https://wa.me/?text=${text}`, '_blank');
     }, [data]);

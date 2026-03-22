@@ -21,6 +21,7 @@ import { ptBR } from 'date-fns/locale';
 import { PassportModal } from '@/components/passport/PassportModal';
 import { IdentificationCardIcon, ScrollIcon } from '@phosphor-icons/react/dist/ssr';
 import { GuardianDeclarationModal } from '@/components/guardian/GuardianDeclarationModal';
+import { ManagementAuthorizationSection } from './ManagementAuthorizationSection';
 
 interface ProfilePageProps {
     params: Promise<{ id: string }>;
@@ -124,6 +125,14 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
         .from('athlete_guardian_declarations')
         .select('id, athlete_id, responsible_type, responsible_name, responsible_relationship, content, generated_at')
         .eq('athlete_id', athleteProfile.id)
+        .maybeSingle();
+
+    // Fetch management authorization for this academy+athlete pair
+    const { data: managementAuth } = await adminSupabase
+        .from('academy_management_authorizations')
+        .select('id, document_url, uploaded_at')
+        .eq('athlete_id', athleteProfile.id)
+        .eq('academy_id', user.id)
         .maybeSingle();
 
     const age = calculateAge(athleteProfile.birth_date);
@@ -280,6 +289,16 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
                         </div>
                         <p className="text-panel-sm text-muted-foreground mt-2">Academia registrada como responsável legal.</p>
                     </div>
+                )}
+
+                {/* Management authorization upload (academy only) */}
+                {isConfiguredAcademy && (
+                    <ManagementAuthorizationSection
+                        athleteId={athleteProfile.id}
+                        athleteName={athleteProfile.full_name ?? 'Atleta'}
+                        academyName={orgProfile?.gym_name || orgProfile?.full_name || 'Academia'}
+                        initialStatus={managementAuth ?? null}
+                    />
                 )}
             </Card>
 

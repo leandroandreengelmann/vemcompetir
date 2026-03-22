@@ -1,57 +1,168 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { SectionHeader } from "@/components/layout/SectionHeader";
 import { getAuthErrorMessage } from '@/lib/auth-errors';
+import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
+import { getGuardianTemplateContentAction } from './actions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+    pai: 'Pai',
+    mae: 'Mãe',
+    irmao: 'Irmão/Irmã',
+    tio: 'Tio/Tia',
+    padrinho: 'Padrinho/Madrinha',
+    outro: 'Outro',
+};
+
+function isUnder18(birthDateStr: string): boolean {
+    if (!birthDateStr) return false;
+    const birth = new Date(birthDateStr);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age < 18;
+}
+
+function fillTemplate(template: string, data: {
+    nome: string;
+    guardian_name: string;
+    guardian_cpf: string;
+    guardian_relationship: string;
+    guardian_phone: string;
+}): string {
+    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return template
+        .replace(/{{atleta_nome}}/g, data.nome || '[Nome do Atleta]')
+        .replace(/{{responsavel_nome}}/g, data.guardian_name || '[Nome do Responsável]')
+        .replace(/{{responsavel_cpf}}/g, data.guardian_cpf ? formatCPF(data.guardian_cpf) : '[CPF]')
+        .replace(/{{responsavel_vinculo}}/g, (RELATIONSHIP_LABELS[data.guardian_relationship] ?? data.guardian_relationship) || '[Vínculo]')
+        .replace(/{{responsavel_telefone}}/g, data.guardian_phone || '[Telefone]')
+        .replace(/{{academia_nome}}/g, 'Plataforma Competir')
+        .replace(/{{data}}/g, today);
+}
 
 export default function RegisterPage() {
     const router = useRouter();
     const supabase = createClient();
 
+    // step 1=nome, 2=dados, 3=guardian(minor), 4=termo(minor), 5=credenciais
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [isMinor, setIsMinor] = useState(false);
+    const [templateContent, setTemplateContent] = useState('');
+    const [cpfValue, setCpfValue] = useState('');
+    const [guardianCpfValue, setGuardianCpfValue] = useState('');
+    const [guardianPhoneValue, setGuardianPhoneValue] = useState('');
 
     const [formData, setFormData] = useState({
         nome: '',
+        birth_date: '',
+        cpf: '',
+        guardian_name: '',
+        guardian_phone: '',
+        guardian_cpf: '',
+        guardian_relationship: '',
+        guardian_term_accepted: false,
         email: '',
-        senha: ''
+        senha: '',
     });
-
-    const nextStep = () => setStep(prev => prev + 1);
-    const prevStep = () => setStep(prev => prev - 1);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({ ...prev, birth_date: value }));
+        if (value) setIsMinor(isUnder18(value));
+    };
+
+    const totalSteps = isMinor ? 5 : 3;
+    const displayStep = step <= 2 ? step : isMinor ? step - 2 : step - 4;
+    // Display step: minor 1,2,3,4,5 → show 1,2,3,4,5; adult 1,2,5 → show 1,2,3
+
+    const goNext = () => {
+        setError(null);
+        if (step === 2 && !isMinor) { setStep(5); return; }
+        setStep(s => s + 1);
+    };
+
+    const goPrev = () => {
+        if (step === 5 && !isMinor) { setStep(2); return; }
+        setStep(s => s - 1);
+    };
+
+    // Fetch template when reaching step 4
+    useEffect(() => {
+        if (step === 4 && !templateContent) {
+            getGuardianTemplateContentAction().then(setTemplateContent);
+        }
+    }, [step, templateContent]);
+
+    const validateStep = (): string | null => {
+        if (step === 1 && !formData.nome.trim()) return 'Informe seu nome completo.';
+        if (step === 2) {
+            if (!formData.birth_date) return 'Informe sua data de nascimento.';
+            if (!formData.cpf) return 'Informe seu CPF.';
+            if (!validateCPF(formData.cpf)) return 'CPF inválido. Verifique os dígitos.';
+        }
+        if (step === 3) {
+            if (!formData.guardian_name.trim()) return 'Informe o nome completo do responsável.';
+            if (!formData.guardian_relationship) return 'Selecione o parentesco.';
+            if (!formData.guardian_cpf || !validateCPF(formData.guardian_cpf)) return 'CPF do responsável inválido.';
+            if (!formData.guardian_phone || normalizeNumeric(formData.guardian_phone).length < 10) return 'Informe um telefone válido para o responsável.';
+        }
+        if (step === 4 && !formData.guardian_term_accepted) return 'Você precisa ler e aceitar o Termo de Responsabilidade.';
+        if (step === 5) {
+            if (!formData.email) return 'Informe um e-mail.';
+            if (!formData.senha || formData.senha.length < 6) return 'A senha precisa ter ao menos 6 caracteres.';
+        }
+        return null;
+    };
+
+    const handleNext = () => {
+        const validationError = validateStep();
+        if (validationError) { setError(validationError); return; }
+        goNext();
+    };
+
+    const handlePrintTerm = () => {
+        const filled = fillTemplate(templateContent, formData);
+        const win = window.open('', '_blank');
+        if (!win) return;
+        win.document.write(`
+            <html><head><title>Termo de Responsabilidade</title>
+            <style>body{font-family:Arial,sans-serif;font-size:13px;line-height:1.7;margin:40px;color:#111;}pre{white-space:pre-wrap;font-family:inherit;}</style>
+            </head><body><pre>${filled}</pre></body></html>
+        `);
+        win.document.close();
+        win.focus();
+        win.print();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const validationError = validateStep();
+        if (validationError) { setError(validationError); return; }
+
         setLoading(true);
         setError(null);
-        setSuccess(null);
 
         try {
-            // This block seems to be intended for a login flow, not registration.
-            // 'roleRoutes' and 'activeRole' are not defined in this component.
-            // To make the code syntactically correct and avoid undefined variables,
-            // I'm commenting out the lines that would cause errors.
-            // If this logic is truly intended for registration, 'roleRoutes' and 'activeRole'
-            // would need to be defined and managed within this component or passed as props.
-            // const targetRoute = roleRoutes[activeRole as string] || '/';
-            // router.push(targetRoute);
-            // router.refresh();
-
-            // Reverting to original sign-up logic to maintain functional consistency for RegisterPage
             const { data, error: signUpError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.senha,
@@ -59,6 +170,13 @@ export default function RegisterPage() {
                     data: {
                         full_name: formData.nome,
                         role: 'atleta',
+                        birth_date: formData.birth_date,
+                        cpf: normalizeNumeric(formData.cpf),
+                        has_guardian: isMinor,
+                        guardian_name: isMinor ? formData.guardian_name : null,
+                        guardian_phone: isMinor ? normalizeNumeric(formData.guardian_phone) : null,
+                        guardian_cpf: isMinor ? normalizeNumeric(formData.guardian_cpf) : null,
+                        guardian_relationship: isMinor ? formData.guardian_relationship : null,
                     },
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
                 },
@@ -68,7 +186,7 @@ export default function RegisterPage() {
 
             if (data.user) {
                 setSuccess('Conta criada com sucesso! Verifique seu e-mail para confirmar a conta.');
-                setTimeout(() => router.push('/login'), 3000);
+                setTimeout(() => router.push('/login'), 4000);
             }
         } catch (err) {
             setError(getAuthErrorMessage(err));
@@ -77,30 +195,34 @@ export default function RegisterPage() {
         }
     };
 
+    const filledTerm = templateContent ? fillTemplate(templateContent, formData) : '';
+
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-10 py-12">
-                <div className="flex flex-col items-center gap-4">
+            <div className="w-full max-w-md space-y-8 py-12">
+
+                {/* Logo */}
+                <div className="flex flex-col items-center gap-3">
                     <Link href="/">
-                        <img
-                            src="/logo-camaleao-black.png"
-                            alt="COMPETIR"
-                            className="h-14 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-                        />
+                        <img src="/logo-camaleao-black.png" alt="COMPETIR" className="h-14 w-auto cursor-pointer hover:opacity-80 transition-opacity" />
                     </Link>
-                    <p className="text-body text-muted-foreground">
-                        {step === 1 ? 'Primeiro, como devemos te chamar?' : 'Agora, suas credenciais de acesso.'}
+                    <p className="text-sm text-muted-foreground text-center">
+                        {step === 1 && 'Primeiro, como devemos te chamar?'}
+                        {step === 2 && 'Seus dados pessoais'}
+                        {step === 3 && 'Dados do responsável legal'}
+                        {step === 4 && 'Termo de Responsabilidade'}
+                        {step === 5 && 'Suas credenciais de acesso'}
                     </p>
                 </div>
 
+                {/* Alerts */}
                 {error && (
                     <Alert variant="destructive" className="animate-in fade-in zoom-in duration-300">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Erro</AlertTitle>
+                        <AlertTitle>Atenção</AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 )}
-
                 {success && (
                     <Alert className="border-green-500 text-green-700 bg-green-50 animate-in fade-in zoom-in duration-300 [&>svg]:text-green-600">
                         <CheckCircle2 className="h-4 w-4" />
@@ -109,110 +231,235 @@ export default function RegisterPage() {
                     </Alert>
                 )}
 
-                <form onSubmit={step === 2 ? handleSubmit : (e) => e.preventDefault()} className="space-y-6">
+                <form onSubmit={step === 5 ? handleSubmit : (e) => e.preventDefault()} className="space-y-5">
+
+                    {/* PASSO 1 — Nome */}
                     {step === 1 && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
                             <div className="space-y-2">
-                                <label htmlFor="nome" className="text-sm font-medium leading-none">
-                                    Nome Completo
-                                </label>
+                                <label htmlFor="nome" className="text-sm font-medium">Nome Completo</label>
+                                <Input id="nome" name="nome" placeholder="Seu nome completo" value={formData.nome} onChange={handleInputChange} variant="lg" required disabled={loading} />
+                            </div>
+                            <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.nome.trim()}>
+                                Próximo
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* PASSO 2 — Data de nascimento + CPF */}
+                    {step === 2 && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
+                            <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-600">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle className="font-bold text-sm">Dados importantes</AlertTitle>
+                                <AlertDescription className="text-xs leading-relaxed">
+                                    Informe sua data de nascimento e CPF <strong>corretos</strong>. Dados incorretos podem resultar em classificação errada de categoria, problemas em inscrições e <strong>exclusão da conta</strong>.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-2">
+                                <label htmlFor="birth_date" className="text-sm font-medium">Data de Nascimento</label>
+                                <Input id="birth_date" name="birth_date" type="date" value={formData.birth_date} onChange={handleBirthDateChange} variant="lg" required disabled={loading} />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="cpf" className="text-sm font-medium">CPF</label>
                                 <Input
-                                    id="nome"
-                                    name="nome"
-                                    placeholder="Seu nome"
-                                    value={formData.nome}
-                                    onChange={handleInputChange}
+                                    id="cpf"
+                                    name="cpf"
+                                    placeholder="000.000.000-00"
+                                    value={cpfValue}
+                                    onChange={(e) => {
+                                        const raw = normalizeNumeric(e.target.value).slice(0, 11);
+                                        const formatted = formatCPF(raw);
+                                        setCpfValue(formatted);
+                                        setFormData(prev => ({ ...prev, cpf: raw }));
+                                    }}
                                     variant="lg"
                                     required
                                     disabled={loading}
+                                    inputMode="numeric"
                                 />
                             </div>
-                            <div className="flex justify-center">
-                                <Button
-                                    type="button"
-                                    onClick={nextStep}
-                                    pill
-                                    className="w-full max-w-[320px] h-12 text-base font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
-                                    disabled={!formData.nome || loading}
-                                >
+
+                            <div className="flex flex-col gap-3 pt-2">
+                                <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.birth_date || !formData.cpf}>
                                     Próximo
                                 </Button>
+                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
+                                    <ArrowLeft className="h-4 w-4" /> Voltar
+                                </button>
                             </div>
                         </div>
                     )}
 
-                    {step === 2 && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                    {/* PASSO 3 — Dados do responsável (só menores) */}
+                    {step === 3 && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
+                            <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-600">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle className="font-bold text-sm">Atleta menor de idade</AlertTitle>
+                                <AlertDescription className="text-xs leading-relaxed">
+                                    Por ser menor de 18 anos, é obrigatório o cadastro de um responsável legal. Preencha os dados completos.
+                                </AlertDescription>
+                            </Alert>
+
                             <div className="space-y-2">
-                                <label htmlFor="email" className="text-sm font-medium leading-none">
-                                    E-mail
-                                </label>
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    placeholder="exemplo@competir.com"
-                                    value={formData.email}
-                                    onChange={handleInputChange}
-                                    variant="lg"
-                                    required
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="senha" className="text-sm font-medium leading-none">
-                                    Senha
-                                </label>
-                                <Input
-                                    id="senha"
-                                    name="senha"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={formData.senha}
-                                    onChange={handleInputChange}
-                                    variant="lg"
-                                    required
-                                    disabled={loading}
-                                />
+                                <label className="text-sm font-medium">Parentesco</label>
+                                <Select value={formData.guardian_relationship} onValueChange={(v) => setFormData(prev => ({ ...prev, guardian_relationship: v }))}>
+                                    <SelectTrigger className="h-12 rounded-xl">
+                                        <SelectValue placeholder="Selecione o vínculo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="pai">Pai</SelectItem>
+                                        <SelectItem value="mae">Mãe</SelectItem>
+                                        <SelectItem value="irmao">Irmão/Irmã</SelectItem>
+                                        <SelectItem value="tio">Tio/Tia</SelectItem>
+                                        <SelectItem value="padrinho">Padrinho/Madrinha</SelectItem>
+                                        <SelectItem value="outro">Outro</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
-                            <div className="flex flex-col items-center gap-4 pt-4">
-                                <Button
-                                    type="submit"
-                                    pill
-                                    className="w-full max-w-[320px] h-12 text-base font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
-                                    disabled={!formData.email || !formData.senha || loading}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Criando...
-                                        </>
-                                    ) : (
-                                        'Criar Conta'
-                                    )}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Nome completo do responsável</label>
+                                <Input name="guardian_name" placeholder="Nome do responsável" value={formData.guardian_name} onChange={handleInputChange} variant="lg" disabled={loading} />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">CPF do responsável</label>
+                                    <Input
+                                        placeholder="000.000.000-00"
+                                        value={guardianCpfValue}
+                                        onChange={(e) => {
+                                            const raw = normalizeNumeric(e.target.value).slice(0, 11);
+                                            const formatted = formatCPF(raw);
+                                            setGuardianCpfValue(formatted);
+                                            setFormData(prev => ({ ...prev, guardian_cpf: raw }));
+                                        }}
+                                        variant="lg"
+                                        disabled={loading}
+                                        inputMode="numeric"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Telefone</label>
+                                    <Input
+                                        placeholder="(00) 00000-0000"
+                                        value={guardianPhoneValue}
+                                        onChange={(e) => {
+                                            const raw = normalizeNumeric(e.target.value).slice(0, 11);
+                                            const formatted = formatPhone(raw);
+                                            setGuardianPhoneValue(formatted);
+                                            setFormData(prev => ({ ...prev, guardian_phone: raw }));
+                                        }}
+                                        variant="lg"
+                                        disabled={loading}
+                                        inputMode="numeric"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 pt-2">
+                                <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold"
+                                    disabled={!formData.guardian_name || !formData.guardian_relationship || !formData.guardian_cpf || !formData.guardian_phone}>
+                                    Próximo
                                 </Button>
-                                <button
-                                    type="button"
-                                    onClick={prevStep}
-                                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center"
-                                    disabled={loading}
-                                >
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Voltar
+                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
+                                    <ArrowLeft className="h-4 w-4" /> Voltar
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PASSO 4 — Termo de Responsabilidade (só menores) */}
+                    {step === 4 && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold">Leia o Termo de Responsabilidade</p>
+                                <p className="text-xs text-muted-foreground">Role até o fim para aceitar.</p>
+                            </div>
+
+                            <ScrollArea className="h-64 rounded-xl border bg-muted/30 p-4">
+                                <pre className="text-xs leading-relaxed whitespace-pre-wrap font-sans text-foreground">
+                                    {filledTerm || 'Carregando termo...'}
+                                </pre>
+                            </ScrollArea>
+
+                            <Alert className="border-rose-300 bg-rose-50 text-rose-900 [&>svg]:text-rose-600">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle className="font-bold text-sm">Termo com validade jurídica</AlertTitle>
+                                <AlertDescription className="text-xs leading-relaxed">
+                                    <strong>Baixe, imprima, assine e envie</strong> o termo pelo painel do atleta após criar a conta. Contas sem o documento assinado enviado poderão ser <strong>banidas</strong>.
+                                </AlertDescription>
+                            </Alert>
+
+                            <Button type="button" variant="outline" onClick={handlePrintTerm} pill className="w-full h-10 text-sm font-semibold gap-2">
+                                Baixar / Imprimir Termo
+                            </Button>
+
+                            <div className="flex items-start gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
+                                <Checkbox
+                                    id="guardian_term_accepted"
+                                    checked={formData.guardian_term_accepted}
+                                    onCheckedChange={(v) => setFormData(prev => ({ ...prev, guardian_term_accepted: !!v }))}
+                                    className="mt-0.5"
+                                />
+                                <label htmlFor="guardian_term_accepted" className="text-xs leading-relaxed cursor-pointer text-foreground">
+                                    Li e aceito o Termo de Responsabilidade acima, estando ciente das obrigações e da necessidade de envio do documento assinado.
+                                </label>
+                            </div>
+
+                            <div className="flex flex-col gap-3 pt-1">
+                                <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.guardian_term_accepted}>
+                                    Aceitar e Continuar
+                                </Button>
+                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
+                                    <ArrowLeft className="h-4 w-4" /> Voltar
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PASSO 5 — E-mail + Senha */}
+                    {step === 5 && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
+                            <div className="space-y-2">
+                                <label htmlFor="email" className="text-sm font-medium">E-mail</label>
+                                <Input id="email" name="email" type="email" placeholder="exemplo@competir.com" value={formData.email} onChange={handleInputChange} variant="lg" required disabled={loading} />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="senha" className="text-sm font-medium">Senha</label>
+                                <Input id="senha" name="senha" type="password" placeholder="••••••••" value={formData.senha} onChange={handleInputChange} variant="lg" required disabled={loading} />
+                                <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+                            </div>
+
+                            <div className="flex flex-col gap-3 pt-2">
+                                <Button type="submit" pill className="w-full h-12 text-base font-semibold" disabled={!formData.email || !formData.senha || loading}>
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Criando...</> : 'Criar Conta'}
+                                </Button>
+                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
+                                    <ArrowLeft className="h-4 w-4" /> Voltar
                                 </button>
                             </div>
                         </div>
                     )}
                 </form>
 
-                <div className="pt-4 flex justify-center gap-2">
-                    <div className={`h-1.5 w-12 rounded-full transition-colors duration-300 ${step === 1 ? 'bg-primary' : 'bg-muted'}`} />
-                    <div className={`h-1.5 w-12 rounded-full transition-colors duration-300 ${step === 2 ? 'bg-primary' : 'bg-muted'}`} />
+                {/* Step dots */}
+                <div className="pt-2 flex justify-center gap-2">
+                    {Array.from({ length: totalSteps }).map((_, i) => {
+                        const currentDisplay = step <= 2 ? step : isMinor ? step - 2 : 3;
+                        const dotStep = i + 1;
+                        return (
+                            <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${dotStep === currentDisplay ? 'w-8 bg-primary' : dotStep < currentDisplay ? 'w-4 bg-primary/40' : 'w-4 bg-muted'}`} />
+                        );
+                    })}
                 </div>
             </div>
 
-            <p className="mt-8 text-sm text-muted-foreground">
+            <p className="mt-4 text-sm text-muted-foreground">
                 Já tem uma conta? <Link href="/login" className="font-semibold text-primary hover:underline">Entre aqui</Link>
             </p>
         </div>

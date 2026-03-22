@@ -7,7 +7,7 @@ export function PublicFooter() {
     return (
         <footer className="bg-primary text-primary-foreground border-t border-border/10">
             <div className="max-w-7xl mx-auto px-6 py-16 md:py-20 flex flex-col gap-12 min-h-[250px] justify-between">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
                     {/* Brand Section */}
                     <div className="space-y-6">
                         <Link href="/" className="inline-block">
@@ -49,6 +49,15 @@ export function PublicFooter() {
                         </ul>
                     </div>
 
+                    {/* Legal */}
+                    <div className="space-y-6">
+                        <h4 className="text-h3 font-semibold uppercase tracking-wider">Legal</h4>
+                        <ul className="space-y-4">
+                            <li><Link href="/privacidade" className="text-body text-primary-foreground/50 hover:text-primary-foreground transition-colors">Política de Privacidade</Link></li>
+                            <li><Link href="/termos-de-uso" className="text-body text-primary-foreground/50 hover:text-primary-foreground transition-colors">Termos de Uso</Link></li>
+                        </ul>
+                    </div>
+
                     {/* Contato */}
                     <div className="space-y-6">
                         <h4 className="text-h3 font-semibold uppercase tracking-wider">Suporte</h4>
@@ -78,7 +87,9 @@ export function PublicFooter() {
                     <p className="text-caption font-medium text-primary-foreground/30 uppercase tracking-widest">
                         © {currentYear} COMPETIR. Todos os direitos reservados.
                     </p>
-                    <div className="flex gap-6 items-center">
+                    <div className="flex flex-wrap gap-6 items-center">
+                        <Link href="/privacidade" className="text-[11px] text-primary-foreground/30 hover:text-primary-foreground/60 transition-colors uppercase tracking-widest">Privacidade</Link>
+                        <Link href="/termos-de-uso" className="text-[11px] text-primary-foreground/30 hover:text-primary-foreground/60 transition-colors uppercase tracking-widest">Termos de Uso</Link>
                         <span className="text-[11px] font-bold text-primary-foreground/20 uppercase tracking-widest">FORJADO NO TATAME</span>
                     </div>
                 </div>

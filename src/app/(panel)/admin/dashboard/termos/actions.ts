@@ -83,9 +83,15 @@ export type TermAcceptance = {
     event_start_date_snapshot: string | null;
     accepted_at: string;
     term_version: number;
+    term_type: 'standard' | 'minor';
 };
 
-export async function getTermAcceptancesAction(page = 1, search = ''): Promise<{ data: TermAcceptance[]; total: number }> {
+export async function getTermAcceptancesAction(
+    page = 1,
+    search = '',
+    termType: 'all' | 'standard' | 'minor' = 'all',
+    eventSearch = ''
+): Promise<{ data: TermAcceptance[]; total: number }> {
     const supabase = await createClient();
     const pageSize = 25;
     const from = (page - 1) * pageSize;
@@ -100,13 +106,21 @@ export async function getTermAcceptancesAction(page = 1, search = ''): Promise<{
             event_city_snapshot,
             event_start_date_snapshot,
             accepted_at,
-            terms_of_service!inner ( version )
+            term_type,
+            terms_of_service ( version ),
+            guardian_term_templates ( version )
         `, { count: 'exact' })
         .order('accepted_at', { ascending: false })
         .range(from, to);
 
     if (search.trim()) {
         query = query.ilike('athlete_name_snapshot', `%${search.trim()}%`);
+    }
+    if (eventSearch.trim()) {
+        query = query.ilike('event_title_snapshot', `%${eventSearch.trim()}%`);
+    }
+    if (termType !== 'all') {
+        query = query.eq('term_type', termType);
     }
 
     const { data, count } = await query;
@@ -118,7 +132,8 @@ export async function getTermAcceptancesAction(page = 1, search = ''): Promise<{
         event_city_snapshot: row.event_city_snapshot,
         event_start_date_snapshot: row.event_start_date_snapshot,
         accepted_at: row.accepted_at,
-        term_version: row.terms_of_service?.version ?? 1,
+        term_type: row.term_type ?? 'standard',
+        term_version: row.terms_of_service?.version ?? row.guardian_term_templates?.version ?? 1,
     }));
 
     return { data: mapped, total: count ?? 0 };
@@ -166,26 +181,28 @@ export type GuardianTemplate = {
     created_at: string;
 };
 
-export async function getActiveGuardianTemplateAction(): Promise<GuardianTemplate | null> {
+export async function getActiveGuardianTemplateAction(type: 'academy' | 'self_register' | 'minor_event' | 'academy_management' = 'academy'): Promise<GuardianTemplate | null> {
     const supabase = await createClient();
     const { data } = await supabase
         .from('guardian_term_templates')
         .select('id, version, content, is_active, created_at')
         .eq('is_active', true)
+        .eq('type', type)
         .single();
     return data ?? null;
 }
 
-export async function getAllGuardianTemplatesAction(): Promise<GuardianTemplate[]> {
+export async function getAllGuardianTemplatesAction(type: 'academy' | 'self_register' | 'minor_event' | 'academy_management' = 'academy'): Promise<GuardianTemplate[]> {
     const supabase = await createClient();
     const { data } = await supabase
         .from('guardian_term_templates')
         .select('id, version, content, is_active, created_at')
+        .eq('type', type)
         .order('version', { ascending: false });
     return data ?? [];
 }
 
-export async function saveGuardianTemplateAction(content: string): Promise<{ error?: string }> {
+export async function saveGuardianTemplateAction(content: string, type: 'academy' | 'self_register' | 'minor_event' | 'academy_management' = 'academy'): Promise<{ error?: string }> {
     if (!content.trim()) return { error: 'O conteúdo do termo não pode estar vazio.' };
 
     const supabase = await createClient();
@@ -204,6 +221,7 @@ export async function saveGuardianTemplateAction(content: string): Promise<{ err
     const { data: latest } = await supabase
         .from('guardian_term_templates')
         .select('version')
+        .eq('type', type)
         .order('version', { ascending: false })
         .limit(1)
         .single();
@@ -213,11 +231,12 @@ export async function saveGuardianTemplateAction(content: string): Promise<{ err
     await supabase
         .from('guardian_term_templates')
         .update({ is_active: false })
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('type', type);
 
     const { error } = await supabase
         .from('guardian_term_templates')
-        .insert({ version: nextVersion, content: content.trim(), is_active: true, created_by: user.id });
+        .insert({ version: nextVersion, content: content.trim(), is_active: true, type, created_by: user.id });
 
     if (error) return { error: 'Erro ao salvar o modelo de termo.' };
 
@@ -225,7 +244,7 @@ export async function saveGuardianTemplateAction(content: string): Promise<{ err
     return {};
 }
 
-export async function activateGuardianTemplateAction(templateId: string): Promise<{ error?: string }> {
+export async function activateGuardianTemplateAction(templateId: string, type: 'academy' | 'self_register' | 'minor_event' | 'academy_management' = 'academy'): Promise<{ error?: string }> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -242,7 +261,8 @@ export async function activateGuardianTemplateAction(templateId: string): Promis
     await supabase
         .from('guardian_term_templates')
         .update({ is_active: false })
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('type', type);
 
     const { error } = await supabase
         .from('guardian_term_templates')
@@ -259,11 +279,63 @@ export async function activateGuardianTemplateAction(templateId: string): Promis
 // Guardian declarations list
 // ──────────────────────────────────────────────────────────────
 
-export async function getGuardianDeclarationsAction(page = 1, search = ''): Promise<{ data: GuardianDeclaration[]; total: number }> {
+// ──────────────────────────────────────────────────────────────
+// Academy management authorization list (admin view)
+// ──────────────────────────────────────────────────────────────
+
+export type ManagementAuthorization = {
+    id: string;
+    athlete_name: string;
+    academy_name: string;
+    document_url: string;
+    uploaded_at: string;
+};
+
+export async function getManagementAuthorizationsAction(page = 1, search = ''): Promise<{ data: ManagementAuthorization[]; total: number }> {
+    const supabase = await createClient();
+    const pageSize = 25;
+
+    const { data } = await supabase
+        .from('academy_management_authorizations')
+        .select(`
+            id,
+            document_url,
+            uploaded_at,
+            athlete:profiles!academy_management_authorizations_athlete_id_fkey ( full_name ),
+            academy:profiles!academy_management_authorizations_academy_id_fkey ( full_name, gym_name )
+        `)
+        .order('uploaded_at', { ascending: false });
+
+    let rows = (data ?? []) as any[];
+    if (search.trim()) {
+        const s = search.trim().toLowerCase();
+        rows = rows.filter(r =>
+            (r.athlete?.full_name ?? '').toLowerCase().includes(s) ||
+            (r.academy?.gym_name ?? r.academy?.full_name ?? '').toLowerCase().includes(s)
+        );
+    }
+
+    const total = rows.length;
+    const from = (page - 1) * pageSize;
+    const mapped: ManagementAuthorization[] = rows.slice(from, from + pageSize).map((r: any) => ({
+        id: r.id,
+        athlete_name: r.athlete?.full_name ?? 'Desconhecido',
+        academy_name: r.academy?.gym_name || r.academy?.full_name || 'Desconhecida',
+        document_url: r.document_url,
+        uploaded_at: r.uploaded_at,
+    }));
+
+    return { data: mapped, total };
+}
+
+export async function getGuardianDeclarationsAction(
+    page = 1,
+    search = '',
+    responsibleType: 'all' | 'guardian' | 'academy' = 'all'
+): Promise<{ data: GuardianDeclaration[]; total: number }> {
     const supabase = await createClient();
     const pageSize = 25;
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
     let query = supabase
         .from('athlete_guardian_declarations')
@@ -276,11 +348,14 @@ export async function getGuardianDeclarationsAction(page = 1, search = ''): Prom
             content,
             generated_at,
             profiles!athlete_guardian_declarations_athlete_id_fkey ( full_name )
-        `, { count: 'exact' })
-        .order('generated_at', { ascending: false })
-        .range(from, to);
+        `)
+        .order('generated_at', { ascending: false });
 
-    const { data, count } = await query;
+    if (responsibleType !== 'all') {
+        query = query.eq('responsible_type', responsibleType);
+    }
+
+    const { data } = await query;
 
     let filtered = data ?? [];
     if (search.trim()) {
@@ -291,7 +366,10 @@ export async function getGuardianDeclarationsAction(page = 1, search = ''): Prom
         );
     }
 
-    const mapped: GuardianDeclaration[] = filtered.map((row: any) => ({
+    const total = filtered.length;
+    const sliced = filtered.slice(from, from + pageSize);
+
+    const mapped: GuardianDeclaration[] = sliced.map((row: any) => ({
         id: row.id,
         athlete_id: row.athlete_id,
         athlete_name: row.profiles?.full_name ?? 'Desconhecido',
@@ -302,5 +380,5 @@ export async function getGuardianDeclarationsAction(page = 1, search = ''): Prom
         generated_at: row.generated_at,
     }));
 
-    return { data: mapped, total: count ?? 0 };
+    return { data: mapped, total };
 }
