@@ -4,6 +4,87 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+    pai: 'Pai',
+    mae: 'Mãe',
+    irmao: 'Irmão/Irmã',
+    tio: 'Tio/Tia',
+    padrinho: 'Padrinho/Madrinha',
+    outro: 'Outro',
+};
+
+function isUnder18(birthDateStr: string | null | undefined): boolean {
+    if (!birthDateStr) return false;
+    const birth = new Date(birthDateStr);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age < 18;
+}
+
+async function generateGuardianDeclaration({
+    adminClient,
+    athleteId,
+    athleteName,
+    academyName,
+    hasGuardian,
+    guardianName,
+    guardianCpf,
+    guardianRelationship,
+    guardianPhone,
+}: {
+    adminClient: ReturnType<typeof createAdminClient>;
+    athleteId: string;
+    athleteName: string;
+    academyName: string | null;
+    hasGuardian: boolean;
+    guardianName: string | null;
+    guardianCpf: string | null;
+    guardianRelationship: string | null;
+    guardianPhone: string | null;
+}) {
+    // Fetch active guardian term template
+    const { data: template } = await adminClient
+        .from('guardian_term_templates')
+        .select('content')
+        .eq('is_active', true)
+        .single();
+
+    const templateContent = template?.content ?? '';
+    const today = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const responsibleName = hasGuardian && guardianName ? guardianName : (academyName ?? 'Academia/Equipe');
+    const responsibleCpf = hasGuardian && guardianCpf ? guardianCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—';
+    const responsibleRelationship = hasGuardian && guardianRelationship
+        ? (RELATIONSHIP_LABELS[guardianRelationship] ?? guardianRelationship)
+        : 'Academia/Equipe';
+    const responsiblePhone = hasGuardian && guardianPhone ? guardianPhone : '—';
+
+    const content = templateContent
+        .replace(/{{atleta_nome}}/g, athleteName)
+        .replace(/{{responsavel_nome}}/g, responsibleName)
+        .replace(/{{responsavel_cpf}}/g, responsibleCpf)
+        .replace(/{{responsavel_vinculo}}/g, responsibleRelationship)
+        .replace(/{{responsavel_telefone}}/g, responsiblePhone)
+        .replace(/{{academia_nome}}/g, academyName ?? 'Academia/Equipe')
+        .replace(/{{data}}/g, today);
+
+    await adminClient
+        .from('athlete_guardian_declarations')
+        .upsert({
+            athlete_id: athleteId,
+            responsible_type: hasGuardian && guardianName ? 'guardian' : 'academy',
+            responsible_name: responsibleName,
+            responsible_cpf: hasGuardian ? guardianCpf : null,
+            responsible_relationship: hasGuardian ? guardianRelationship : 'academia',
+            responsible_phone: hasGuardian ? guardianPhone : null,
+            content,
+            generated_at: new Date().toISOString(),
+        }, { onConflict: 'athlete_id' });
+}
 
 const FIELD_NAMES_PT: Record<string, string> = {
     cpf: 'CPF',
@@ -23,7 +104,6 @@ function translateProfileError(err: { code?: string; message?: string; details?:
     const details = err.details ?? '';
 
     if (code === '23505') {
-        if (details.includes('cpf') || message.includes('cpf')) return 'Este CPF já está cadastrado na plataforma.';
         const col = details.match(/\(([^)]+)\)/)?.[1];
         const fieldPT = col ? (FIELD_NAMES_PT[col] ?? col) : 'campo';
         return `Valor duplicado no campo "${fieldPT}". Verifique os dados.`;
@@ -56,7 +136,16 @@ export async function createAthleteAction(formData: FormData) {
     const master_id = is_master ? null : (formData.get('master_id') as string || null);
     const master_name = is_master ? null : (formData.get('master_name') as string || null);
 
+    const has_guardian = formData.get('has_guardian') === 'on';
+    const guardian_name = has_guardian ? (formData.get('guardian_name') as string || null) : null;
+    const guardian_phone = has_guardian ? (formData.get('guardian_phone') as string || '').replace(/\D/g, '') || null : null;
+    const guardian_cpf = has_guardian ? (formData.get('guardian_cpf') as string || '').replace(/\D/g, '') || null : null;
+    const guardian_relationship = has_guardian ? (formData.get('guardian_relationship') as string || null) : null;
+
     if (!full_name) return { error: 'Preencha todos os campos obrigatórios.' };
+    if (has_guardian && (!guardian_name || !guardian_phone || !guardian_cpf)) {
+        return { error: 'Preencha nome, CPF e telefone do responsável legal.' };
+    }
 
     if (!email) {
         const randomStr = Math.random().toString(36).substring(2, 10);
@@ -130,11 +219,31 @@ export async function createAthleteAction(formData: FormData) {
                 master_name,
                 cpf: (formData.get('cpf') as string || '').replace(/\D/g, ''),
                 sexo: formData.get('sexo') as string,
+                has_guardian,
+                guardian_name,
+                guardian_phone,
+                guardian_cpf,
+                guardian_relationship,
             });
 
         if (profileError) {
             await adminClient.auth.admin.deleteUser(user.id);
             return { error: translateProfileError(profileError) };
+        }
+
+        // Auto-generate guardian declaration for minor athletes
+        if (isUnder18(birth_date)) {
+            await generateGuardianDeclaration({
+                adminClient,
+                athleteId: user.id,
+                athleteName: full_name,
+                academyName: gym_name,
+                hasGuardian: has_guardian,
+                guardianName: guardian_name,
+                guardianCpf: guardian_cpf,
+                guardianRelationship: guardian_relationship,
+                guardianPhone: guardian_phone,
+            });
         }
     }
 
@@ -164,7 +273,16 @@ export async function updateAthleteAction(formData: FormData) {
     const master_id = is_master ? null : (formData.get('master_id') as string || null);
     const master_name = is_master ? null : (formData.get('master_name') as string || null);
 
+    const has_guardian = formData.get('has_guardian') === 'on';
+    const guardian_name = has_guardian ? (formData.get('guardian_name') as string || null) : null;
+    const guardian_phone = has_guardian ? (formData.get('guardian_phone') as string || '').replace(/\D/g, '') || null : null;
+    const guardian_cpf = has_guardian ? (formData.get('guardian_cpf') as string || '').replace(/\D/g, '') || null : null;
+    const guardian_relationship = has_guardian ? (formData.get('guardian_relationship') as string || null) : null;
+
     if (!id || !full_name) return { error: 'ID e Nome são obrigatórios.' };
+    if (has_guardian && (!guardian_name || !guardian_phone || !guardian_cpf)) {
+        return { error: 'Preencha nome, CPF e telefone do responsável legal.' };
+    }
 
     const adminClient = createAdminClient();
     const supabase = await createClient();
@@ -228,6 +346,11 @@ export async function updateAthleteAction(formData: FormData) {
         is_master,
         master_id,
         master_name,
+        has_guardian,
+        guardian_name,
+        guardian_phone,
+        guardian_cpf,
+        guardian_relationship,
     };
     // Só atualiza gym_name se não for admin global (admin global não deve sobrescrever)
     if (!isGlobalAdmin && gym_name !== null) {
@@ -276,6 +399,22 @@ export async function updateAthleteAction(formData: FormData) {
         if (bulkError) {
             console.error('Error linking suggested athletes to master:', bulkError);
         }
+    }
+
+    // Auto-generate (or update) guardian declaration for minor athletes
+    if (isUnder18(birth_date)) {
+        const resolvedGymName = gym_name ?? null;
+        await generateGuardianDeclaration({
+            adminClient,
+            athleteId: id,
+            athleteName: full_name,
+            academyName: resolvedGymName,
+            hasGuardian: has_guardian,
+            guardianName: guardian_name,
+            guardianCpf: guardian_cpf,
+            guardianRelationship: guardian_relationship,
+            guardianPhone: guardian_phone,
+        });
     }
 
     revalidatePath('/academia-equipe/dashboard/atletas');

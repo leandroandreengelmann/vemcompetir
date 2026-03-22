@@ -27,6 +27,16 @@ import { updateAthleteAction, deleteAthleteAction, unlinkSuggestedMasterAction }
 import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
 import { toast } from 'sonner';
 
+function isUnder18(dateStr: string | null | undefined): boolean {
+    if (!dateStr) return false;
+    const birth = new Date(dateStr);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age < 18;
+}
+
 interface EditAthleteFormProps {
     athlete: {
         id: string;
@@ -42,6 +52,11 @@ interface EditAthleteFormProps {
         master_name?: string | null;
         cpf?: string | null;
         sexo?: string | null;
+        has_guardian?: boolean;
+        guardian_name?: string | null;
+        guardian_phone?: string | null;
+        guardian_cpf?: string | null;
+        guardian_relationship?: string | null;
     };
     masters: { id: string; full_name: string }[];
     suggestedMasters: string[];
@@ -62,6 +77,12 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
     const [phoneValue, setPhoneValue] = useState(athlete.phone ? formatPhone(athlete.phone) : '');
     const [cpfError, setCpfError] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [birthDateValue, setBirthDateValue] = useState(athlete.birth_date || '');
+    const [hasGuardian, setHasGuardian] = useState(!!athlete.has_guardian);
+    const [guardianCpfValue, setGuardianCpfValue] = useState(athlete.guardian_cpf ? formatCPF(athlete.guardian_cpf) : '');
+    const [guardianPhoneValue, setGuardianPhoneValue] = useState(athlete.guardian_phone ? formatPhone(athlete.guardian_phone) : '');
+
+    const isMinor = isUnder18(birthDateValue);
 
     const handleSubmit = async (e: { preventDefault(): void; currentTarget: HTMLFormElement }) => {
         e.preventDefault();
@@ -231,12 +252,109 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                                 id="birth_date"
                                 name="birth_date"
                                 type="date"
-                                defaultValue={athlete.birth_date || ''}
+                                value={birthDateValue}
+                                onChange={(e) => {
+                                    setBirthDateValue(e.target.value);
+                                    if (!isUnder18(e.target.value)) setHasGuardian(false);
+                                }}
                                 className="bg-background"
                                 disabled={loading}
                             />
                         </div>
                     </div>
+
+                    {/* Responsável Legal — visível apenas para menores de 18 */}
+                    {isMinor && (
+                        <div className="border-2 border-amber-200 bg-amber-50/40 rounded-2xl p-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-start space-x-3">
+                                <Checkbox
+                                    id="has_guardian"
+                                    name="has_guardian"
+                                    checked={hasGuardian}
+                                    onCheckedChange={(v) => setHasGuardian(!!v)}
+                                    disabled={loading}
+                                    className="mt-1"
+                                />
+                                <div>
+                                    <label htmlFor="has_guardian" className="text-panel-sm font-bold leading-none cursor-pointer text-amber-900">
+                                        Adicionar responsável legal
+                                    </label>
+                                    <p className="text-panel-sm text-amber-700 mt-1">
+                                        Atleta menor de 18 anos. Cadastre os dados do responsável legal.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {hasGuardian && (
+                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                    <div className="space-y-2">
+                                        <label className="text-panel-sm font-semibold text-muted-foreground">Vínculo com o atleta (opcional)</label>
+                                        <Select name="guardian_relationship" defaultValue={athlete.guardian_relationship || undefined} disabled={loading}>
+                                            <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0">
+                                                <SelectValue placeholder="Selecione o vínculo" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl">
+                                                <SelectItem value="pai">Pai</SelectItem>
+                                                <SelectItem value="mae">Mãe</SelectItem>
+                                                <SelectItem value="irmao">Irmão / Irmã</SelectItem>
+                                                <SelectItem value="tio">Tio / Tia</SelectItem>
+                                                <SelectItem value="padrinho">Padrinho / Madrinha</SelectItem>
+                                                <SelectItem value="outro">Outro</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label htmlFor="guardian_name" className="text-panel-sm font-semibold text-muted-foreground">
+                                            Nome completo <span className="text-destructive ml-0.5">*</span>
+                                        </label>
+                                        <Input variant="lg"
+                                            id="guardian_name"
+                                            name="guardian_name"
+                                            defaultValue={athlete.guardian_name || ''}
+                                            placeholder="Nome do responsável"
+                                            className="bg-background"
+                                            required={hasGuardian}
+                                            disabled={loading}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label htmlFor="guardian_cpf" className="text-panel-sm font-semibold text-muted-foreground">
+                                                CPF <span className="text-destructive ml-0.5">*</span>
+                                            </label>
+                                            <Input variant="lg"
+                                                id="guardian_cpf"
+                                                name="guardian_cpf"
+                                                value={guardianCpfValue}
+                                                onChange={(e) => setGuardianCpfValue(formatCPF(e.target.value))}
+                                                placeholder="000.000.000-00"
+                                                className="bg-background"
+                                                required={hasGuardian}
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label htmlFor="guardian_phone" className="text-panel-sm font-semibold text-muted-foreground">
+                                                Telefone / WhatsApp <span className="text-destructive ml-0.5">*</span>
+                                            </label>
+                                            <Input variant="lg"
+                                                id="guardian_phone"
+                                                name="guardian_phone"
+                                                value={guardianPhoneValue}
+                                                onChange={(e) => setGuardianPhoneValue(formatPhone(e.target.value))}
+                                                placeholder="(00) 00000-0000"
+                                                className="bg-background"
+                                                required={hasGuardian}
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Linha 3: Sexo + CPF + Peso + Faixa */}
                     <div className="grid grid-cols-6 gap-4">

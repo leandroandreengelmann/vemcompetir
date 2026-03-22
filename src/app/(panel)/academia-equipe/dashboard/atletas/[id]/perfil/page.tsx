@@ -19,7 +19,8 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PassportModal } from '@/components/passport/PassportModal';
-import { IdentificationCardIcon } from '@phosphor-icons/react/dist/ssr';
+import { IdentificationCardIcon, ScrollIcon } from '@phosphor-icons/react/dist/ssr';
+import { GuardianDeclarationModal } from '@/components/guardian/GuardianDeclarationModal';
 
 interface ProfilePageProps {
     params: Promise<{ id: string }>;
@@ -119,6 +120,12 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
         .eq('athlete_id', athleteProfile.id)
         .order('created_at', { ascending: false });
 
+    const { data: guardianDeclaration } = await adminSupabase
+        .from('athlete_guardian_declarations')
+        .select('id, athlete_id, responsible_type, responsible_name, responsible_relationship, content, generated_at')
+        .eq('athlete_id', athleteProfile.id)
+        .maybeSingle();
+
     const age = calculateAge(athleteProfile.birth_date);
 
     return (
@@ -189,6 +196,91 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
                         </div>
                     </div>
                 </div>
+
+                {/* Responsável Legal */}
+                {athleteProfile.has_guardian && athleteProfile.guardian_name && (
+                    <div className="px-8 sm:px-10 pb-8 border-t border-border/40 pt-6">
+                        <div className="flex items-center justify-between gap-4 mb-3">
+                            <p className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest">Responsável Legal</p>
+                            {guardianDeclaration && (
+                                <GuardianDeclarationModal
+                                    declaration={{
+                                        id: guardianDeclaration.id,
+                                        athlete_id: guardianDeclaration.athlete_id,
+                                        athlete_name: athleteProfile.full_name ?? '',
+                                        responsible_type: guardianDeclaration.responsible_type as 'guardian' | 'academy',
+                                        responsible_name: guardianDeclaration.responsible_name,
+                                        responsible_relationship: guardianDeclaration.responsible_relationship,
+                                        content: guardianDeclaration.content,
+                                        generated_at: guardianDeclaration.generated_at,
+                                    }}
+                                    trigger={
+                                        <Button size="sm" variant="outline" className="h-8 px-3 rounded-full font-bold text-xs tracking-wide text-primary border-primary/20 hover:bg-primary hover:text-white transition-colors gap-1.5">
+                                            <ScrollIcon size={14} weight="duotone" />
+                                            Ver Declaração
+                                        </Button>
+                                    }
+                                />
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-6 gap-y-2">
+                            {athleteProfile.guardian_relationship && (
+                                <div className="flex items-center text-panel-sm">
+                                    <span className="font-semibold text-muted-foreground mr-1.5">Vínculo:</span>
+                                    <span className="font-medium text-foreground capitalize">
+                                        {({ pai: 'Pai', mae: 'Mãe', irmao: 'Irmão/Irmã', tio: 'Tio/Tia', padrinho: 'Padrinho/Madrinha', outro: 'Outro' } as Record<string, string>)[athleteProfile.guardian_relationship] || athleteProfile.guardian_relationship}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex items-center text-panel-sm">
+                                <span className="font-semibold text-muted-foreground mr-1.5">Nome:</span>
+                                <span className="font-medium text-foreground">{athleteProfile.guardian_name}</span>
+                            </div>
+                            {athleteProfile.guardian_phone && (
+                                <div className="flex items-center text-panel-sm">
+                                    <span className="font-semibold text-muted-foreground mr-1.5">Telefone:</span>
+                                    <span className="font-medium text-foreground">{athleteProfile.guardian_phone}</span>
+                                </div>
+                            )}
+                            {athleteProfile.guardian_cpf && (
+                                <div className="flex items-center text-panel-sm">
+                                    <span className="font-semibold text-muted-foreground mr-1.5">CPF:</span>
+                                    <span className="font-medium text-foreground">
+                                        {athleteProfile.guardian_cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Declaração para menores sem responsável cadastrado */}
+                {!athleteProfile.has_guardian && guardianDeclaration && (
+                    <div className="px-8 sm:px-10 pb-8 border-t border-border/40 pt-6">
+                        <div className="flex items-center justify-between gap-4">
+                            <p className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest">Declaração de Responsabilidade</p>
+                            <GuardianDeclarationModal
+                                declaration={{
+                                    id: guardianDeclaration.id,
+                                    athlete_id: guardianDeclaration.athlete_id,
+                                    athlete_name: athleteProfile.full_name ?? '',
+                                    responsible_type: guardianDeclaration.responsible_type as 'guardian' | 'academy',
+                                    responsible_name: guardianDeclaration.responsible_name,
+                                    responsible_relationship: guardianDeclaration.responsible_relationship,
+                                    content: guardianDeclaration.content,
+                                    generated_at: guardianDeclaration.generated_at,
+                                }}
+                                trigger={
+                                    <Button size="sm" variant="outline" className="h-8 px-3 rounded-full font-bold text-xs tracking-wide text-primary border-primary/20 hover:bg-primary hover:text-white transition-colors gap-1.5">
+                                        <ScrollIcon size={14} weight="duotone" />
+                                        Ver Declaração
+                                    </Button>
+                                }
+                            />
+                        </div>
+                        <p className="text-panel-sm text-muted-foreground mt-2">Academia registrada como responsável legal.</p>
+                    </div>
+                )}
             </Card>
 
             {/* Registrations History */}
