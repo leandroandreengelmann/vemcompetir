@@ -1,18 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, InfoIcon, TrophyIcon, CircleNotchIcon, CheckIcon } from '@phosphor-icons/react';
+import { InfoIcon, TrophyIcon, CircleNotchIcon, CheckIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useDebounce } from '@/hooks/use-debounce';
-import { searchEventCategories } from '@/app/(panel)/actions/event-categories';
 import { getEligibleCategories } from '../lib/eligible-categories';
 import { addToAthleteCartAction } from '../athlete-cart-actions';
 import { useAthleteCart } from '@/hooks/use-athlete-cart';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // New UI Components
@@ -48,28 +44,12 @@ interface AthleteEventDetailProps {
 }
 
 export default function AthleteEventDetail({ event, beltColor = 'branca' }: AthleteEventDetailProps) {
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState<CategoryResult[]>([]);
     const [suggestions, setSuggestions] = useState<CategoryResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [isIncomplete, setIsIncomplete] = useState(false);
     const [incompleteReasons, setIncompleteReasons] = useState<string[]>([]);
-    const [activeTab, setActiveTab] = useState('sugestoes');
-    const debouncedQuery = useDebounce(query, 300);
 
     const cartItems = useAthleteCart(state => state.items);
-
-    const performSearch = React.useCallback(async (val: string) => {
-        setLoading(true);
-        try {
-            const data = await searchEventCategories(event.id, val);
-            setResults((data as CategoryResult[]) || []);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    }, [event.id]);
 
     const loadSuggestions = React.useCallback(async () => {
         setLoading(true);
@@ -85,18 +65,9 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
         }
     }, [event.id]);
 
-    // Initial load
     useEffect(() => {
-        performSearch('');
         loadSuggestions();
-    }, [performSearch, loadSuggestions]);
-
-    // Debounced search
-    useEffect(() => {
-        if (debouncedQuery !== undefined) {
-            performSearch(debouncedQuery);
-        }
-    }, [debouncedQuery, performSearch]);
+    }, [loadSuggestions]);
 
     const isWhiteBelt = beltColor.toLowerCase().trim() === 'branca' || beltColor.toLowerCase().trim() === 'white';
 
@@ -108,8 +79,6 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
             } as React.CSSProperties}
         >
             <div className="max-w-5xl mx-auto px-4 pt-1 sm:pt-4">
-                {/* Back Button and Title are now handled by AthletePageHeader in the parent page */}
-
                 {/* Main Content Grid: 2 columns on md+ */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10">
 
@@ -127,7 +96,6 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                             city={event.city}
                         />
 
-                        {/* Incomplete Profile Alert (Moved here to stay near event summary on mobile/desktop) */}
                         {isIncomplete && (
                             <Alert className="bg-amber-50/50 border-amber-200 text-amber-800 rounded-2xl p-5 shadow-sm">
                                 <InfoIcon size={20} weight="duotone" className="text-amber-600" />
@@ -151,161 +119,72 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                         )}
                     </div>
 
-                    {/* Column 2: Search + Categories */}
+                    {/* Column 2: Categories */}
                     <div className="md:col-span-7 space-y-6">
-                        <Tabs defaultValue="sugestoes" value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
-                            <TabsList className={`flex items-center justify-center w-full h-14 sm:h-16 p-1 rounded-full bg-muted/30 border shadow-sm overflow-hidden ${isWhiteBelt ? 'border-gray-200' : 'border-primary'}`}>
-                                <TabsTrigger
-                                    value="sugestoes"
-                                    className="flex-1 h-full rounded-full px-4 py-2 text-panel-sm font-bold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                                >
-                                    Sugestões para você
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="todas"
-                                    className="flex-1 h-full rounded-full px-4 py-2 text-panel-sm font-bold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                                >
-                                    Todas as categorias
-                                </TabsTrigger>
-                            </TabsList>
+                        <div className="space-y-1">
+                            <h2 className="text-panel-md font-bold text-foreground">Categorias elegíveis</h2>
+                            <p className="text-panel-sm font-medium text-muted-foreground leading-relaxed">
+                                De acordo com a sua cor de faixa, peso, idade e sexo, aqui estão as categorias às quais você está apto a participar. Você pode verificar e se inscrever em mais de uma delas.
+                            </p>
+                        </div>
 
-                            {/* Suggestions Tab */}
-                            <TabsContent value="sugestoes" className="space-y-6 outline-none animate-in fade-in duration-300">
-                                <div className="space-y-1">
-                                    <h2 className="text-panel-md font-bold text-foreground">Categorias elegíveis</h2>
-                                    <p className="text-panel-sm font-medium text-muted-foreground leading-relaxed">
-                                        De acordo com a sua cor de faixa, peso, idade e sexo, aqui estão as categorias às quais você está apto a participar. Você pode verificar e se inscrever em mais de uma delas.
-                                    </p>
+                        <div className="space-y-3">
+                            {loading && suggestions.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 animate-pulse">
+                                    <CircleNotchIcon size={40} weight="bold" className="text-primary/20 animate-spin mb-4" />
+                                    <p className="text-panel-sm text-muted-foreground italic">Analisando elegibilidade...</p>
                                 </div>
-
-                                <div className="space-y-3">
-                                    {loading && suggestions.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-24 animate-pulse">
-                                            <CircleNotchIcon size={40} weight="bold" className="text-primary/20 animate-spin mb-4" />
-                                            <p className="text-panel-sm text-muted-foreground italic">Analisando elegibilidade...</p>
-                                        </div>
-                                    ) : suggestions.length === 0 ? (
-                                        <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 px-6">
-                                            <TrophyIcon size={56} weight="duotone" className="text-muted-foreground/10" />
-                                            <div className="space-y-1">
-                                                <p className="text-panel-sm font-semibold text-foreground">Nenhuma sugestão encontrada</p>
-                                                <p className="text-panel-sm text-muted-foreground max-w-[280px]">Não encontramos categorias compatíveis com seu perfil neste evento.</p>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                className="text-panel-sm font-bold border-primary/20 text-primary hover:bg-primary/5 rounded-xl px-8 h-11"
-                                                onClick={() => setActiveTab('todas')}
-                                            >
-                                                Ver todas categorias
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        suggestions.map((row) => {
-                                            const isCategoryInCart = cartItems.some(item => item.categoryId === row.id && item.eventId === event.id);
-                                            return (
-                                                <CategoryCard
-                                                    key={row.id}
-                                                    eventId={event.id}
-                                                    category={row}
-                                                    showMatchDetails={true}
-                                                    isWhiteBelt={isWhiteBelt}
-                                                    isInCart={isCategoryInCart}
-                                                    onAddToCart={async () => {
-                                                        try {
-                                                            await addToAthleteCartAction({
-                                                                eventId: event.id,
-                                                                categoryId: row.id,
-                                                            });
-                                                            toast.custom((t) => (
-                                                                <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <CheckIcon size={24} weight="duotone" className="shrink-0" />
-                                                                    <p className="text-panel-md font-bold">Adicionado à cesta!</p>
-                                                                </div>
-                                                            ), { duration: 4000 });
-                                                            useAthleteCart.getState().fetchCart();
-                                                        } catch (err: any) {
-                                                            const msg = err.message || 'Erro ao adicionar à cesta.';
-                                                            toast.custom((t) => (
-                                                                <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <InfoIcon size={24} weight="duotone" className="shrink-0" />
-                                                                    <p className="text-panel-md font-bold">{msg}</p>
-                                                                </div>
-                                                            ), { duration: 5000 });
-                                                            throw err;
-                                                        }
-                                                    }}
-                                                />
-                                            );
-                                        })
-                                    )}
+                            ) : suggestions.length === 0 ? (
+                                <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 px-6">
+                                    <TrophyIcon size={56} weight="duotone" className="text-muted-foreground/10" />
+                                    <div className="space-y-1">
+                                        <p className="text-panel-sm font-semibold text-foreground">Nenhuma sugestão encontrada</p>
+                                        <p className="text-panel-sm text-muted-foreground max-w-[280px]">Não encontramos categorias compatíveis com seu perfil neste evento.</p>
+                                    </div>
                                 </div>
-                            </TabsContent>
-
-                            {/* All Categories Tab */}
-                            <TabsContent value="todas" className="space-y-6 outline-none animate-in fade-in duration-300">
-                                <div className="relative group">
-                                    <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                    <Input
-                                        placeholder="Ex: Master, Meio-Pesado, Marrom..."
-                                        className="pl-12 h-14 text-panel-sm rounded-2xl border border-border shadow-sm bg-card hover:border-primary/20 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all font-medium"
-                                        value={query}
-                                        onChange={(e) => setQuery(e.target.value)}
-                                    />
-                                    {loading && (
-                                        <CircleNotchIcon size={20} weight="bold" className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-primary/30" />
-                                    )}
-                                </div>
-
-                                <div className="space-y-3">
-                                    {results.length === 0 && !loading ? (
-                                        <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 px-6">
-                                            <TrophyIcon size={56} weight="duotone" className="text-muted-foreground/10" />
-                                            <p className="text-panel-sm font-medium text-muted-foreground">Nenhuma categoria encontrada para essa busca.</p>
-                                        </div>
-                                    ) : (
-                                        results.slice(0, 30).map((row) => {
-                                            const isCategoryInCart = cartItems.some(item => item.categoryId === row.id && item.eventId === event.id);
-                                            return (
-                                                <CategoryCard
-                                                    key={row.id}
-                                                    eventId={event.id}
-                                                    category={row}
-                                                    isWhiteBelt={isWhiteBelt}
-                                                    isInCart={isCategoryInCart}
-                                                    onAddToCart={async () => {
-                                                        try {
-                                                            await addToAthleteCartAction({
-                                                                eventId: event.id,
-                                                                categoryId: row.id,
-                                                            });
-                                                            toast.custom((t) => (
-                                                                <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <CheckIcon size={24} weight="duotone" className="shrink-0" />
-                                                                    <p className="text-panel-md font-bold">Adicionado à cesta!</p>
-                                                                </div>
-                                                            ), { duration: 4000 });
-                                                            useAthleteCart.getState().fetchCart();
-                                                        } catch (err: any) {
-                                                            const msg = err.message || 'Erro ao adicionar à cesta.';
-                                                            toast.custom((t) => (
-                                                                <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
-                                                                    <InfoIcon size={24} weight="duotone" className="shrink-0" />
-                                                                    <p className="text-panel-md font-bold">{msg}</p>
-                                                                </div>
-                                                            ), { duration: 5000 });
-                                                            throw err;
-                                                        }
-                                                    }}
-                                                />
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </TabsContent>
-                        </Tabs>
+                            ) : (
+                                suggestions.map((row) => {
+                                    const isCategoryInCart = cartItems.some(item => item.categoryId === row.id && item.eventId === event.id);
+                                    return (
+                                        <CategoryCard
+                                            key={row.id}
+                                            eventId={event.id}
+                                            category={row}
+                                            showMatchDetails={true}
+                                            isWhiteBelt={isWhiteBelt}
+                                            isInCart={isCategoryInCart}
+                                            onAddToCart={async () => {
+                                                try {
+                                                    await addToAthleteCartAction({
+                                                        eventId: event.id,
+                                                        categoryId: row.id,
+                                                    });
+                                                    toast.custom((t) => (
+                                                        <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
+                                                            <CheckIcon size={24} weight="duotone" className="shrink-0" />
+                                                            <p className="text-panel-md font-bold">Adicionado à cesta!</p>
+                                                        </div>
+                                                    ), { duration: 4000 });
+                                                    useAthleteCart.getState().fetchCart();
+                                                } catch (err: any) {
+                                                    const msg = err.message || 'Erro ao adicionar à cesta.';
+                                                    toast.custom((t) => (
+                                                        <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
+                                                            <InfoIcon size={24} weight="duotone" className="shrink-0" />
+                                                            <p className="text-panel-md font-bold">{msg}</p>
+                                                        </div>
+                                                    ), { duration: 5000 });
+                                                    throw err;
+                                                }
+                                            }}
+                                        />
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

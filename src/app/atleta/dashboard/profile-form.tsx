@@ -365,33 +365,21 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                             <Label htmlFor="birth_date" className="text-panel-sm font-medium text-muted-foreground">
                                 Data de nascimento <span className="text-red-500 ml-1">*</span>
                             </Label>
-                            {profile?.birth_date ? (
-                                <>
-                                    <input type="hidden" name="birth_date" value={birthDateValue} />
-                                    <div className={`h-12 rounded-xl border px-3 flex items-center bg-muted/40 text-panel-sm font-medium text-muted-foreground ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
-                                        {new Date(birthDateValue + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                        {calculatedAge !== null && (
-                                            <span className="ml-2 text-muted-foreground/60">({calculatedAge} anos)</span>
-                                        )}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <Input
-                                        id="birth_date"
-                                        name="birth_date"
-                                        type="date"
-                                        value={birthDateValue}
-                                        onChange={(e) => setBirthDateValue(e.target.value)}
-                                        required
-                                        max={new Date().toISOString().split('T')[0]}
-                                        className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
-                                    />
-                                    {calculatedAge !== null && (
-                                        <p className="text-panel-sm text-muted-foreground font-medium">{calculatedAge} anos</p>
-                                    )}
-                                </>
-                            )}
+                            <>
+                                <Input
+                                    id="birth_date"
+                                    name="birth_date"
+                                    type="date"
+                                    value={birthDateValue}
+                                    onChange={(e) => setBirthDateValue(e.target.value)}
+                                    required
+                                    max={new Date().toISOString().split('T')[0]}
+                                    className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
+                                />
+                                {calculatedAge !== null && (
+                                    <p className="text-panel-sm text-muted-foreground font-medium">{calculatedAge} anos</p>
+                                )}
+                            </>
                         </div>
 
                         <div className="space-y-2">
