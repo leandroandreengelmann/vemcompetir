@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquareQuote } from 'lucide-react';
+import { CaretLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { Card, CardContent } from "@/components/ui/card";
 import { SuggestionsContent } from './components/suggestions-content';
+import { SectionHeader } from '@/components/layout/SectionHeader';
+import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,35 +95,29 @@ export default async function CommunitySuggestionsPage() {
     const displaySuggestions = Object.values(grouped).sort((a: any, b: any) => b.count - a.count);
 
     return (
-        <div className="space-y-8">
-            {/* Header */}
-            <div>
-                <Link
-                    href="/admin/dashboard"
-                    className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit mb-2"
-                >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar para o Dashboard
-                </Link>
-                <div className="flex items-center gap-3">
-                    <div>
-                        <h1 className="text-h1 tracking-tight">Sugestões da Comunidade</h1>
-                        <p className="text-ui text-muted-foreground">Academias e Mestres citados manualmente pelos atletas.</p>
-                    </div>
-                </div>
-            </div>
+        <div className="space-y-6">
+            <SectionHeader
+                title="Sugestões da Comunidade"
+                description="Academias e Mestres citados manualmente pelos atletas."
+                rightElement={
+                    <Button variant="outline" pill asChild className="gap-2 font-semibold">
+                        <Link href="/admin/dashboard">
+                            <CaretLeftIcon size={20} weight="bold" />
+                            Voltar ao Painel
+                        </Link>
+                    </Button>
+                }
+            />
 
-            {/* Informação */}
             <Card className="bg-primary/5 border-primary/10">
                 <CardContent className="pt-6">
-                    <p className="text-ui text-primary/80 leading-relaxed">
+                    <p className="text-panel-sm text-primary/80 leading-relaxed">
                         Esta lista mostra as academias e mestres que atletas digitaram <strong>manualmente</strong> no perfil.
                         Isso acontece quando eles não encontram a opção oficial. Use estes dados para identificar novas academias que deveriam ter um cadastro oficial no sistema.
                     </p>
                 </CardContent>
             </Card>
 
-            {/* Tabela Interativa e Modal Baseados no Cliente */}
             <SuggestionsContent suggestions={displaySuggestions as any} />
         </div>
     );

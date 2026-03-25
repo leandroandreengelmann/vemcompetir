@@ -29,7 +29,7 @@ function getEventPalette(eventId: string) {
 const STATUS_LABEL: Record<PassportStatus, string> = {
     pago: 'CONFIRMADO',
     confirmado: 'CONFIRMADO',
-    isento: 'ISENTO',
+    isento: 'CORTESIA',
 };
 
 interface RegistrationPassportProps {
@@ -327,7 +327,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     fontSize: '11px',
                     fontWeight: 500,
                 }}>
-                    competir.com.br
+                    vemcompetir.com.br
                 </span>
                 <img
                     src="/competir-icon-white.png"

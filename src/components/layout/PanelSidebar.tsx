@@ -20,6 +20,8 @@ import {
     HandCoinsIcon,
     FileTextIcon,
     ScalesIcon,
+    ChartBarIcon,
+    TicketIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -77,6 +79,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             roles: ['admin_geral', 'academia/equipe'],
         },
         {
+            label: "Cortesias",
+            icon: TicketIcon,
+            href: "/academia-equipe/dashboard/cortesias",
+            roles: ['academia/equipe'],
+        },
+        {
             label: "Eventos Disponíveis",
             icon: CalendarIcon,
             href: "/academia-equipe/dashboard/eventos/disponiveis",
@@ -93,6 +101,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             icon: UserIcon,
             href: "/academia-equipe/dashboard/perfil",
             roles: ['academia/equipe'],
+        },
+        {
+            label: "Financeiro",
+            icon: ChartBarIcon,
+            href: "/admin/dashboard/financeiro",
+            roles: ['admin_geral'],
         },
         {
             label: "Cobrança Integral",

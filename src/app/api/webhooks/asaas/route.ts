@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decrypt, hashToken } from '@/lib/crypto';
+import { auditLog } from '@/lib/audit-log';
 
 async function getAsaasConfig() {
     const admin = createAdminClient();
@@ -20,25 +21,63 @@ async function getAsaasConfig() {
     return { apiKey, baseUrl, webhookTokenHash: settings.webhook_token_hash };
 }
 
+async function getVerifyConfig(organizerTenantId?: string | null) {
+    const admin = createAdminClient();
+
+    if (organizerTenantId) {
+        const { data: tenant } = await admin
+            .from('tenants')
+            .select('use_own_asaas_api, asaas_api_key_encrypted, asaas_api_key_iv')
+            .eq('id', organizerTenantId)
+            .single();
+
+        if (tenant?.use_own_asaas_api && tenant.asaas_api_key_encrypted && tenant.asaas_api_key_iv) {
+            const apiKey = decrypt(tenant.asaas_api_key_encrypted, tenant.asaas_api_key_iv);
+            const { data: settings } = await admin
+                .from('asaas_settings')
+                .select('environment')
+                .eq('is_enabled', true)
+                .single();
+            const baseUrl = settings?.environment === 'production'
+                ? 'https://api.asaas.com'
+                : 'https://api-sandbox.asaas.com';
+            return { apiKey, baseUrl };
+        }
+    }
+
+    return getAsaasConfig();
+}
+
 export async function POST(request: NextRequest) {
     try {
         // 1. Validate Asaas webhook token BEFORE reading body
         const incomingToken = request.headers.get('asaas-access-token');
         const admin = createAdminClient();
 
-        const { data: settings } = await admin
+        const { data: globalSettings } = await admin
             .from('asaas_settings')
             .select('webhook_token_hash')
             .eq('is_enabled', true)
             .single();
 
-        if (!settings?.webhook_token_hash) {
-            console.error('[webhook] Critical: Webhook token hash not configured in database. Rejecting all webhooks.');
+        const { data: tenantsWithOwnApi } = await admin
+            .from('tenants')
+            .select('asaas_webhook_token_hash')
+            .eq('use_own_asaas_api', true)
+            .not('asaas_webhook_token_hash', 'is', null);
+
+        const validHashes = [
+            globalSettings?.webhook_token_hash,
+            ...(tenantsWithOwnApi?.map(t => t.asaas_webhook_token_hash) ?? []),
+        ].filter(Boolean) as string[];
+
+        if (validHashes.length === 0) {
+            console.error('[webhook] Critical: No webhook token hashes configured. Rejecting all webhooks.');
             return NextResponse.json({ error: 'Webhook not configured securely' }, { status: 401 });
         }
 
-        if (!incomingToken || hashToken(incomingToken) !== settings.webhook_token_hash) {
-            console.warn('[webhook] Invalid or missing asaas-access-token');
+        if (!incomingToken || !validHashes.includes(hashToken(incomingToken))) {
+            auditLog('WEBHOOK_INVALID_TOKEN', { has_token: !!incomingToken }, 'warn');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -95,17 +134,17 @@ export async function POST(request: NextRequest) {
         // Find our payment record
         const { data: paymentRecord } = await admin
             .from('payments')
-            .select('id, status')
+            .select('id, status, tenant_id_organizer')
             .eq('asaas_payment_id', asaasPaymentId)
             .single();
 
         if (!paymentRecord) {
-            console.warn(`[webhook] Payment not found for asaas_payment_id: ${asaasPaymentId}`);
+            auditLog('WEBHOOK_PAYMENT_NOT_FOUND', { asaas_payment_id: asaasPaymentId }, 'warn');
             return NextResponse.json({ ok: true }); // Not ours, ignore
         }
 
-        // Revalidate with Asaas API for security
-        const config = await getAsaasConfig();
+        // Revalidate with Asaas API using the correct key (global or tenant's own)
+        const config = await getVerifyConfig(paymentRecord.tenant_id_organizer);
         let confirmedStatus: string | null = null;
 
         let verifiedData: any = null;
@@ -185,7 +224,13 @@ export async function POST(request: NextRequest) {
                 .update({ status: 'pago' })
                 .eq('payment_id', paymentRecord.id);
 
-            console.log(`[webhook] Payment ${paymentRecord.id} marked as PAID`);
+            auditLog('WEBHOOK_PAYMENT_CONFIRMED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, value: confirmedValue, net_value: confirmedNetValue });;
+        }
+
+        // Handle PARTIALLY_RECEIVED — log only, no action (Asaas will send RECEIVED when complete)
+        if (effectiveStatus === 'PARTIALLY_RECEIVED') {
+            auditLog('WEBHOOK_PARTIALLY_RECEIVED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId }, 'warn');
+            return NextResponse.json({ ok: true });
         }
 
         // Handle OVERDUE/DELETED/REFUNDED → revert to cart
@@ -210,7 +255,7 @@ export async function POST(request: NextRequest) {
                 .update({ status: 'carrinho', payment_id: null })
                 .eq('payment_id', paymentRecord.id);
 
-            console.log(`[webhook] Payment ${paymentRecord.id} marked as ${newStatus}, registrations reverted to cart`);
+            auditLog(newStatus === 'CANCELLED' ? 'WEBHOOK_PAYMENT_CANCELLED' : 'WEBHOOK_PAYMENT_EXPIRED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, asaas_status: effectiveStatus });;
         }
 
         return NextResponse.json({ ok: true });

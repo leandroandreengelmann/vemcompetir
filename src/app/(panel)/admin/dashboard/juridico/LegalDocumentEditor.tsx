@@ -94,12 +94,12 @@ export function LegalDocumentEditor({ activeDoc, allDocs, onSave, onActivate, em
                         <>
                             {allDocs.length > 1 && (
                                 <Button variant="outline" pill onClick={() => setShowHistory(!showHistory)}>
-                                    <ClockCounterClockwiseIcon size={16} weight="duotone" className="mr-2" />
+                                    <ClockCounterClockwiseIcon size={20} weight="duotone" className="mr-2" />
                                     Histórico ({allDocs.length})
                                 </Button>
                             )}
                             <Button pill onClick={handleEdit}>
-                                <PencilSimpleIcon size={16} weight="duotone" className="mr-2" />
+                                <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
                                 Editar
                             </Button>
                         </>
@@ -107,11 +107,11 @@ export function LegalDocumentEditor({ activeDoc, allDocs, onSave, onActivate, em
                     {editing && (
                         <>
                             <Button variant="outline" pill onClick={handleCancel} disabled={isPending}>
-                                <XIcon size={16} className="mr-2" />
+                                <XIcon size={20} weight="duotone" className="mr-2" />
                                 Cancelar
                             </Button>
                             <Button pill onClick={handleSave} disabled={isPending}>
-                                <FloppyDiskIcon size={16} weight="duotone" className="mr-2" />
+                                <FloppyDiskIcon size={20} weight="duotone" className="mr-2" />
                                 {isPending ? 'Salvando...' : 'Salvar Nova Versão'}
                             </Button>
                         </>
@@ -137,7 +137,7 @@ export function LegalDocumentEditor({ activeDoc, allDocs, onSave, onActivate, em
                             </div>
                             {!doc.is_active && (
                                 <Button variant="outline" pill size="sm" onClick={() => handleActivate(doc.id)} disabled={isPending}>
-                                    <CheckIcon size={14} className="mr-1.5" />
+                                    <CheckIcon size={20} weight="duotone" className="mr-1.5" />
                                     Ativar
                                 </Button>
                             )}

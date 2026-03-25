@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { registerSuggestedGym } from '../actions';
 import { toast } from "sonner";
-import { Loader2 } from 'lucide-react';
+import { SpinnerGapIcon } from '@phosphor-icons/react';
 
 interface SuggestionDetail {
     gym_name: string;
@@ -108,7 +108,7 @@ export function RegisterGymModal({ isOpen, onClose, suggestion }: RegisterGymMod
                             Cancelar
                         </Button>
                         <Button type="submit" pill disabled={isPending}>
-                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isPending && <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />}
                             Criar e Vincular Alunos
                         </Button>
                     </div>

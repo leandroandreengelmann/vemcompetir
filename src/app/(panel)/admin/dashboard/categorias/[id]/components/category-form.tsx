@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { createCategoryRow, updateCategoryRow, CategoryRow } from '../../../../actions/categories';
-import { Loader2 } from 'lucide-react';
+import { SpinnerGapIcon } from '@phosphor-icons/react';
 
 interface CategoryFormProps {
     tableId: string;
@@ -159,7 +159,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
     return (
         <form onSubmit={handleSubmit} className={`space-y-4 border p-4 rounded-lg shadow-sm ${initialData ? 'bg-amber-50/50 border-amber-200' : 'bg-card'}`}>
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-h3">
+                <h3 className="text-panel-md font-semibold">
                     {initialData ? 'Editar Categoria' : 'Cadastro Manual'}
                 </h3>
                 {initialData && (
@@ -169,7 +169,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="sexo" className="text-ui font-medium leading-none">Sexo *</Label>
+                    <Label htmlFor="sexo" className="text-panel-sm font-medium leading-none">Sexo *</Label>
                     <Select value={formData.sexo} onValueChange={(val) => handleChange('sexo', val)}>
                         <SelectTrigger id="sexo" className="h-12 rounded-xl px-4 bg-background">
                             <SelectValue placeholder="Selecione" />
@@ -183,7 +183,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="uniforme" className="text-ui font-medium leading-none">Uniforme *</Label>
+                    <Label htmlFor="uniforme" className="text-panel-sm font-medium leading-none">Uniforme *</Label>
                     <Select value={formData.uniforme} onValueChange={(val) => handleChange('uniforme', val)}>
                         <SelectTrigger id="uniforme" className="h-12 rounded-xl px-4 bg-background">
                             <SelectValue placeholder="Selecione" />
@@ -196,7 +196,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="categoria_peso" className="text-ui font-medium leading-none">Categoria de Peso *</Label>
+                    <Label htmlFor="categoria_peso" className="text-panel-sm font-medium leading-none">Categoria de Peso *</Label>
                     <Input variant="lg"
                         id="categoria_peso"
                         value={formData.categoria_peso}
@@ -207,7 +207,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="divisao_idade" className="text-ui font-medium leading-none">Divisão de Idade *</Label>
+                    <Label htmlFor="divisao_idade" className="text-panel-sm font-medium leading-none">Divisão de Idade *</Label>
                     <Input variant="lg"
                         id="divisao_idade"
                         value={formData.divisao_idade}
@@ -218,7 +218,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="idade" className="text-ui font-medium leading-none">Idade (Descritivo) *</Label>
+                    <Label htmlFor="idade" className="text-panel-sm font-medium leading-none">Idade (Descritivo) *</Label>
                     <Input variant="lg"
                         id="idade"
                         value={formData.idade}
@@ -229,7 +229,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="faixa" className="text-ui font-medium leading-none">Faixa *</Label>
+                    <Label htmlFor="faixa" className="text-panel-sm font-medium leading-none">Faixa *</Label>
                     <Input variant="lg"
                         id="faixa"
                         value={formData.faixa}
@@ -240,7 +240,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="peso_min_kg" className="text-ui font-medium leading-none">Peso Mín (kg)</Label>
+                    <Label htmlFor="peso_min_kg" className="text-panel-sm font-medium leading-none">Peso Mín (kg)</Label>
                     <Input variant="lg"
                         id="peso_min_kg"
                         type="number"
@@ -253,7 +253,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="peso_max_kg" className="text-ui font-medium leading-none">Peso Máx (kg)</Label>
+                    <Label htmlFor="peso_max_kg" className="text-panel-sm font-medium leading-none">Peso Máx (kg)</Label>
                     <Input variant="lg"
                         id="peso_max_kg"
                         type="number"
@@ -267,7 +267,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="categoria_completa" className="text-ui font-medium leading-none">Categoria Completa (Gerado Automaticamente)</Label>
+                <Label htmlFor="categoria_completa" className="text-panel-sm font-medium leading-none">Categoria Completa (Gerado Automaticamente)</Label>
                 <div className="flex gap-2">
                     <Input variant="lg"
                         id="categoria_completa"
@@ -290,7 +290,7 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
                     pill
                     className="w-full max-w-[320px] h-12 font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
                 >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {loading && <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />}
                     {initialData ? 'Salvar Edição' : 'Adicionar Categoria'}
                 </Button>
             </div>

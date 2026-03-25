@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { CaretLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +60,7 @@ export default async function UserManagementPage() {
                 rightElement={
                     <Button asChild variant="ghost" pill className="gap-2">
                         <Link href="/admin/dashboard">
-                            <ChevronLeft className="w-4 h-4" />
+                            <CaretLeftIcon size={20} weight="bold" />
                             Voltar para o Painel
                         </Link>
                     </Button>
@@ -79,7 +79,7 @@ export default async function UserManagementPage() {
                         <TabsContent value="organizador">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="text-h2">Novo Organizador</CardTitle>
+                                    <CardTitle className="text-panel-md font-semibold">Novo Organizador</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <form action={createOrganizerAction} className="space-y-4">
@@ -104,7 +104,7 @@ export default async function UserManagementPage() {
                         <TabsContent value="academia">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="text-h2">Nova Academia</CardTitle>
+                                    <CardTitle className="text-panel-md font-semibold">Nova Academia</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <form action={createGymAction} className="space-y-4">
@@ -132,9 +132,9 @@ export default async function UserManagementPage() {
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-h2 flex items-center justify-between">
+                            <CardTitle className="text-panel-md font-semibold flex items-center justify-between">
                                 Contas Criadas
-                                <span className="text-ui font-normal text-muted-foreground">
+                                <span className="text-panel-sm font-normal text-muted-foreground">
                                     {accounts?.length || 0} registros
                                 </span>
                             </CardTitle>
@@ -152,13 +152,13 @@ export default async function UserManagementPage() {
                                 <TableBody>
                                     {accountsWithEmails?.map((acc) => (
                                         <TableRow key={acc.id}>
-                                            <TableCell className="pl-6 capitalize text-ui font-medium">
+                                            <TableCell className="pl-6 capitalize text-panel-sm font-medium">
                                                 {acc.role === 'academia' ? 'Academia' : 'Organizador'}
                                             </TableCell>
                                             <TableCell>
                                                 {acc.gym_name || acc.full_name || 'Sem nome'}
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground text-caption">
+                                            <TableCell className="text-muted-foreground text-panel-sm">
                                                 {acc.email}
                                             </TableCell>
                                             <TableCell className="text-right pr-6 text-muted-foreground text-sm">

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createOrganizerAction } from '../actions';
@@ -46,7 +46,7 @@ export default function NovoAcademiaEquipePage() {
                         href="/admin/dashboard/equipes-academias"
                         className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
                         Voltar para a lista
                     </Link>
 
@@ -66,7 +66,7 @@ export default function NovoAcademiaEquipePage() {
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="space-y-6">
                         <div className="space-y-4">
-                            <h2 className="text-h2 border-b pb-2">Informações da Organização</h2>
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Informações da Organização</h2>
 
                             <div className="space-y-2">
                                 <label htmlFor="full_name" className="text-ui font-medium leading-none">
@@ -97,7 +97,7 @@ export default function NovoAcademiaEquipePage() {
                         </div>
 
                         <div className="space-y-4">
-                            <h2 className="text-h2 border-b pb-2">Endereço</h2>
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Endereço</h2>
 
                             <div className="space-y-2">
                                 <label htmlFor="address_street" className="text-ui font-medium leading-none">
@@ -166,7 +166,7 @@ export default function NovoAcademiaEquipePage() {
                         </div>
 
                         <div className="space-y-4">
-                            <h2 className="text-h2 border-b pb-2">Dados de Acesso</h2>
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Dados de Acesso</h2>
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
@@ -212,7 +212,7 @@ export default function NovoAcademiaEquipePage() {
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                     Cadastrando...
                                 </>
                             ) : (

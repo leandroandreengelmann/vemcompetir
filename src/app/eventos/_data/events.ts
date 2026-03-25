@@ -9,6 +9,8 @@ export interface PublicEvent {
     address_city?: string;
     address_state?: string;
     image_path?: string;
+    secondary_image_1_path?: string | null;
+    secondary_image_2_path?: string | null;
     status: string;
     // Mapings for UI
     starts_at?: string;

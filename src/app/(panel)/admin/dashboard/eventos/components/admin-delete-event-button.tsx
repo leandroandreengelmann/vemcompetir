@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Loader2 } from 'lucide-react';
+import { TrashIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { deleteAdminEventAction } from '../actions';
 import { DeleteConfirmationDialog } from '@/components/panel/DeleteConfirmationDialog';
@@ -40,7 +40,7 @@ export default function AdminDeleteEventButton({ eventId, eventTitle }: AdminDel
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 pill
             >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {loading ? <SpinnerGapIcon size={20} weight="bold" className="animate-spin" /> : <TrashIcon size={20} weight="duotone" />}
                 <span className="sr-only">Excluir Evento</span>
             </Button>
 

@@ -98,7 +98,7 @@ export function ManagementAuthorizationSection({
                                 asChild
                             >
                                 <a href={status.document_url} target="_blank" rel="noopener noreferrer">
-                                    <ArrowSquareOutIcon size={13} weight="duotone" />
+                                    <ArrowSquareOutIcon size={20} weight="duotone" />
                                     Ver doc.
                                 </a>
                             </Button>
@@ -110,7 +110,7 @@ export function ManagementAuthorizationSection({
                             onClick={() => fileRef.current?.click()}
                             disabled={isPending}
                         >
-                            <UploadSimpleIcon size={13} weight="duotone" />
+                            <UploadSimpleIcon size={20} weight="duotone" />
                             Substituir
                         </Button>
                     </div>
@@ -123,7 +123,7 @@ export function ManagementAuthorizationSection({
                             onClick={handleDownloadTemplate}
                             disabled={isPending}
                         >
-                            <FileIcon size={13} weight="duotone" />
+                            <FileIcon size={20} weight="duotone" />
                             Baixar Modelo
                         </Button>
                         <Button
@@ -132,7 +132,7 @@ export function ManagementAuthorizationSection({
                             onClick={() => fileRef.current?.click()}
                             disabled={isPending}
                         >
-                            <UploadSimpleIcon size={13} weight="duotone" />
+                            <UploadSimpleIcon size={20} weight="duotone" />
                             {isPending ? 'Enviando...' : 'Enviar Assinado'}
                         </Button>
                     </div>

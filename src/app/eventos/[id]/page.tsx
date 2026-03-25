@@ -222,7 +222,7 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
 
                         {/* Hero Image Section */}
-                        <div className="lg:col-span-5">
+                        <div className="lg:col-span-5 space-y-3">
                             <div className="relative aspect-square overflow-hidden rounded-[7px] border bg-card shadow-2xl ring-1 ring-black/5">
                                 {coverUrl ? (
                                     <Image
@@ -240,6 +240,27 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
                             </div>
+
+                            {(event.secondary_image_1_path || event.secondary_image_2_path) && (() => {
+                                const hasBoth = !!(event.secondary_image_1_path && event.secondary_image_2_path);
+                                const images = [
+                                    event.secondary_image_1_path,
+                                    event.secondary_image_2_path,
+                                ].filter(Boolean) as string[];
+                                return (
+                                    <div className={hasBoth ? 'grid grid-cols-2 gap-3' : 'w-full'}>
+                                        {images.map((path, i) => (
+                                            <div key={i} className="overflow-hidden rounded-[7px]">
+                                                <img
+                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${path}`}
+                                                    alt={`${event.title} - imagem ${i + 1}`}
+                                                    className="w-full h-auto block"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Content Section - Distributed vertically */}

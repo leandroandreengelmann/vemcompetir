@@ -27,11 +27,11 @@ export function RevenueOverTimeChart({ data }: RevenueOverTimeChartProps) {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-background border border-border p-3 rounded-lg shadow-sm">
-                    <p className="font-medium text-ui mb-1">{label}</p>
+                    <p className="font-medium text-panel-sm mb-1">{label}</p>
                     <p className="text-emerald-500 text-sm font-bold">
                         {formatter.format(payload[0].value)}
                     </p>
-                    <p className="text-muted-foreground text-caption mt-1">
+                    <p className="text-muted-foreground text-panel-sm mt-1">
                         {payload[1].value} Inscrições
                     </p>
                 </div>
@@ -43,7 +43,7 @@ export function RevenueOverTimeChart({ data }: RevenueOverTimeChartProps) {
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle className="text-h3">Faturamento Bruto</CardTitle>
+                <CardTitle className="text-panel-md font-semibold">Faturamento Bruto</CardTitle>
                 <CardDescription>Evolução mensal de receitas arrecadadas pelas inscrições.</CardDescription>
             </CardHeader>
             <CardContent>

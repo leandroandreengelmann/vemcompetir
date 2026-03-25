@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from 'next/link';
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -14,7 +13,6 @@ import { getAuthErrorMessage } from '@/lib/auth-errors';
 
 
 export default function LoginPage() {
-    const router = useRouter();
     const supabase = createClient();
 
     const [loading, setLoading] = useState(false);
@@ -68,11 +66,15 @@ export default function LoginPage() {
                 atleta: '/atleta/dashboard'
             };
 
-            const targetRoute = roleRoutes[activeRole as string] || '/';
+            const targetRoute = roleRoutes[activeRole as string];
+
+            if (!targetRoute) {
+                throw new Error('Perfil de usuário não encontrado. Tente novamente.');
+            }
 
             // Special handling for Administrators: Always go to dashboard
             if (activeRole === 'admin_geral') {
-                router.push(targetRoute);
+                window.location.href = targetRoute;
                 return;
             }
 
@@ -88,7 +90,7 @@ export default function LoginPage() {
             if (activeRole === 'atleta') {
                 if (interestedEventId) {
                     await clearInterest();
-                    router.push(`/atleta/dashboard/campeonatos/${interestedEventId}`);
+                    window.location.href = `/atleta/dashboard/campeonatos/${interestedEventId}`;
                     return;
                 }
             } else {
@@ -100,7 +102,9 @@ export default function LoginPage() {
             }
 
             // Default redirection for everyone else (including athletes without interest)
-            router.push(targetRoute);
+            // window.location.href forces a full HTTP request, ensuring the middleware
+            // picks up the new session cookies set by Supabase after signInWithPassword
+            window.location.href = targetRoute;
         } catch (err) {
             setError(getAuthErrorMessage(err));
         } finally {

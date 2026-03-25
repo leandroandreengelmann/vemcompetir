@@ -147,12 +147,12 @@ export function GuardianTermEditor({ activeTemplate, allTemplates, type = 'acade
                                     pill
                                     onClick={() => setShowHistory(!showHistory)}
                                 >
-                                    <ClockCounterClockwiseIcon size={16} weight="duotone" className="mr-2" />
+                                    <ClockCounterClockwiseIcon size={20} weight="duotone" className="mr-2" />
                                     Histórico ({allTemplates.length})
                                 </Button>
                             )}
                             <Button pill onClick={handleEdit}>
-                                <PencilSimpleIcon size={16} weight="duotone" className="mr-2" />
+                                <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
                                 Editar Modelo
                             </Button>
                         </>
@@ -160,11 +160,11 @@ export function GuardianTermEditor({ activeTemplate, allTemplates, type = 'acade
                     {editing && (
                         <>
                             <Button variant="outline" pill onClick={handleCancel} disabled={isPending}>
-                                <XIcon size={16} className="mr-2" />
+                                <XIcon size={20} className="mr-2" />
                                 Cancelar
                             </Button>
                             <Button pill onClick={handleSave} disabled={isPending}>
-                                <FloppyDiskIcon size={16} weight="duotone" className="mr-2" />
+                                <FloppyDiskIcon size={20} weight="duotone" className="mr-2" />
                                 {isPending ? 'Salvando...' : 'Salvar Nova Versão'}
                             </Button>
                         </>
@@ -212,7 +212,7 @@ export function GuardianTermEditor({ activeTemplate, allTemplates, type = 'acade
                                     onClick={() => handleActivate(tpl.id)}
                                     disabled={isPending}
                                 >
-                                    <CheckIcon size={14} className="mr-1.5" />
+                                    <CheckIcon size={20} className="mr-1.5" />
                                     Ativar
                                 </Button>
                             )}

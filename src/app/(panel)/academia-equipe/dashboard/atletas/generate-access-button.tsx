@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyIcon, CircleNotchIcon } from '@phosphor-icons/react';
+import { KeyIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import {
     Tooltip,
     TooltipContent,
@@ -67,7 +67,7 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
                     <TooltipTrigger asChild>
                         <DialogTrigger asChild>
                             <Button pill size="sm" className="h-9 gap-2 w-full justify-center md:w-auto font-medium">
-                                <KeyIcon size={16} weight="duotone" />
+                                <KeyIcon size={20} weight="duotone" />
                                 Gerar Acesso
                             </Button>
                         </DialogTrigger>
@@ -141,7 +141,7 @@ export function GenerateAccessButton({ athleteId, athleteName }: GenerateAccessB
 
                     <div className="flex justify-end pt-4">
                         <Button pill type="submit" disabled={loading} className="w-full md:w-auto h-11 px-6 font-medium">
-                            {loading && <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />}
+                            {loading && <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />}
                             Salvar Acesso
                         </Button>
                     </div>

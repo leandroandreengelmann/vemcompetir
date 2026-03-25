@@ -48,7 +48,7 @@ export function ManagementAuthorizationsList({ initialData, initialTotal }: Mana
             {/* Filtros */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="relative w-full md:w-80 group">
-                    <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                         variant="lg"
                         placeholder="Buscar por atleta ou academia..."
@@ -62,11 +62,11 @@ export function ManagementAuthorizationsList({ initialData, initialTotal }: Mana
                         {isPending ? '...' : `${total} documento${total !== 1 ? 's' : ''}`}
                     </span>
                     <Button variant="outline" size="sm" pill onClick={() => fetchPage(page - 1, search)} disabled={page <= 1 || isPending}>
-                        <CaretLeftIcon size={16} weight="duotone" />
+                        <CaretLeftIcon size={20} weight="duotone" />
                     </Button>
                     <span className="text-xs font-bold text-muted-foreground px-1">{page} / {totalPages || 1}</span>
                     <Button variant="outline" size="sm" pill onClick={() => fetchPage(page + 1, search)} disabled={page >= totalPages || isPending}>
-                        <CaretRightIcon size={16} weight="duotone" />
+                        <CaretRightIcon size={20} weight="duotone" />
                     </Button>
                 </div>
             </div>
@@ -85,7 +85,7 @@ export function ManagementAuthorizationsList({ initialData, initialTotal }: Mana
                         </div>
                         <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0" asChild>
                             <a href={row.document_url} target="_blank" rel="noopener noreferrer">
-                                <ArrowSquareOutIcon size={13} weight="duotone" />
+                                <ArrowSquareOutIcon size={20} weight="duotone" />
                                 Ver documento
                             </a>
                         </Button>

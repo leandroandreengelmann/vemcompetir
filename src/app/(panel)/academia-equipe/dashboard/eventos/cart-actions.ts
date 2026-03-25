@@ -440,3 +440,27 @@ export async function cancelPendingCartItemAction(registrationId: string) {
     revalidatePath('/academia-equipe/dashboard/eventos');
     return { success: true };
 }
+
+// Returns which of the given eventIds are "own events" for a tenant that uses own Asaas API
+export async function getOwnApiEventIdsAction(eventIds: string[]): Promise<string[]> {
+    if (eventIds.length === 0) return [];
+
+    const { tenant_id } = await requireTenantScope();
+    const admin = createAdminClient();
+
+    const { data: tenant } = await admin
+        .from('tenants')
+        .select('use_own_asaas_api')
+        .eq('id', tenant_id)
+        .single();
+
+    if (!tenant?.use_own_asaas_api) return [];
+
+    const { data: events } = await admin
+        .from('events')
+        .select('id')
+        .in('id', eventIds)
+        .eq('tenant_id', tenant_id);
+
+    return (events ?? []).map(e => e.id);
+}

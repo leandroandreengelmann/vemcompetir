@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Info, ListChecks } from 'lucide-react';
+import { ArrowLeftIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -35,6 +35,8 @@ interface AdminEventFormProps {
         event_end_date?: string | null;
         tenant_id: string;
         image_path?: string;
+        secondary_image_1_path?: string | null;
+        secondary_image_2_path?: string | null;
         address_street?: string;
         address_number?: string;
         address_neighborhood?: string;
@@ -65,7 +67,6 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setRemoveImage(false);
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -79,12 +80,8 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
                     canvas.toBlob((blob) => {
-                        if (blob) {
-                            setResizedImage(blob);
-                            setImagePreview(URL.createObjectURL(blob));
-                        }
+                        if (blob) { setResizedImage(blob); setImagePreview(URL.createObjectURL(blob)); }
                     }, 'image/jpeg', 0.92);
                 }
             };
@@ -210,9 +207,9 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                 <div className="space-y-6">
                     <Link
                         href="/admin/dashboard/eventos"
-                        className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+                        className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
                         Voltar
                     </Link>
 
@@ -224,7 +221,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                 </div>
 
                 {error && (
-                    <div className="p-3 bg-destructive/15 text-destructive text-ui rounded-lg text-center">
+                    <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center">
                         {error}
                     </div>
                 )}
@@ -235,13 +232,13 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                     <div className="grid gap-8 md:grid-cols-2">
                         {/* Informações Básicas */}
                         <div className="space-y-6">
-                            <h3 className="text-h3 border-b pb-2">
+                            <h3 className="text-panel-md font-semibold border-b pb-2">
                                 Dados do Evento
                             </h3>
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-ui font-medium leading-none">
+                                    <label className="text-panel-sm font-medium leading-none">
                                         Academia / Equipe Vinculada *
                                     </label>
                                     <Select
@@ -263,7 +260,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="title" className="text-ui font-medium leading-none">
+                                    <label htmlFor="title" className="text-panel-sm font-medium leading-none">
                                         Título do Evento *
                                     </label>
                                     <Input
@@ -278,7 +275,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="event_date" className="text-ui font-medium leading-none">
+                                    <label htmlFor="event_date" className="text-panel-sm font-medium leading-none">
                                         Data do Evento *
                                     </label>
                                     <Input
@@ -293,7 +290,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="event_end_date" className="text-ui font-medium leading-none">
+                                    <label htmlFor="event_end_date" className="text-panel-sm font-medium leading-none">
                                         Data de Término
                                     </label>
                                     <Input
@@ -307,7 +304,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="location" className="text-ui font-medium leading-none">
+                                    <label htmlFor="location" className="text-panel-sm font-medium leading-none">
                                         Local (Nome da Arena/Ginásio)
                                     </label>
                                     <Input
@@ -324,64 +321,65 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
 
                         {/* Endereço e Imagem */}
                         <div className="space-y-6">
-                            <h3 className="text-h3 border-b pb-2">
+                            <h3 className="text-panel-md font-semibold border-b pb-2">
                                 Endereço
                             </h3>
 
                             <div className="grid gap-4">
                                 <div className="grid grid-cols-4 gap-4">
                                     <div className="col-span-3 space-y-2">
-                                        <label htmlFor="address_street" className="text-ui font-medium leading-none"> Rua * </label>
+                                        <label htmlFor="address_street" className="text-panel-sm font-medium leading-none"> Rua * </label>
                                         <Input id="address_street" name="address_street" defaultValue={initialData?.address_street} variant="lg" required disabled={loading} placeholder="Rua..." />
                                     </div>
                                     <div className="space-y-2">
-                                        <label htmlFor="address_number" className="text-ui font-medium leading-none"> Nº </label>
+                                        <label htmlFor="address_number" className="text-panel-sm font-medium leading-none"> Nº </label>
                                         <Input id="address_number" name="address_number" defaultValue={initialData?.address_number} variant="lg" disabled={loading} placeholder="123" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label htmlFor="address_neighborhood" className="text-ui font-medium leading-none"> Bairro </label>
+                                        <label htmlFor="address_neighborhood" className="text-panel-sm font-medium leading-none"> Bairro </label>
                                         <Input id="address_neighborhood" name="address_neighborhood" defaultValue={initialData?.address_neighborhood} variant="lg" disabled={loading} placeholder="Centro" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label htmlFor="address_zip" className="text-ui font-medium leading-none"> CEP </label>
+                                        <label htmlFor="address_zip" className="text-panel-sm font-medium leading-none"> CEP </label>
                                         <Input id="address_zip" name="address_zip" defaultValue={initialData?.address_zip} variant="lg" disabled={loading} placeholder="00000-000" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="col-span-2 space-y-2">
-                                        <label htmlFor="address_city" className="text-ui font-medium leading-none"> Cidade * </label>
+                                        <label htmlFor="address_city" className="text-panel-sm font-medium leading-none"> Cidade * </label>
                                         <Input id="address_city" name="address_city" defaultValue={initialData?.address_city} variant="lg" required disabled={loading} placeholder="Cidade" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label htmlFor="address_state" className="text-ui font-medium leading-none"> UF * </label>
+                                        <label htmlFor="address_state" className="text-panel-sm font-medium leading-none"> UF * </label>
                                         <Input id="address_state" name="address_state" defaultValue={initialData?.address_state} variant="lg" required disabled={loading} placeholder="UF" maxLength={2} className="uppercase" />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-4 pt-4">
-                                <h3 className="text-h3 border-b pb-2"> Imagem do Evento </h3>
+                                <h3 className="text-panel-md font-semibold border-b pb-2"> Imagem Principal </h3>
                                 <div className="flex flex-col items-center gap-4">
                                     <div className={cn("relative size-[260px] sm:size-[320px] rounded-2xl border flex flex-col items-center justify-center p-1 bg-muted/10 transition-all overflow-hidden cursor-pointer hover:bg-muted/20", imagePreview ? "border-primary/20" : "border-dashed border-input")} onClick={() => !imagePreview && fileInputRef.current?.click()} >
                                         {imagePreview ? (
                                             <>
                                                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
-                                                <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 px-3 py-1 bg-destructive text-white text-label uppercase tracking-wider rounded-full hover:scale-105 transition-transform shadow-lg" > Remover </button>
+                                                <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 px-3 py-1 bg-destructive text-white text-xs uppercase tracking-wider rounded-full hover:scale-105 transition-transform shadow-lg" > Remover </button>
                                             </>
                                         ) : (
                                             <div className="flex flex-col items-center transition-opacity">
-                                                <span className="text-label uppercase tracking-wider opacity-60">ENVIAR IMAGEM</span>
-                                                <span className="text-caption mt-1 opacity-40">Recomendado: 1000×1000</span>
+                                                <span className="text-xs uppercase tracking-wider opacity-60">ENVIAR IMAGEM</span>
+                                                <span className="text-xs mt-1 opacity-40">Recomendado: 1000×1000</span>
                                             </div>
                                         )}
                                     </div>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} disabled={loading} />
                                 </div>
                             </div>
+
                         </div>
                     </div>
 
@@ -389,10 +387,10 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                         <Button
                             type="submit"
                             pill
-                            className="w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold text-white transition-all shadow-lg shadow-primary/20"
+                            className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white transition-all shadow-lg shadow-primary/20"
                             disabled={loading || !selectedTenantId}
                         >
-                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isEdit ? 'Salvar Alterações' : 'Criar Evento'}
+                            {loading ? <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> : isEdit ? 'Salvar Alterações' : 'Criar Evento'}
                         </Button>
 
                         {isEdit && initialData?.status === 'pendente' && (
@@ -401,10 +399,10 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 variant="default"
                                 pill
                                 onClick={handleApprove}
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold text-white shadow-lg shadow-primary/20"
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Aprovar Evento'}
+                                {loading ? <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> : 'Aprovar Evento'}
                             </Button>
                         )}
 
@@ -415,14 +413,14 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 pill
                                 onClick={initialData.status === 'publicado' ? handleUnpublish : handlePublish}
                                 className={cn(
-                                    "w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold shadow-lg transition-all",
+                                    "w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold shadow-lg transition-all",
                                     initialData.status === 'publicado'
                                         ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-none"
                                         : "text-white shadow-primary/20"
                                 )}
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : initialData.status === 'publicado' ? 'Despublicar Evento' : 'Publicar'}
+                                {loading ? <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> : initialData.status === 'publicado' ? 'Despublicar Evento' : 'Publicar'}
                             </Button>
                         )}
 
@@ -431,7 +429,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 type="button"
                                 pill
                                 asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold text-white shadow-lg shadow-primary/20"
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
                             >
                                 <Link href={`/eventos/${initialData.id}`} target="_blank">
                                     Visualizar Prévia
@@ -444,7 +442,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 type="button"
                                 pill
                                 asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold text-white shadow-lg shadow-primary/20"
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
                             >
                                 <Link href={`/admin/dashboard/eventos/${initialData.id}/categorias`}>
                                     Categorias
@@ -457,7 +455,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 type="button"
                                 pill
                                 asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold text-white shadow-lg shadow-primary/20"
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
                             >
                                 <Link href={`/admin/dashboard/eventos/${initialData.id}/informacoes-gerais`}>
                                     Infos Gerais
@@ -468,10 +466,23 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                         {isEdit && (
                             <Button
                                 type="button"
+                                pill
+                                asChild
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
+                            >
+                                <Link href={`/admin/dashboard/eventos/${initialData.id}/imagens`}>
+                                    Imagens
+                                </Link>
+                            </Button>
+                        )}
+
+                        {isEdit && (
+                            <Button
+                                type="button"
                                 variant="destructive"
                                 pill
                                 onClick={() => setIsDeleteDialogOpen(true)}
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-ui font-bold text-white transition-all shadow-lg shadow-destructive/20"
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white transition-all shadow-lg shadow-destructive/20"
                                 disabled={loading}
                             >
                                 Excluir Evento

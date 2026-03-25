@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Pencil, User, Users, ShieldCheck, GraduationCap, MapPin, Mail, CreditCard, Phone } from 'lucide-react';
+import { ArrowLeftIcon, PencilSimpleIcon, UserIcon, UsersIcon, ShieldCheckIcon, GraduationCapIcon, MapPinIcon, EnvelopeIcon, CreditCardIcon, PhoneIcon } from '@phosphor-icons/react/dist/ssr';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,15 +64,15 @@ export default async function AcademyDetailPage(props: PageProps) {
                         href="/admin/dashboard/equipes-academias"
                         className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit mb-2"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
                         Voltar para a lista
                     </Link>
-                    <h1 className="text-h1 tracking-tight">{academyUser.user_metadata?.full_name || 'Academia/Equipe'}</h1>
-                    <p className="text-caption text-muted-foreground">Visualização detalhada da organização.</p>
+                    <h1 className="text-panel-lg font-black tracking-tight">{academyUser.user_metadata?.full_name || 'Academia/Equipe'}</h1>
+                    <p className="text-panel-sm text-muted-foreground">Visualização detalhada da organização.</p>
                 </div>
                 <Button pill asChild>
                     <Link href={`/admin/dashboard/equipes-academias/${id}/editar`}>
-                        <Pencil className="mr-2 h-4 w-4" />
+                        <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
                         Editar Dados
                     </Link>
                 </Button>
@@ -82,37 +82,37 @@ export default async function AcademyDetailPage(props: PageProps) {
                 {/* Dados Gerais */}
                 <Card className="md:col-span-2">
                     <CardHeader>
-                        <CardTitle className="text-h3 flex items-center">
-                            <ShieldCheck className="mr-2 h-5 w-5 text-primary" />
+                        <CardTitle className="text-panel-md font-semibold flex items-center">
+                            <ShieldCheckIcon size={20} weight="duotone" className="mr-2 text-primary" />
                             Dados da Organização
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-1">
-                            <span className="text-label text-muted-foreground">Nome da Organização</span>
-                            <div className="flex items-center text-ui font-medium">
-                                <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span className="text-panel-sm text-muted-foreground">Nome da Organização</span>
+                            <div className="flex items-center text-panel-sm font-medium">
+                                <UsersIcon size={20} weight="duotone" className="mr-2 text-muted-foreground" />
                                 {academyUser.user_metadata?.full_name || '-'}
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <span className="text-label text-muted-foreground">E-mail de Acesso</span>
-                            <div className="flex items-center text-ui font-medium">
-                                <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span className="text-panel-sm text-muted-foreground">E-mail de Acesso</span>
+                            <div className="flex items-center text-panel-sm font-medium">
+                                <EnvelopeIcon size={20} weight="duotone" className="mr-2 text-muted-foreground" />
                                 {academyUser.email || '-'}
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <span className="text-label text-muted-foreground">Documento (CPF/CNPJ)</span>
-                            <div className="flex items-center text-ui font-medium">
-                                <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span className="text-panel-sm text-muted-foreground">Documento (CPF/CNPJ)</span>
+                            <div className="flex items-center text-panel-sm font-medium">
+                                <CreditCardIcon size={20} weight="duotone" className="mr-2 text-muted-foreground" />
                                 {academyUser.user_metadata?.document || '-'}
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <span className="text-label text-muted-foreground">Endereço Completo</span>
-                            <div className="flex items-start text-ui font-medium">
-                                <MapPin className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                            <span className="text-panel-sm text-muted-foreground">Endereço Completo</span>
+                            <div className="flex items-start text-panel-sm font-medium">
+                                <MapPinIcon size={20} weight="duotone" className="mr-2 text-muted-foreground mt-0.5" />
                                 <div>
                                     {academyUser.user_metadata?.address_street && (
                                         <>
@@ -131,30 +131,30 @@ export default async function AcademyDetailPage(props: PageProps) {
                 {/* Resumo de Equipe */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-h3 flex items-center">
-                            <Users className="mr-2 h-5 w-5 text-primary" />
+                        <CardTitle className="text-panel-md font-semibold flex items-center">
+                            <UsersIcon size={20} weight="duotone" className="mr-2 text-primary" />
                             Equipe Técnica
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl">
                             <div className="flex items-center gap-2">
-                                <GraduationCap className="h-4 w-4 text-primary" />
-                                <span className="text-ui font-medium">Mestres</span>
+                                <GraduationCapIcon size={20} weight="duotone" className="text-primary" />
+                                <span className="text-panel-sm font-medium">Mestres</span>
                             </div>
                             <Badge variant="secondary" className="rounded-full">{masters.length}</Badge>
                         </div>
                         <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl">
                             <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-primary" />
-                                <span className="text-ui font-medium">Responsáveis</span>
+                                <UserIcon size={20} weight="duotone" className="text-primary" />
+                                <span className="text-panel-sm font-medium">Responsáveis</span>
                             </div>
                             <Badge variant="secondary" className="rounded-full">{responsibles.length}</Badge>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl text-caption text-muted-foreground">
+                        <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl">
                             <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                <span className="text-ui font-medium">Total de Atletas</span>
+                                <UsersIcon size={20} weight="duotone" className="text-muted-foreground" />
+                                <span className="text-panel-sm font-medium">Total de Atletas</span>
                             </div>
                             <Badge variant="outline" className="rounded-full border-muted text-muted-foreground">{members?.length || 0}</Badge>
                         </div>
@@ -167,9 +167,9 @@ export default async function AcademyDetailPage(props: PageProps) {
                 {/* Mestres */}
                 <Card>
                     <CardHeader className="pb-3 border-b">
-                        <CardTitle className="text-h3 flex items-center justify-between">
+                        <CardTitle className="text-panel-md font-semibold flex items-center justify-between">
                             <div className="flex items-center">
-                                <GraduationCap className="mr-2 h-5 w-5 text-primary" />
+                                <GraduationCapIcon size={20} weight="duotone" className="mr-2 text-primary" />
                                 Mestres da Academia
                             </div>
                             <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none">OFICIAL</Badge>
@@ -179,21 +179,21 @@ export default async function AcademyDetailPage(props: PageProps) {
                         <Table>
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent">
-                                    <TableHead className="pl-6 text-ui font-semibold">Nome</TableHead>
-                                    <TableHead className="text-ui font-semibold text-center w-24">Faixa</TableHead>
+                                    <TableHead className="pl-6 text-panel-sm font-semibold">Nome</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold text-center w-24">Faixa</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {masters.length > 0 ? masters.map((master) => (
                                     <TableRow key={master.id}>
-                                        <TableCell className="pl-6 text-ui font-medium">{master.full_name}</TableCell>
+                                        <TableCell className="pl-6 text-panel-sm font-medium">{master.full_name}</TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className="rounded-full font-normal">{master.belt_color || '-'}</Badge>
                                         </TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={2} className="text-center py-6 text-caption text-muted-foreground italic">
+                                        <TableCell colSpan={2} className="text-center py-6 text-panel-sm text-muted-foreground italic">
                                             Nenhum mestre vinculado.
                                         </TableCell>
                                     </TableRow>
@@ -206,9 +206,9 @@ export default async function AcademyDetailPage(props: PageProps) {
                 {/* Responsáveis */}
                 <Card>
                     <CardHeader className="pb-3 border-b">
-                        <CardTitle className="text-h3 flex items-center justify-between">
+                        <CardTitle className="text-panel-md font-semibold flex items-center justify-between">
                             <div className="flex items-center">
-                                <User className="mr-2 h-5 w-5 text-primary" />
+                                <UserIcon size={20} weight="duotone" className="mr-2 text-primary" />
                                 Responsáveis Administrativos
                             </div>
                             <Badge variant="secondary" className="rounded-full bg-blue-100 text-blue-700 border-none dark:bg-blue-900/30 dark:text-blue-300">ADMIN</Badge>
@@ -218,27 +218,27 @@ export default async function AcademyDetailPage(props: PageProps) {
                         <Table>
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent">
-                                    <TableHead className="pl-6 text-ui font-semibold">Nome</TableHead>
-                                    <TableHead className="text-ui font-semibold px-4 text-center">Contato</TableHead>
+                                    <TableHead className="pl-6 text-panel-sm font-semibold">Nome</TableHead>
+                                    <TableHead className="text-panel-sm font-semibold px-4 text-center">Contato</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {responsibles.length > 0 ? responsibles.map((resp) => (
                                     <TableRow key={resp.id}>
-                                        <TableCell className="pl-6 text-ui font-medium">{resp.full_name}</TableCell>
+                                        <TableCell className="pl-6 text-panel-sm font-medium">{resp.full_name}</TableCell>
                                         <TableCell className="text-center">
                                             {resp.phone && (
-                                                <a href={`https://wa.me/${resp.phone.replace(/\D/g, '')}`} target="_blank" className="inline-flex items-center text-primary hover:underline text-ui font-medium">
-                                                    <Phone className="mr-1 h-3 w-3" />
+                                                <a href={`https://wa.me/${resp.phone.replace(/\D/g, '')}`} target="_blank" className="inline-flex items-center text-primary hover:underline text-panel-sm font-medium">
+                                                    <PhoneIcon size={20} weight="duotone" className="mr-1" />
                                                     {resp.phone}
                                                 </a>
                                             )}
-                                            {!resp.phone && <span className="text-muted-foreground text-ui">-</span>}
+                                            {!resp.phone && <span className="text-muted-foreground text-panel-sm">-</span>}
                                         </TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={2} className="text-center py-6 text-muted-foreground text-caption italic">
+                                        <TableCell colSpan={2} className="text-center py-6 text-muted-foreground text-panel-sm italic">
                                             Nenhum responsável administrativo.
                                         </TableCell>
                                     </TableRow>

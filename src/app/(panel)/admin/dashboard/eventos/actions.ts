@@ -82,6 +82,23 @@ export async function createAdminEventAction(formData: FormData) {
         }
     }
 
+    // Handle secondary images
+    const sec1File = formData.get('secondary_image_1') as File;
+    if (sec1File && sec1File.size > 0 && event) {
+        const ext = sec1File.name.split('.').pop();
+        const path = `tenant/${tenant_id}/events/${event.id}/secondary_1.${ext}`;
+        const { error: e } = await adminClient.storage.from('event-images').upload(path, sec1File, { upsert: true });
+        if (!e) await adminClient.from('events').update({ secondary_image_1_path: path }).eq('id', event.id);
+    }
+
+    const sec2File = formData.get('secondary_image_2') as File;
+    if (sec2File && sec2File.size > 0 && event) {
+        const ext = sec2File.name.split('.').pop();
+        const path = `tenant/${tenant_id}/events/${event.id}/secondary_2.${ext}`;
+        const { error: e } = await adminClient.storage.from('event-images').upload(path, sec2File, { upsert: true });
+        if (!e) await adminClient.from('events').update({ secondary_image_2_path: path }).eq('id', event.id);
+    }
+
     revalidatePath('/admin/dashboard/eventos', 'page');
     revalidatePath('/admin/dashboard/eventos/[id]/preview', 'page');
     revalidatePath('/admin/dashboard/equipes-academias/[id]/eventos', 'page');
@@ -116,7 +133,7 @@ export async function updateAdminEventAction(formData: FormData) {
     // Check if tenant changed to update image path if necessary
     const { data: oldEvent } = await adminClient
         .from('events')
-        .select('tenant_id, image_path')
+        .select('tenant_id, image_path, secondary_image_1_path, secondary_image_2_path')
         .eq('id', id)
         .single();
 
@@ -184,7 +201,46 @@ export async function updateAdminEventAction(formData: FormData) {
         }
     }
 
+    // Handle secondary image 1
+    const removeSecondary1 = formData.get('remove_secondary_image_1') === 'true';
+    if (removeSecondary1 && oldEvent?.secondary_image_1_path) {
+        await adminClient.storage.from('event-images').remove([oldEvent.secondary_image_1_path]);
+        await adminClient.from('events').update({ secondary_image_1_path: null }).eq('id', id);
+    }
+    const sec1File = formData.get('secondary_image_1') as File;
+    if (sec1File && sec1File.size > 0) {
+        const ext = sec1File.name.split('.').pop();
+        const path = `tenant/${tenant_id}/events/${id}/secondary_1.${ext}`;
+        const { error: e } = await adminClient.storage.from('event-images').upload(path, sec1File, { upsert: true });
+        if (!e) {
+            await adminClient.from('events').update({ secondary_image_1_path: path }).eq('id', id);
+            if (!removeSecondary1 && oldEvent?.secondary_image_1_path && oldEvent.secondary_image_1_path !== path) {
+                await adminClient.storage.from('event-images').remove([oldEvent.secondary_image_1_path]);
+            }
+        }
+    }
+
+    // Handle secondary image 2
+    const removeSecondary2 = formData.get('remove_secondary_image_2') === 'true';
+    if (removeSecondary2 && oldEvent?.secondary_image_2_path) {
+        await adminClient.storage.from('event-images').remove([oldEvent.secondary_image_2_path]);
+        await adminClient.from('events').update({ secondary_image_2_path: null }).eq('id', id);
+    }
+    const sec2File = formData.get('secondary_image_2') as File;
+    if (sec2File && sec2File.size > 0) {
+        const ext = sec2File.name.split('.').pop();
+        const path = `tenant/${tenant_id}/events/${id}/secondary_2.${ext}`;
+        const { error: e } = await adminClient.storage.from('event-images').upload(path, sec2File, { upsert: true });
+        if (!e) {
+            await adminClient.from('events').update({ secondary_image_2_path: path }).eq('id', id);
+            if (!removeSecondary2 && oldEvent?.secondary_image_2_path && oldEvent.secondary_image_2_path !== path) {
+                await adminClient.storage.from('event-images').remove([oldEvent.secondary_image_2_path]);
+            }
+        }
+    }
+
     revalidatePath('/admin/dashboard/eventos', 'page');
+    revalidatePath('/admin/dashboard/eventos/[id]/editar', 'page');
     revalidatePath('/admin/dashboard/eventos/[id]/preview', 'page');
     revalidatePath('/admin/dashboard/equipes-academias/[id]/eventos', 'page');
     revalidatePath('/', 'layout');

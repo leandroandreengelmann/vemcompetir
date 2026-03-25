@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CategoryTableDetails } from './components/category-table-details';
@@ -36,8 +36,8 @@ export default async function CategoryDetailPage({ params }: { params: Promise<{
         <div className="space-y-6">
             <div>
                 <Link href="/admin/dashboard/categorias">
-                    <Button variant="ghost" className="pl-0 gap-2 mb-2 text-ui text-muted-foreground hover:text-primary">
-                        <ArrowLeft className="h-4 w-4" />
+                    <Button variant="ghost" className="pl-0 gap-2 mb-2 text-panel-sm text-muted-foreground hover:text-primary">
+                        <ArrowLeftIcon size={20} weight="duotone" />
                         Voltar para Categorias
                     </Button>
                 </Link>

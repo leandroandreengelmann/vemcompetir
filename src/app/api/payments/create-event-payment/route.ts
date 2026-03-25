@@ -5,6 +5,8 @@ import { decrypt } from '@/lib/crypto';
 import { getEventFee } from '@/lib/fee-calculator';
 import { calculateAsaasSplit } from '@/lib/payment-utils';
 import { shouldPaymentBeNoSplit } from '@/lib/no-split-logic';
+import { rateLimit } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit-log';
 
 async function getAsaasConfig() {
     const admin = createAdminClient();
@@ -21,7 +23,34 @@ async function getAsaasConfig() {
         ? 'https://api.asaas.com'
         : 'https://api-sandbox.asaas.com';
 
-    return { apiKey, baseUrl };
+    return { apiKey, baseUrl, isOwnAccount: false as const };
+}
+
+async function resolveAsaasConfig(organizerTenantId?: string | null) {
+    const admin = createAdminClient();
+
+    if (organizerTenantId) {
+        const { data: tenant } = await admin
+            .from('tenants')
+            .select('use_own_asaas_api, asaas_api_key_encrypted, asaas_api_key_iv')
+            .eq('id', organizerTenantId)
+            .single();
+
+        if (tenant?.use_own_asaas_api && tenant.asaas_api_key_encrypted && tenant.asaas_api_key_iv) {
+            const apiKey = decrypt(tenant.asaas_api_key_encrypted, tenant.asaas_api_key_iv);
+            const { data: settings } = await admin
+                .from('asaas_settings')
+                .select('environment')
+                .eq('is_enabled', true)
+                .single();
+            const baseUrl = settings?.environment === 'production'
+                ? 'https://api.asaas.com'
+                : 'https://api-sandbox.asaas.com';
+            return { apiKey, baseUrl, isOwnAccount: true as const };
+        }
+    }
+
+    return getAsaasConfig();
 }
 
 export async function POST(request: NextRequest) {
@@ -33,17 +62,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
         }
 
+        // Rate limit: 5 tentativas de pagamento por usuário a cada 5 minutos
+        if (!rateLimit(`payment:${user.id}`, 5, 5 * 60 * 1000)) {
+            auditLog('PAYMENT_FAILED', { user_id: user.id, reason: 'rate_limit_exceeded' }, 'warn');
+            return NextResponse.json(
+                { error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
         const { event_id, payer_type } = body;
 
         if (!event_id || !payer_type || !['ACADEMY', 'ATHLETE'].includes(payer_type)) {
             return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 });
-        }
-
-        // 2. Asaas config
-        const config = await getAsaasConfig();
-        if (!config) {
-            return NextResponse.json({ error: 'Asaas não configurado.' }, { status: 500 });
         }
 
         const admin = createAdminClient();
@@ -54,6 +86,11 @@ export async function POST(request: NextRequest) {
             .select('id, tenant_id, full_name, asaas_customer_id, cpf')
             .eq('id', user.id)
             .single();
+
+        if (profileError) {
+            console.error('Failed to fetch profile:', profileError);
+            return NextResponse.json({ error: 'Erro ao buscar perfil.' }, { status: 500 });
+        }
 
         if (!profile) {
             return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 404 });
@@ -106,9 +143,10 @@ export async function POST(request: NextRequest) {
         }
 
         // 4.5. Validate promo companion items — ensure their source registration is in the same cart
+        type CartItem = typeof cartItems[number] & { promo_source_id?: string | null };
         const cartIds = new Set(cartItems.map(i => i.id));
         for (const item of cartItems) {
-            const promoSourceId = (item as any).promo_source_id;
+            const promoSourceId = (item as CartItem).promo_source_id;
             if (promoSourceId && !cartIds.has(promoSourceId)) {
                 // Source not in this cart batch — check if it's already paid/confirmed
                 const { data: sourceReg } = await admin
@@ -146,17 +184,24 @@ export async function POST(request: NextRequest) {
 
         const tenant_id_organizer = event.tenant_id;
 
+        // 2. Asaas config — resolvido aqui pois depende do tenant_id_organizer
+        const config = await resolveAsaasConfig(tenant_id_organizer);
+        if (!config) {
+            return NextResponse.json({ error: 'Asaas não configurado.' }, { status: 500 });
+        }
+
         // 7. Determine if own event
         const isOwnEvent = payer_type === 'ACADEMY' && payer_ref === tenant_id_organizer;
 
         // 8. Validation
-        if (!isOwnEvent && fee_saas_bruta > total_inscricoes && total_inscricoes > 0) {
+        if (!isOwnEvent && !config.isOwnAccount && fee_saas_bruta > total_inscricoes && total_inscricoes > 0) {
             return NextResponse.json({ error: 'Taxa SaaS excede o valor total das inscrições.' }, { status: 400 });
         }
 
         // 9. Check organizer has approved Asaas subaccount (for split)
+        // Pulado quando academia usa conta própria — o dinheiro vai direto para ela
         let organizerWalletId: string | null = null;
-        if (!isOwnEvent) {
+        if (!isOwnEvent && !config.isOwnAccount) {
             const { data: subaccount } = await admin
                 .from('asaas_subaccounts')
                 .select('wallet_id, status')
@@ -264,6 +309,50 @@ export async function POST(request: NextRequest) {
             }
 
             // 11. Create Asaas payment
+            // Academia com API própria em evento próprio: confirma sem cobrança
+            if (isOwnEvent && config.isOwnAccount) {
+                const paymentId = crypto.randomUUID();
+                await admin.from('payments').insert({
+                    id: paymentId,
+                    event_id,
+                    payer_type,
+                    payer_ref,
+                    tenant_id_organizer,
+                    qtd_inscricoes,
+                    total_inscricoes_snapshot: total_inscricoes,
+                    fee_unit_snapshot: fee,
+                    fee_saas_gross_snapshot: 0,
+                    fee_source,
+                    asaas_payment_id: `own_event_${paymentId}`,
+                    asaas_customer_id: asaas_customer_id ?? null,
+                    payment_method: 'PIX',
+                    status: 'PAID',
+                    is_no_split: false,
+                    is_authorized_free: true,
+                });
+
+                const registrationIds = cartItems.map(i => i.id);
+                const { error: regUpdateError } = await admin
+                    .from('event_registrations')
+                    .update({ status: 'pago', payment_id: paymentId })
+                    .in('id', registrationIds);
+
+                if (regUpdateError) {
+                    auditLog('PAYMENT_ROLLBACK', { user_id: user.id, event_id, payment_id: paymentId, reason: 'own_event_reg_update_failed', error: regUpdateError.message }, 'error');
+                    await admin.from('payments').delete().eq('id', paymentId);
+                    return NextResponse.json({ error: 'Erro ao confirmar inscrições. Tente novamente.' }, { status: 500 });
+                }
+
+                auditLog('PAYMENT_OWN_EVENT_CONFIRMED', { user_id: user.id, event_id, payment_id: paymentId, qty: qtd_inscricoes });
+
+                return NextResponse.json({
+                    payment_id: paymentId,
+                    free: true,
+                    own_event: true,
+                    message: 'Inscrições confirmadas sem cobrança.',
+                });
+            }
+
             const chargeValue = isOwnEvent ? fee_saas_bruta : total_inscricoes;
 
             if (chargeValue <= 0) {
@@ -273,9 +362,9 @@ export async function POST(request: NextRequest) {
                 // batch — if the source is absent, it means the companion is alone and
                 // should never be confirmed for free.
                 if (payer_type === 'ATHLETE') {
-                    const batchIds = new Set(cartItems.map((i: any) => i.id));
+                    const batchIds = new Set(cartItems.map(i => i.id));
                     for (const item of cartItems) {
-                        if ((item as any).promo_source_id && !batchIds.has((item as any).promo_source_id)) {
+                        if ((item as CartItem).promo_source_id && !batchIds.has((item as CartItem).promo_source_id!)) {
                             return NextResponse.json(
                                 { error: 'Não é possível confirmar inscrição gratuita sem o pagamento da categoria Absoluto correspondente.' },
                                 { status: 400 }
@@ -306,10 +395,18 @@ export async function POST(request: NextRequest) {
                 });
 
                 const registrationIds = cartItems.map(i => i.id);
-                await admin
+                const { error: freeRegUpdateError } = await admin
                     .from('event_registrations')
                     .update({ status: 'pago', payment_id: paymentId })
                     .in('id', registrationIds);
+
+                if (freeRegUpdateError) {
+                    auditLog('PAYMENT_ROLLBACK', { user_id: user.id, event_id, payment_id: paymentId, reason: 'free_reg_update_failed', error: freeRegUpdateError.message }, 'error');
+                    await admin.from('payments').delete().eq('id', paymentId);
+                    return NextResponse.json({ error: 'Erro ao confirmar inscrições. Tente novamente.' }, { status: 500 });
+                }
+
+                auditLog('PAYMENT_FREE_CONFIRMED', { user_id: user.id, event_id, payment_id: paymentId, qty: qtd_inscricoes });
 
                 return NextResponse.json({
                     payment_id: paymentId,
@@ -433,13 +530,43 @@ export async function POST(request: NextRequest) {
 
         // 14. Update registrations
         const registrationIds = cartItems.map(i => i.id);
-        await admin
+        const { error: pendingRegUpdateError } = await admin
             .from('event_registrations')
             .update({
                 status: 'aguardando_pagamento',
                 payment_id: payment.id,
             })
             .in('id', registrationIds);
+
+        if (pendingRegUpdateError) {
+            auditLog('PAYMENT_ROLLBACK', {
+                user_id: user.id,
+                event_id,
+                payment_id: payment.id,
+                asaas_payment_id: paymentData.id,
+                reason: 'pending_reg_update_failed',
+                error: pendingRegUpdateError.message,
+            }, 'error');
+            // Compensating: remove the payment record from our DB.
+            // The Asaas payment remains open — it will expire naturally.
+            // The user can retry and a new Asaas payment will be created.
+            await admin.from('payments').delete().eq('id', payment.id);
+            return NextResponse.json(
+                { error: 'Erro ao vincular inscrições ao pagamento. Tente novamente.' },
+                { status: 500 }
+            );
+        }
+
+        auditLog('PAYMENT_CREATED', {
+            user_id: user.id,
+            event_id,
+            payment_id: payment.id,
+            asaas_payment_id: paymentData.id,
+            total: total_inscricoes,
+            fee: fee_saas_bruta,
+            qty: qtd_inscricoes,
+            is_no_split: isNoSplit,
+        });
 
         // Forçar expiração visual de 30 minutos (sobrescrevendo o padrão de 1 ano do Asaas)
         const thirtyMinutesFromNow = new Date(Date.now() + 30 * 60 * 1000).toISOString();

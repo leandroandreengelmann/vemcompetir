@@ -105,12 +105,12 @@ export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
                                     pill
                                     onClick={() => setShowHistory(!showHistory)}
                                 >
-                                    <ClockCounterClockwiseIcon size={16} weight="duotone" className="mr-2" />
+                                    <ClockCounterClockwiseIcon size={20} weight="duotone" className="mr-2" />
                                     Histórico ({allTerms.length})
                                 </Button>
                             )}
                             <Button pill onClick={handleEdit}>
-                                <PencilSimpleIcon size={16} weight="duotone" className="mr-2" />
+                                <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
                                 Editar Termo
                             </Button>
                         </>
@@ -118,11 +118,11 @@ export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
                     {editing && (
                         <>
                             <Button variant="outline" pill onClick={handleCancel} disabled={isPending}>
-                                <XIcon size={16} className="mr-2" />
+                                <XIcon size={20} className="mr-2" />
                                 Cancelar
                             </Button>
                             <Button pill onClick={handleSave} disabled={isPending}>
-                                <FloppyDiskIcon size={16} weight="duotone" className="mr-2" />
+                                <FloppyDiskIcon size={20} weight="duotone" className="mr-2" />
                                 {isPending ? 'Salvando...' : 'Salvar Nova Versão'}
                             </Button>
                         </>
@@ -172,7 +172,7 @@ export function TermsEditor({ activeTerm, allTerms }: TermsEditorProps) {
                                     onClick={() => handleActivate(term.id)}
                                     disabled={isPending}
                                 >
-                                    <CheckIcon size={14} className="mr-1.5" />
+                                    <CheckIcon size={20} className="mr-1.5" />
                                     Ativar
                                 </Button>
                             )}

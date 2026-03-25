@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, CheckCircle2, XCircle } from "lucide-react";
+import { UsersIcon, CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,8 +13,6 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { AthleteListModal, type AthleteDetail } from "./athlete-list-modal";
-
-
 import { RegisterGymModal } from "./register-gym-modal";
 import { Button } from "@/components/ui/button";
 
@@ -39,8 +37,8 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
         <>
             <Card className="border-none shadow-md bg-white rounded-2xl overflow-hidden">
                 <CardHeader className="border-b bg-muted/20">
-                    <CardTitle className="text-h2 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-panel-md font-semibold flex items-center gap-2">
+                        <UsersIcon size={20} weight="duotone" className="text-muted-foreground" />
                         Termos Mais Utilizados
                     </CardTitle>
                 </CardHeader>
@@ -49,7 +47,7 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
                         <TableHeader>
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className="pl-6 font-semibold">Academia (Texto)</TableHead>
-                                <TableHead className="font-semibold text-ui">Mestre (Texto)</TableHead>
+                                <TableHead className="font-semibold text-panel-sm">Mestre (Texto)</TableHead>
                                 <TableHead className="text-center font-semibold w-32">Citações</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -61,18 +59,18 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
                                         className="group transition-colors cursor-pointer hover:bg-muted/30"
                                         onClick={() => setSelectedSuggestion(item)}
                                     >
-                                        <TableCell className="pl-6 text-ui font-medium">
+                                        <TableCell className="pl-6 text-panel-sm font-medium">
                                             <div className="flex items-center gap-2">
                                                 {item.gym_name || <span className="text-muted-foreground italic">Não informado</span>}
                                                 {item.isGymRegistered ? (
                                                     <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3" />
+                                                        <CheckCircleIcon size={14} weight="duotone" />
                                                         <span>Cadastrada</span>
                                                     </Badge>
                                                 ) : item.gym_name ? (
                                                     <div className="flex items-center gap-2">
                                                         <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 flex items-center gap-1">
-                                                            <XCircle className="w-3 h-3" />
+                                                            <XCircleIcon size={14} weight="duotone" />
                                                             <span>Não Cadastrada</span>
                                                         </Badge>
                                                         <Button
@@ -95,19 +93,19 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
                                                 {item.master_name || <span className="text-muted-foreground italic">Não informado</span>}
                                                 {item.isMasterRegistered ? (
                                                     <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3" />
+                                                        <CheckCircleIcon size={14} weight="duotone" />
                                                         <span>Cadastrado</span>
                                                     </Badge>
                                                 ) : item.master_name ? (
                                                     <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 flex items-center gap-1">
-                                                        <XCircle className="w-3 h-3" />
+                                                        <XCircleIcon size={14} weight="duotone" />
                                                         <span>Não Cadastrado</span>
                                                     </Badge>
                                                 ) : null}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none text-label font-bold">
+                                            <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none text-panel-sm font-bold">
                                                 {item.count} {item.count === 1 ? 'atleta' : 'atletas'}
                                             </Badge>
                                         </TableCell>

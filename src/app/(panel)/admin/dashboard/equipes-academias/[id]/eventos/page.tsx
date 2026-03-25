@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, MapPin, Plus, Pencil } from 'lucide-react';
+import { ArrowLeftIcon, CalendarIcon, PlusIcon, PencilSimpleIcon } from '@phosphor-icons/react/dist/ssr';
 import {
     Table,
     TableBody,
@@ -67,7 +67,7 @@ export default async function AdminAcademyEventsPage({ params }: { params: Promi
                     href="/admin/dashboard/equipes-academias"
                     className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                 >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
                     Voltar para Academias
                 </Link>
 
@@ -77,7 +77,7 @@ export default async function AdminAcademyEventsPage({ params }: { params: Promi
                     rightElement={
                         <Button asChild pill>
                             <Link href={`/admin/dashboard/eventos/novo?academyId=${targetProfile.id}`}>
-                                <Plus className="mr-2 h-4 w-4" />
+                                <PlusIcon size={20} weight="bold" className="mr-2" />
                                 Novo Evento
                             </Link>
                         </Button>
@@ -88,18 +88,18 @@ export default async function AdminAcademyEventsPage({ params }: { params: Promi
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-ui font-medium">Total de Eventos</CardTitle>
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-panel-sm font-medium">Total de Eventos</CardTitle>
+                        <CalendarIcon size={20} weight="duotone" className="text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-h1">{events?.length || 0}</div>
+                        <div className="text-panel-lg font-black">{events?.length || 0}</div>
                     </CardContent>
                 </Card>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-h2">Lista de Eventos</CardTitle>
+                    <CardTitle className="text-panel-md font-semibold">Lista de Eventos</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
@@ -122,7 +122,7 @@ export default async function AdminAcademyEventsPage({ params }: { params: Promi
                             ) : (
                                 events.map((event) => (
                                     <TableRow key={event.id}>
-                                        <TableCell className="pl-6 text-ui font-medium">{event.title}</TableCell>
+                                        <TableCell className="pl-6 text-panel-sm font-medium">{event.title}</TableCell>
                                         <TableCell className="text-muted-foreground">
                                             {event.event_date ? format(new Date(event.event_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : '-'}
                                         </TableCell>
@@ -143,7 +143,7 @@ export default async function AdminAcademyEventsPage({ params }: { params: Promi
                                                     Publicado
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline" className="text-label uppercase tracking-wider">
+                                                <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-bold">
                                                     {event.status || 'Ativo'}
                                                 </Badge>
                                             )}
@@ -151,7 +151,7 @@ export default async function AdminAcademyEventsPage({ params }: { params: Promi
                                         <TableCell className="text-right pr-6">
                                             <Button variant="ghost" size="icon" asChild pill>
                                                 <Link href={`/admin/dashboard/eventos/${event.id}/editar`}>
-                                                    <Pencil className="h-4 w-4" />
+                                                    <PencilSimpleIcon size={20} weight="duotone" />
                                                     <span className="sr-only">Editar</span>
                                                 </Link>
                                             </Button>

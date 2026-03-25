@@ -84,7 +84,7 @@ export function SignedTermsList({ initialData, initialTotal }: SignedTermsListPr
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative w-full md:w-72 group">
-                        <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
                             variant="lg"
                             placeholder="Buscar por atleta..."
@@ -109,11 +109,11 @@ export function SignedTermsList({ initialData, initialTotal }: SignedTermsListPr
                         {isPending ? '...' : `${total} termo${total !== 1 ? 's' : ''}`}
                     </span>
                     <Button variant="outline" size="sm" pill onClick={() => fetchData(page - 1, search, statusFilter)} disabled={page <= 1 || isPending}>
-                        <CaretLeftIcon size={16} weight="duotone" />
+                        <CaretLeftIcon size={20} weight="duotone" />
                     </Button>
                     <span className="text-xs font-bold text-muted-foreground px-1">{page} / {totalPages || 1}</span>
                     <Button variant="outline" size="sm" pill onClick={() => fetchData(page + 1, search, statusFilter)} disabled={page >= totalPages || isPending}>
-                        <CaretRightIcon size={16} weight="duotone" />
+                        <CaretRightIcon size={20} weight="duotone" />
                     </Button>
                 </div>
             </div>
@@ -145,7 +145,7 @@ export function SignedTermsList({ initialData, initialTotal }: SignedTermsListPr
                             <div className="flex items-center gap-2 shrink-0">
                                 {term.signed_term_url && (
                                     <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handlePreview(term.signed_term_url!)}>
-                                        <ImageIcon size={14} weight="duotone" />
+                                        <ImageIcon size={20} weight="duotone" />
                                         Ver foto
                                     </Button>
                                 )}
@@ -156,7 +156,7 @@ export function SignedTermsList({ initialData, initialTotal }: SignedTermsListPr
                                         disabled={approving === term.athlete_id || isPending}
                                         onClick={() => handleApprove(term.athlete_id)}
                                     >
-                                        <CheckIcon size={14} weight="bold" />
+                                        <CheckIcon size={20} weight="bold" />
                                         {approving === term.athlete_id ? 'Aprovando...' : 'Aprovar'}
                                     </Button>
                                 )}

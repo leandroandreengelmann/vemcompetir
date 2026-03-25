@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Trash, Pencil, X, Check, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { MagnifyingGlassIcon, TrashIcon, PencilSimpleIcon, XIcon, CheckIcon, SpinnerGapIcon, CaretLeftIcon, CaretRightIcon, CaretDoubleLeftIcon, CaretDoubleRightIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { CategoryRow, deleteCategoryRow, updateCategoryRow } from '../../../../actions/categories';
 import {
@@ -83,7 +83,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="relative max-w-sm w-full">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-2.5 top-2.5 text-muted-foreground" />
                     <Input variant="lg"
                         placeholder="Buscar categorias..."
                         className="pl-8"
@@ -94,7 +94,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                         }}
                     />
                 </div>
-                <div className="text-caption text-muted-foreground">
+                <div className="text-panel-sm text-muted-foreground">
                     Total: {rows.length} | Filtrados: {filteredRows.length}
                 </div>
             </div>
@@ -118,12 +118,12 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1.5 items-center">
                                         {row.categoria_completa.split('•').map((part, index) => (
-                                            <Badge key={index} variant="secondary" className="text-caption px-2 py-0.5">
+                                            <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
                                                 {part.trim()}
                                             </Badge>
                                         ))}
 
-                                        <Badge variant="outline" className="text-label px-2 py-0.5 border-dashed border-muted-foreground/50 text-muted-foreground">
+                                        <Badge variant="outline" className="text-xs px-2 py-0.5 border-dashed border-muted-foreground/50 text-muted-foreground">
                                             {row.peso_min_kg !== null ? `${row.peso_min_kg}kg` : ''}
                                             {row.peso_min_kg !== null && row.peso_max_kg !== null && ' - '}
                                             {row.peso_max_kg !== null ? `${row.peso_max_kg}kg` : (row.peso_min_kg !== null ? '+' : 'Livre')}
@@ -133,7 +133,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="text-ui font-medium">{row.divisao_idade}</span>
+                                        <span className="text-panel-sm font-medium">{row.divisao_idade}</span>
                                     </div>
                                 </TableCell>
 
@@ -149,7 +149,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <div className="flex items-center text-ui gap-1 whitespace-nowrap">
+                                    <div className="flex items-center text-panel-sm gap-1 whitespace-nowrap">
                                         {row.peso_min_kg !== null ? `${row.peso_min_kg}kg` : ''}
                                         {row.peso_min_kg !== null && row.peso_max_kg !== null && <span className="text-muted-foreground">-</span>}
                                         {row.peso_max_kg !== null ? `${row.peso_max_kg}kg` : (row.peso_min_kg !== null ? '+' : 'Livre')}
@@ -160,10 +160,10 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
                                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(row)}>
-                                            <Pencil className="h-4 w-4" />
+                                            <PencilSimpleIcon size={20} weight="duotone" />
                                         </Button>
                                         <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => setDeleteId(row.id)}>
-                                            <Trash className="h-4 w-4" />
+                                            <TrashIcon size={20} weight="duotone" />
                                         </Button>
                                     </div>
                                 </TableCell>
@@ -195,7 +195,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                             disabled={currentPage === 1}
                             className="h-8 w-8"
                         >
-                            <ChevronsLeft className="h-4 w-4" />
+                            <CaretDoubleLeftIcon size={20} weight="duotone" />
                         </Button>
                         <Button
                             variant="outline"
@@ -205,9 +205,9 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                             disabled={currentPage === 1}
                             className="h-8 w-8"
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <CaretLeftIcon size={20} weight="duotone" />
                         </Button>
-                        <div className="text-label text-primary px-4 uppercase tracking-tighter whitespace-nowrap">
+                        <div className="text-xs text-primary px-4 uppercase tracking-tighter whitespace-nowrap">
                             Página {currentPage} de {totalPages}
                         </div>
                         <Button
@@ -218,7 +218,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                             disabled={currentPage === totalPages}
                             className="h-8 w-8"
                         >
-                            <ChevronRight className="h-4 w-4" />
+                            <CaretRightIcon size={20} weight="duotone" />
                         </Button>
                         <Button
                             variant="outline"
@@ -228,7 +228,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                             disabled={currentPage === totalPages}
                             className="h-8 w-8"
                         >
-                            <ChevronsRight className="h-4 w-4" />
+                            <CaretDoubleRightIcon size={20} weight="duotone" />
                         </Button>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ export function CategoryListTable({ rows, tableId, onEdit }: CategoryListTablePr
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDeleteId(null)} disabled={loading}>Cancelar</Button>
                         <Button variant="destructive" pill onClick={handleDelete} disabled={loading}>
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+                            {loading ? <SpinnerGapIcon size={20} weight="bold" className="animate-spin" /> : 'Excluir'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

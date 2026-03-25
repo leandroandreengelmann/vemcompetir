@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { AthleteCartTrigger } from './components/AthleteCartTrigger';
 import { AthleteCartSheet } from './components/AthleteCartSheet';
 import { AthleteDesktopSidebar } from './components/AthleteDesktopSidebar';
+import { GuardianTermBannerWrapper } from '@/components/guardian/GuardianTermBannerWrapper';
 
 export default async function AthleteLayout({
     children,
@@ -33,6 +34,7 @@ export default async function AthleteLayout({
                     beltColor={profile?.belt_color || 'branca'}
                 />
                 <div className="flex-1 min-w-0 md:pl-64 relative">
+                    <GuardianTermBannerWrapper />
                     {children}
                     {/* Floating cart trigger */}
                     <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">

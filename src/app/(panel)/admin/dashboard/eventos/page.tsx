@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Plus, Pencil, Building2 } from 'lucide-react';
+import { CalendarIcon, PlusIcon, PencilSimpleIcon } from '@phosphor-icons/react/dist/ssr';
 import {
     Table,
     TableBody,
@@ -66,7 +66,7 @@ export default async function AdminGlobalEventsPage() {
                 rightElement={
                     <Button asChild pill>
                         <Link href="/admin/dashboard/eventos/novo">
-                            <Plus className="mr-2 h-4 w-4" />
+                            <PlusIcon size={20} weight="bold" className="mr-2" />
                             Novo Evento
                         </Link>
                     </Button>
@@ -76,18 +76,18 @@ export default async function AdminGlobalEventsPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-label">Total de Eventos</CardTitle>
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-panel-sm font-medium">Total de Eventos</CardTitle>
+                        <CalendarIcon size={20} weight="duotone" className="text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-h1">{events?.length || 0}</div>
+                        <div className="text-panel-lg font-black">{events?.length || 0}</div>
                     </CardContent>
                 </Card>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-h2">Todos os Eventos</CardTitle>
+                    <CardTitle className="text-panel-md font-semibold">Todos os Eventos</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
@@ -116,12 +116,12 @@ export default async function AdminGlobalEventsPage() {
                                         <TableRow key={event.id}>
                                             <TableCell className="pl-6 font-medium">{event.title}</TableCell>
                                             <TableCell>
-                                                <span className="text-ui font-medium">{gymName}</span>
+                                                <span className="text-panel-sm font-medium">{gymName}</span>
                                             </TableCell>
-                                            <TableCell className="text-caption text-muted-foreground">
+                                            <TableCell className="text-panel-sm text-muted-foreground">
                                                 {event.event_date ? format(new Date(event.event_date), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '-'}
                                             </TableCell>
-                                            <TableCell className="text-caption text-muted-foreground">
+                                            <TableCell className="text-panel-sm text-muted-foreground">
                                                 {event.location || '-'}
                                             </TableCell>
                                             <TableCell className="text-center">
@@ -146,7 +146,7 @@ export default async function AdminGlobalEventsPage() {
                                             <TableCell className="text-right pr-6">
                                                 <Button variant="ghost" size="icon" asChild pill>
                                                     <Link href={`/admin/dashboard/eventos/${event.id}/editar`}>
-                                                        <Pencil className="h-4 w-4" />
+                                                        <PencilSimpleIcon size={20} weight="duotone" />
                                                         <span className="sr-only">Editar</span>
                                                     </Link>
                                                 </Button>

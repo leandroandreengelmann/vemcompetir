@@ -66,11 +66,11 @@ export function CategoryTableDetails({ table, rows }: CategoryTableDetailsProps)
                 </Card>
 
                 <div className="hidden md:block bg-muted/30 rounded-lg p-6 border border-dashed flex flex-col items-center justify-center text-center">
-                    <h3 className="text-h3 mb-2">Resumo da Tabela</h3>
-                    <p className="text-caption text-muted-foreground mb-4">
+                    <h3 className="text-panel-md font-semibold mb-2">Resumo da Tabela</h3>
+                    <p className="text-panel-sm text-muted-foreground mb-4">
                         Esta tabela possui <strong>{rows.length}</strong> categorias cadastradas.
                     </p>
-                    <div className="text-caption text-muted-foreground w-full text-left space-y-2 max-h-[300px] overflow-y-auto">
+                    <div className="text-panel-sm text-muted-foreground w-full text-left space-y-2 max-h-[300px] overflow-y-auto">
                         <p><strong>Exemplos de categorias geradas:</strong></p>
                         <ul className="list-disc list-inside">
                             {rows.slice(0, 5).map(row => (

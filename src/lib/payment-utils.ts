@@ -19,11 +19,16 @@ export function calculateAsaasSplit(
         return undefined;
     }
 
-    // Ensure we don't send a negative value to the organizer
+    // Ensure we don't send a negative or zero value to the organizer
     const organizerAmount = Math.max(0, totalValue - platformFeeGross);
 
     // Asaas requires fixedValue to be formatted to 2 decimal places
     const fixedValue = parseFloat(organizerAmount.toFixed(2));
+
+    // If organizer receives nothing, no split needed — all goes to platform
+    if (fixedValue <= 0) {
+        return undefined;
+    }
 
     return [
         {

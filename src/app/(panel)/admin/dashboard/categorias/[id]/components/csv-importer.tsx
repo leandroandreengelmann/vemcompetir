@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, FileUp, Loader2, AlertCircle } from 'lucide-react';
+import { FileArrowUpIcon, SpinnerGapIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { importCategoriesBatch, CategoryRow } from '../../../../actions/categories';
@@ -138,14 +138,14 @@ export function CSVImporter({ tableId }: CSVImporterProps) {
 
     return (
         <div className="border p-4 rounded-lg bg-muted/50">
-            <h3 className="text-ui font-semibold mb-2 flex items-center gap-2">
-                <FileUp className="h-4 w-4" />
+            <h3 className="text-panel-sm font-semibold mb-2 flex items-center gap-2">
+                <FileArrowUpIcon size={20} weight="duotone" />
                 Importar CSV
             </h3>
 
             <div className="flex gap-4 items-end">
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Label htmlFor="csv_file" className="text-ui font-medium leading-none">Arquivo (.csv)</Label>
+                    <Label htmlFor="csv_file" className="text-panel-sm font-medium leading-none">Arquivo (.csv)</Label>
                     <Input
                         id="csv_file"
                         type="file"
@@ -158,8 +158,8 @@ export function CSVImporter({ tableId }: CSVImporterProps) {
                     />
                 </div>
                 {loading && (
-                    <div className="flex items-center text-caption text-muted-foreground pb-4">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...
+                    <div className="flex items-center text-panel-sm text-muted-foreground pb-4">
+                        <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> Processando...
                     </div>
                 )}
             </div>
@@ -167,7 +167,7 @@ export function CSVImporter({ tableId }: CSVImporterProps) {
             {stats && (
                 <div className="mt-4">
                     <Alert className={stats.duplicates > 0 ? "border-orange-500 text-orange-600 bg-orange-50" : "border-green-500 text-green-600 bg-green-50"}>
-                        <AlertCircle className="h-4 w-4" />
+                        <WarningCircleIcon size={20} weight="duotone" />
                         <AlertTitle>Resultado da Importação</AlertTitle>
                         <AlertDescription>
                             {stats.imported} novas categorias inseridas.
@@ -177,7 +177,7 @@ export function CSVImporter({ tableId }: CSVImporterProps) {
                 </div>
             )}
 
-            <div className="mt-4 text-caption text-muted-foreground">
+            <div className="mt-4 text-panel-sm text-muted-foreground">
                 <p>Colunas obrigatórias: sexo, divisao_idade, idade, faixa, categoria_peso.</p>
                 <p>Separadores aceitos: vírgula (,) ou ponto-e-vírgula (;).</p>
             </div>

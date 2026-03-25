@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { updateOrganizerAction } from '../actions';
 
 interface EditAcademiaEquipeFormProps {
@@ -20,6 +21,8 @@ interface EditAcademiaEquipeFormProps {
         address_city?: string;
         address_state?: string;
         address_zip_code?: string;
+        use_own_asaas_api?: boolean;
+        asaas_api_key_last4?: string | null;
     }
 }
 
@@ -27,6 +30,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [useOwnAsaas, setUseOwnAsaas] = useState(initialData.use_own_asaas_api ?? false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -60,13 +64,13 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                         href={`/admin/dashboard/equipes-academias/${initialData.id}`}
                         className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
                         Voltar para a lista
                     </Link>
 
                     <div className="space-y-2 text-center">
-                        <h1 className="text-h1 tracking-tight">Editar Entidade</h1>
-                        <p className="text-caption text-muted-foreground">
+                        <h1 className="text-panel-lg font-black tracking-tight">Editar Entidade</h1>
+                        <p className="text-panel-sm text-muted-foreground">
                             Atualize os dados da academia ou equipe.
                         </p>
                     </div>
@@ -82,7 +86,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                     <div className="space-y-6">
                         {/* Informações da Organização */}
                         <div className="space-y-4">
-                            <h2 className="text-h2 border-b pb-2">Informações da Organização</h2>
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Informações da Organização</h2>
 
                             <div className="space-y-2">
                                 <label htmlFor="full_name" className="text-ui font-medium leading-none">
@@ -116,7 +120,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
 
                         {/* Endereço */}
                         <div className="space-y-4">
-                            <h2 className="text-h2 border-b pb-2">Endereço</h2>
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Endereço</h2>
 
                             <div className="space-y-2">
                                 <label htmlFor="address_street" className="text-ui font-medium leading-none">
@@ -189,9 +193,51 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                             </div>
                         </div>
 
+                        {/* Integração Asaas */}
+                        <div className="space-y-4">
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Integração Asaas</h2>
+
+                            <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                                <div className="space-y-0.5">
+                                    <p className="text-ui font-medium">Usar conta Asaas própria</p>
+                                    <p className="text-caption text-muted-foreground">
+                                        Pagamentos irão direto para a conta Asaas da academia
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={useOwnAsaas}
+                                    onCheckedChange={setUseOwnAsaas}
+                                    disabled={loading}
+                                />
+                                <input type="hidden" name="use_own_asaas_api" value={useOwnAsaas ? 'true' : 'false'} />
+                            </div>
+
+                            {useOwnAsaas && (
+                                <div className="space-y-2">
+                                    <label htmlFor="asaas_api_key" className="text-ui font-medium leading-none">
+                                        API Key Asaas
+                                    </label>
+                                    <Input
+                                        id="asaas_api_key"
+                                        name="asaas_api_key"
+                                        type="password"
+                                        placeholder={initialData.asaas_api_key_last4
+                                            ? `Atual: ••••••••${initialData.asaas_api_key_last4} — deixe em branco para manter`
+                                            : 'Cole a API Key da academia aqui'
+                                        }
+                                        className="bg-background font-mono"
+                                        disabled={loading}
+                                    />
+                                    <p className="text-caption text-muted-foreground">
+                                        O webhook será registrado automaticamente na conta Asaas da academia.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Acesso */}
                         <div className="space-y-4">
-                            <h2 className="text-h2 border-b pb-2">Dados de Acesso</h2>
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Dados de Acesso</h2>
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
@@ -235,7 +281,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                     Salvando...
                                 </>
                             ) : (

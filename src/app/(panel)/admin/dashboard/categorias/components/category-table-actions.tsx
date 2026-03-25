@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FileDown, Pencil, Trash, Eye } from 'lucide-react';
+import { DotsThreeIcon, FileArrowDownIcon, PencilSimpleIcon, TrashIcon, EyeIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -85,23 +85,23 @@ export function CategoryTableActions({ table }: CategoryTableActionsProps) {
                 <DropdownMenuTrigger asChild>
                     <Button pill variant="ghost" className="h-8 w-8 p-0 data-[state=open]:bg-muted">
                         <span className="sr-only">Abrir menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                        <DotsThreeIcon size={20} weight="bold" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Ações</DropdownMenuLabel>
                     <DropdownMenuItem asChild className="focus:bg-muted/50 focus:text-foreground">
                         <Link href={`/admin/dashboard/categorias/${table.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
+                            <EyeIcon size={20} weight="duotone" className="mr-2" />
                             Abrir Detalhes
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setShowEditDialog(true)} className="focus:bg-muted/50 focus:text-foreground">
-                        <Pencil className="mr-2 h-4 w-4" />
+                        <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
                         Renomear
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={handleExport} className="focus:bg-muted/50 focus:text-foreground">
-                        <FileDown className="mr-2 h-4 w-4" />
+                        <FileArrowDownIcon size={20} weight="duotone" className="mr-2" />
                         Exportar CSV
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -109,7 +109,7 @@ export function CategoryTableActions({ table }: CategoryTableActionsProps) {
                         onSelect={() => setShowDeleteDialog(true)}
                         className="text-red-600 focus:text-red-600 focus:bg-red-50"
                     >
-                        <Trash className="mr-2 h-4 w-4" />
+                        <TrashIcon size={20} weight="duotone" className="mr-2" />
                         Excluir Tabela
                     </DropdownMenuItem>
                 </DropdownMenuContent>

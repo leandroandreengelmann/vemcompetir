@@ -41,7 +41,7 @@ export function AthleteListModal({ isOpen, onClose, suggestion }: AthleteListMod
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-h3">
+                    <DialogTitle className="text-panel-md font-semibold">
                         Atletas sugerindo: <span className="text-primary">{suggestion.gym_name || 'Sem Academia'}</span>
                     </DialogTitle>
                     <p className="text-sm text-muted-foreground mt-1 font-medium">
@@ -53,10 +53,10 @@ export function AthleteListModal({ isOpen, onClose, suggestion }: AthleteListMod
                     <Table>
                         <TableHeader className="bg-muted/50">
                             <TableRow>
-                                <TableHead className="font-semibold text-ui">Atleta</TableHead>
+                                <TableHead className="font-semibold text-panel-sm">Atleta</TableHead>
                                 <TableHead className="font-semibold text-ui w-32">CPF</TableHead>
                                 <TableHead className="font-semibold text-ui w-24">Faixa</TableHead>
-                                <TableHead className="font-semibold text-ui">Eventos</TableHead>
+                                <TableHead className="font-semibold text-panel-sm">Eventos</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

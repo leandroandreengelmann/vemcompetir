@@ -225,7 +225,7 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
                                     }}
                                     trigger={
                                         <Button size="sm" variant="outline" className="h-8 px-3 rounded-full font-bold text-xs tracking-wide text-primary border-primary/20 hover:bg-primary hover:text-white transition-colors gap-1.5">
-                                            <ScrollIcon size={14} weight="duotone" />
+                                            <ScrollIcon size={20} weight="duotone" />
                                             Ver Declaração
                                         </Button>
                                     }
@@ -281,7 +281,7 @@ export default async function AthleteProfilePage(props: ProfilePageProps) {
                                 }}
                                 trigger={
                                     <Button size="sm" variant="outline" className="h-8 px-3 rounded-full font-bold text-xs tracking-wide text-primary border-primary/20 hover:bg-primary hover:text-white transition-colors gap-1.5">
-                                        <ScrollIcon size={14} weight="duotone" />
+                                        <ScrollIcon size={20} weight="duotone" />
                                         Ver Declaração
                                     </Button>
                                 }

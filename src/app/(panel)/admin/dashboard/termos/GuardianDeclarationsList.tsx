@@ -53,7 +53,7 @@ export function GuardianDeclarationsList({ initialData, initialTotal }: Guardian
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative w-full md:w-72 group">
-                        <MagnifyingGlassIcon size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
                             variant="lg"
                             placeholder="Buscar por atleta ou responsável..."
@@ -78,11 +78,11 @@ export function GuardianDeclarationsList({ initialData, initialTotal }: Guardian
                         {isPending ? '...' : `${total} declaraç${total !== 1 ? 'ões' : 'ão'}`}
                     </span>
                     <Button variant="outline" size="sm" pill onClick={() => fetchPage(page - 1, search, responsibleType)} disabled={page <= 1 || isPending}>
-                        <CaretLeftIcon size={16} weight="duotone" />
+                        <CaretLeftIcon size={20} weight="duotone" />
                     </Button>
                     <span className="text-xs font-bold text-muted-foreground px-1">{page} / {totalPages || 1}</span>
                     <Button variant="outline" size="sm" pill onClick={() => fetchPage(page + 1, search, responsibleType)} disabled={page >= totalPages || isPending}>
-                        <CaretRightIcon size={16} weight="duotone" />
+                        <CaretRightIcon size={20} weight="duotone" />
                     </Button>
                 </div>
             </div>
@@ -119,7 +119,7 @@ export function GuardianDeclarationsList({ initialData, initialTotal }: Guardian
                                 declaration={decl}
                                 trigger={
                                     <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-                                        <EyeIcon size={14} weight="duotone" />
+                                        <EyeIcon size={20} weight="duotone" />
                                         Ver
                                     </Button>
                                 }

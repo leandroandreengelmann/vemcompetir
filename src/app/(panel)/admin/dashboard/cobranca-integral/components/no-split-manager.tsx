@@ -11,7 +11,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import { Search, Settings2, Plus, Trash2, Eye, HandCoins, Zap, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+    MagnifyingGlassIcon,
+    GearSixIcon,
+    PlusIcon,
+    TrashIcon,
+    EyeIcon,
+    HandCoinsIcon,
+    LightningIcon,
+    CalendarIcon,
+    CaretDownIcon,
+    CaretUpIcon,
+} from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { upsertNoSplitRule, getNoSplitPayments, getEventPaidCount } from '../actions';
 import { getNextIntegralPositions } from '@/lib/no-split-logic';
@@ -168,7 +179,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
         <div className="space-y-6">
             {/* Search */}
             <div className="relative max-w-sm group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <MagnifyingGlassIcon size={20} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                     placeholder="Buscar por evento ou organizador..."
                     variant="lg"
@@ -185,28 +196,28 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="hover:bg-transparent border-border/50">
-                                    <TableHead className="text-label h-11">Evento</TableHead>
-                                    <TableHead className="text-label h-11">Organizador</TableHead>
-                                    <TableHead className="text-label h-11 text-center">Status</TableHead>
-                                    <TableHead className="text-label h-11 text-center">Regra</TableHead>
-                                    <TableHead className="text-label h-11 text-center w-[180px]">Ações</TableHead>
+                                    <TableHead className="text-panel-sm h-11">Evento</TableHead>
+                                    <TableHead className="text-panel-sm h-11">Organizador</TableHead>
+                                    <TableHead className="text-panel-sm h-11 text-center">Status</TableHead>
+                                    <TableHead className="text-panel-sm h-11 text-center">Regra</TableHead>
+                                    <TableHead className="text-panel-sm h-11 text-center w-[180px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filtered.length > 0 ? filtered.map(event => (
                                     <TableRow key={event.id} className="hover:bg-muted/20 transition-colors border-border/50">
-                                        <TableCell className="font-bold text-ui py-4">
+                                        <TableCell className="font-bold text-panel-sm py-4">
                                             <div className="flex flex-col">
                                                 <span>{event.title}</span>
-                                                <span className="text-caption text-muted-foreground">
+                                                <span className="text-panel-sm text-muted-foreground">
                                                     {event.event_date ? new Date(event.event_date).toLocaleDateString('pt-BR') : '—'}
                                                 </span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-ui text-muted-foreground">{event.organizer}</TableCell>
+                                        <TableCell className="text-muted-foreground text-panel-sm">{event.organizer}</TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className={cn(
-                                                "text-label px-2 font-semibold uppercase tracking-wider",
+                                                "text-panel-sm px-2 font-semibold uppercase tracking-wider",
                                                 event.status === 'published'
                                                     ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-300"
                                                     : "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-300"
@@ -216,11 +227,11 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {event.noSplitRule?.is_enabled ? (
-                                                <Badge className="bg-primary/10 text-primary border-primary/20 text-label font-semibold">
-                                                    <Zap className="h-3 w-3 mr-1" /> Ativo
+                                                <Badge className="bg-primary/10 text-primary border-primary/20 text-panel-sm font-semibold">
+                                                    <LightningIcon size={20} weight="duotone" className="mr-1" /> Ativo
                                                 </Badge>
                                             ) : (
-                                                <span className="text-caption text-muted-foreground">Inativo</span>
+                                                <span className="text-panel-sm text-muted-foreground">Inativo</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
@@ -233,7 +244,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                                     onClick={() => openConfig(event)}
                                                     title="Configurar regra"
                                                 >
-                                                    <Settings2 className="w-4 h-4" />
+                                                    <GearSixIcon size={20} weight="duotone" />
                                                 </Button>
                                                 {event.noSplitRule?.is_enabled && (
                                                     <Button
@@ -244,7 +255,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                                         onClick={() => openDetail(event)}
                                                         title="Ver cobranças integrais"
                                                     >
-                                                        <Eye className="w-4 h-4" />
+                                                        <EyeIcon size={20} weight="duotone" />
                                                     </Button>
                                                 )}
                                             </div>
@@ -268,7 +279,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <HandCoins className="h-5 w-5 text-primary" />
+                            <HandCoinsIcon size={20} weight="duotone" className="text-primary" />
                             Cobrança Integral
                         </DialogTitle>
                         <DialogDescription>
@@ -316,7 +327,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                             className="h-8 text-xs gap-1"
                                             onClick={addOffset}
                                         >
-                                            <Plus className="h-3 w-3" /> Adicionar
+                                            <PlusIcon size={20} weight="bold" /> Adicionar
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
@@ -341,7 +352,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                                         className="h-8 w-8 text-destructive hover:bg-destructive/10"
                                                         onClick={() => removeOffset(i)}
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        <TrashIcon size={20} weight="duotone" />
                                                     </Button>
                                                 )}
                                             </div>
@@ -352,8 +363,8 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                 {/* Preview */}
                                 {previewPositions.length > 0 && (
                                     <div className="space-y-2 rounded-xl bg-muted/30 p-4 border border-border/50">
-                                        <p className="text-sm font-semibold flex items-center gap-2">
-                                            <Zap className="h-4 w-4 text-primary" /> Próximas posições integrais
+                                        <p className="text-panel-sm font-semibold flex items-center gap-2">
+                                            <LightningIcon size={20} weight="duotone" className="text-primary" /> Próximas posições integrais
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                             {previewPositions.map((pos, i) => (
@@ -395,7 +406,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Eye className="h-5 w-5 text-primary" />
+                            <EyeIcon size={20} weight="duotone" className="text-primary" />
                             Cobranças Integrais
                         </DialogTitle>
                         <DialogDescription>
@@ -443,7 +454,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                                 >
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
-                                                            <HandCoins className="h-4 w-4 text-primary" />
+                                                            <HandCoinsIcon size={20} weight="duotone" className="text-primary" />
                                                             <span className="font-bold text-sm">
                                                                 {formatCurrency(payment.total)}
                                                             </span>
@@ -456,9 +467,9 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                                         </p>
                                                     </div>
                                                     {expandedPayments.has(payment.id) ? (
-                                                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                                        <CaretUpIcon size={20} weight="bold" className="text-muted-foreground" />
                                                     ) : (
-                                                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                                        <CaretDownIcon size={20} weight="bold" className="text-muted-foreground" />
                                                     )}
                                                 </div>
 
@@ -467,9 +478,9 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                                                         <Table>
                                                             <TableHeader className="bg-muted/20">
                                                                 <TableRow className="hover:bg-transparent">
-                                                                    <TableHead className="text-label text-[10px] h-8">Atleta</TableHead>
-                                                                    <TableHead className="text-label text-[10px] h-8">Categoria</TableHead>
-                                                                    <TableHead className="text-label text-[10px] h-8 text-right">Valor</TableHead>
+                                                                    <TableHead className="text-panel-sm text-[10px] h-8">Atleta</TableHead>
+                                                                    <TableHead className="text-panel-sm text-[10px] h-8">Categoria</TableHead>
+                                                                    <TableHead className="text-panel-sm text-[10px] h-8 text-right">Valor</TableHead>
                                                                 </TableRow>
                                                             </TableHeader>
                                                             <TableBody>
@@ -491,7 +502,7 @@ export function NoSplitManager({ initialEvents }: { initialEvents: EventWithRule
                             </>
                         ) : (
                             <div className="text-center py-12 text-muted-foreground">
-                                <HandCoins className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                                <HandCoinsIcon size={48} weight="duotone" className="mx-auto mb-4 opacity-30" />
                                 <p className="text-sm">Nenhuma cobrança integral processada para este evento.</p>
                             </div>
                         )}

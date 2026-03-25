@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { encrypt, decrypt, getLast4, generateToken, hashToken } from '@/lib/crypto';
 
 export async function createOrganizerAction(formData: FormData) {
     const supabase = await createClient();
@@ -208,7 +209,234 @@ export async function updateOrganizerAction(formData: FormData) {
             });
     }
 
+    // 3. Atualizar configuração Asaas do tenant
+    const use_own_asaas_api = formData.get('use_own_asaas_api') === 'true';
+    const asaas_api_key = formData.get('asaas_api_key') as string | null;
+
+    const { data: profileForTenant } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', id)
+        .single();
+
+    if (profileForTenant?.tenant_id) {
+        const tenantUpdate: Record<string, any> = { use_own_asaas_api };
+
+        if (use_own_asaas_api && asaas_api_key && asaas_api_key.trim().length > 0) {
+            const { encrypted, iv } = encrypt(asaas_api_key.trim());
+            const last4 = getLast4(asaas_api_key.trim());
+            const webhookToken = generateToken();
+            const webhookTokenHash = hashToken(webhookToken);
+
+            // Buscar ambiente ativo para registrar webhook no endpoint correto
+            const { data: asaasSettings } = await adminClient
+                .from('asaas_settings')
+                .select('environment')
+                .eq('is_enabled', true)
+                .single();
+
+            const baseUrl = asaasSettings?.environment === 'production'
+                ? 'https://api.asaas.com'
+                : 'https://api-sandbox.asaas.com';
+
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+            await fetch(`${baseUrl}/v3/webhooks`, {
+                method: 'POST',
+                headers: { 'access_token': asaas_api_key.trim(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: `${appUrl}/api/webhooks/asaas`,
+                    email: 'noreply@competir.com',
+                    interrupted: false,
+                    enabled: true,
+                    authToken: webhookToken,
+                    events: [
+                        'PAYMENT_CONFIRMED',
+                        'PAYMENT_RECEIVED',
+                        'PAYMENT_OVERDUE',
+                        'PAYMENT_DELETED',
+                        'PAYMENT_REFUNDED',
+                    ],
+                }),
+            });
+
+            tenantUpdate.asaas_api_key_encrypted = encrypted;
+            tenantUpdate.asaas_api_key_iv = iv;
+            tenantUpdate.asaas_api_key_last4 = last4;
+            tenantUpdate.asaas_webhook_token_hash = webhookTokenHash;
+
+        } else if (!use_own_asaas_api) {
+            tenantUpdate.asaas_api_key_encrypted = null;
+            tenantUpdate.asaas_api_key_iv = null;
+            tenantUpdate.asaas_api_key_last4 = null;
+            tenantUpdate.asaas_webhook_token_hash = null;
+        }
+
+        await adminClient.from('tenants').update(tenantUpdate).eq('id', profileForTenant.tenant_id);
+    }
+
     revalidatePath('/admin/dashboard/equipes-academias');
     revalidatePath(`/admin/dashboard/equipes-academias/${id}`);
+    return { success: true };
+}
+
+export async function getAsaasWebhookDetailsAction(entidadeId: string) {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: profileForTenant } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', entidadeId)
+        .single();
+
+    if (!profileForTenant?.tenant_id) return { error: 'Tenant não encontrado.' };
+
+    const { data: tenant } = await adminClient
+        .from('tenants')
+        .select('asaas_api_key_encrypted, asaas_api_key_iv, use_own_asaas_api')
+        .eq('id', profileForTenant.tenant_id)
+        .single();
+
+    if (!tenant?.use_own_asaas_api || !tenant.asaas_api_key_encrypted || !tenant.asaas_api_key_iv) {
+        return { error: 'Asaas não configurado para esta academia.' };
+    }
+
+    let apiKey: string;
+    try {
+        apiKey = decrypt(tenant.asaas_api_key_encrypted, tenant.asaas_api_key_iv);
+    } catch {
+        return { error: 'Falha ao decifrar a API Key.' };
+    }
+
+    const { data: asaasSettings } = await adminClient
+        .from('asaas_settings')
+        .select('environment')
+        .eq('is_enabled', true)
+        .single();
+
+    const baseUrl = asaasSettings?.environment === 'production'
+        ? 'https://api.asaas.com'
+        : 'https://api-sandbox.asaas.com';
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    const webhookEndpoint = `${appUrl}/api/webhooks/asaas`;
+
+    const response = await fetch(`${baseUrl}/v3/webhooks`, {
+        headers: { 'access_token': apiKey },
+    });
+
+    if (!response.ok) {
+        return { error: `Erro ao consultar Asaas: ${response.status}` };
+    }
+
+    const data = await response.json();
+    const webhooks: any[] = data?.data ?? [];
+
+    const ours = webhooks.filter((w: any) => w.url === webhookEndpoint);
+    const others = webhooks.filter((w: any) => w.url !== webhookEndpoint);
+
+    return {
+        success: true,
+        ours,
+        others,
+        total: webhooks.length,
+        environment: asaasSettings?.environment ?? 'sandbox',
+        webhookEndpoint,
+    };
+}
+
+export async function updateAsaasConfigAction(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const id = formData.get('id') as string;
+    const use_own_asaas_api = formData.get('use_own_asaas_api') === 'true';
+    const asaas_api_key = formData.get('asaas_api_key') as string | null;
+
+    if (!id) return { error: 'ID inválido.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: profileForTenant } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', id)
+        .single();
+
+    if (!profileForTenant?.tenant_id) return { error: 'Tenant não encontrado.' };
+
+    const tenantUpdate: Record<string, any> = { use_own_asaas_api };
+
+    if (use_own_asaas_api && asaas_api_key && asaas_api_key.trim().length > 0) {
+        const { encrypted, iv } = encrypt(asaas_api_key.trim());
+        const last4 = getLast4(asaas_api_key.trim());
+        const webhookToken = generateToken();
+        const webhookTokenHash = hashToken(webhookToken);
+
+        const { data: asaasSettings } = await adminClient
+            .from('asaas_settings')
+            .select('environment')
+            .eq('is_enabled', true)
+            .single();
+
+        const baseUrl = asaasSettings?.environment === 'production'
+            ? 'https://api.asaas.com'
+            : 'https://api-sandbox.asaas.com';
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+        await fetch(`${baseUrl}/v3/webhooks`, {
+            method: 'POST',
+            headers: { 'access_token': asaas_api_key.trim(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: `${appUrl}/api/webhooks/asaas`,
+                email: 'noreply@competir.com',
+                interrupted: false,
+                enabled: true,
+                authToken: webhookToken,
+                events: [
+                    'PAYMENT_CONFIRMED',
+                    'PAYMENT_RECEIVED',
+                    'PAYMENT_OVERDUE',
+                    'PAYMENT_DELETED',
+                    'PAYMENT_REFUNDED',
+                ],
+            }),
+        });
+
+        tenantUpdate.asaas_api_key_encrypted = encrypted;
+        tenantUpdate.asaas_api_key_iv = iv;
+        tenantUpdate.asaas_api_key_last4 = last4;
+        tenantUpdate.asaas_webhook_token_hash = webhookTokenHash;
+
+    } else if (!use_own_asaas_api) {
+        tenantUpdate.asaas_api_key_encrypted = null;
+        tenantUpdate.asaas_api_key_iv = null;
+        tenantUpdate.asaas_api_key_last4 = null;
+        tenantUpdate.asaas_webhook_token_hash = null;
+    }
+
+    await adminClient.from('tenants').update(tenantUpdate).eq('id', profileForTenant.tenant_id);
+
+    revalidatePath('/admin/dashboard/equipes-academias');
     return { success: true };
 }

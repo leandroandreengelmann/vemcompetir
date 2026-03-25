@@ -7,7 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Copy, Check, Eye, EyeOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import {
+    SpinnerGapIcon,
+    CopyIcon,
+    CheckIcon,
+    EyeIcon,
+    EyeSlashIcon,
+    ArrowClockwiseIcon,
+    WarningIcon,
+} from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import {
     saveAsaasSettings,
@@ -139,7 +147,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                             : ''
                     )}
                 >
-                    <AlertDescription className="text-ui font-medium">
+                    <AlertDescription className="text-panel-sm font-medium">
                         {message.text}
                     </AlertDescription>
                 </Alert>
@@ -163,7 +171,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                             }}
                             pill
                             className={cn(
-                                "flex-1 h-12 relative overflow-hidden text-ui font-semibold",
+                                "flex-1 h-12 relative overflow-hidden text-panel-sm font-semibold",
                                 environment === 'sandbox' ? "text-white" : "text-foreground"
                             )}
                         >
@@ -182,7 +190,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                             }}
                             pill
                             className={cn(
-                                "flex-1 h-12 relative overflow-hidden text-ui font-semibold",
+                                "flex-1 h-12 relative overflow-hidden text-panel-sm font-semibold",
                                 environment === 'production' ? "text-white" : "text-foreground"
                             )}
                         >
@@ -195,7 +203,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
 
                     {environment === 'production' && (
                         <Alert className="mt-4 border-amber-500 bg-amber-50 text-amber-800 [&>svg]:text-amber-600">
-                            <AlertTriangle className="h-4 w-4" />
+                            <WarningIcon size={20} weight="duotone" />
                             <AlertDescription>
                                 Você está configurando o ambiente de <strong>PRODUÇÃO</strong>. Cobranças reais serão processadas.
                             </AlertDescription>
@@ -216,7 +224,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="apiKey" className="text-ui font-medium">API Key</Label>
+                        <Label htmlFor="apiKey" className="text-panel-sm font-medium">API Key</Label>
                         <div className="relative">
                             <Input variant="lg"
                                 id="apiKey"
@@ -232,13 +240,13 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                                 onClick={() => setShowApiKey(!showApiKey)}
                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                             >
-                                {showApiKey ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                                {showApiKey ? <EyeSlashIcon size={20} weight="duotone" /> : <EyeIcon size={20} weight="duotone" />}
                             </button>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-ui font-medium">Base URL</Label>
+                        <Label className="text-panel-sm font-medium">Base URL</Label>
                         <Input
                             value={BASE_URLS[environment]}
                             readOnly
@@ -259,7 +267,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label className="text-ui font-medium">Webhook URL</Label>
+                        <Label className="text-panel-sm font-medium">Webhook URL</Label>
                         <div className="flex gap-2">
                             <Input
                                 value={webhookUrl}
@@ -275,16 +283,16 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                                 className="shrink-0 h-12 w-12"
                             >
                                 {copiedField === 'webhook-url' ? (
-                                    <Check className="size-5 text-green-600" />
+                                    <CheckIcon size={20} weight="bold" className="text-green-600" />
                                 ) : (
-                                    <Copy className="size-5" />
+                                    <CopyIcon size={20} weight="duotone" />
                                 )}
                             </Button>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Webhook Token</Label>
+                        <Label className="text-panel-sm font-medium">Webhook Token</Label>
                         {generatedToken ? (
                             <div className="space-y-2">
                                 <div className="flex gap-2">
@@ -302,9 +310,9 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                                         className="shrink-0 h-12 w-12"
                                     >
                                         {copiedField === 'webhook-token' ? (
-                                            <Check className="size-5 text-green-600" />
+                                            <CheckIcon size={20} weight="bold" className="text-green-600" />
                                         ) : (
-                                            <Copy className="size-5" />
+                                            <CopyIcon size={20} weight="duotone" />
                                         )}
                                     </Button>
                                 </div>
@@ -315,11 +323,11 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                         ) : (
                             <div className="space-y-2">
                                 {currentSettings?.webhook_token_hash ? (
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-panel-sm text-muted-foreground">
                                         Token configurado (hash armazenado).
                                     </p>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-panel-sm text-muted-foreground">
                                         Nenhum token gerado ainda.
                                     </p>
                                 )}
@@ -327,15 +335,16 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                                     variant="outline"
                                     onClick={handleGenerateToken}
                                     disabled={isGeneratingToken || !currentSettings}
+                                    pill
                                 >
                                     {isGeneratingToken ? (
                                         <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                             Gerando...
                                         </>
                                     ) : (
                                         <>
-                                            <RefreshCw className="mr-2 h-4 w-4" />
+                                            <ArrowClockwiseIcon size={20} weight="duotone" className="mr-2" />
                                             Gerar novo token
                                         </>
                                     )}
@@ -363,38 +372,36 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                             onClick={handleTest}
                             disabled={isTesting || !currentSettings?.has_api_key}
                             pill
-                            className="h-12 text-ui font-semibold transition-all hover:bg-accent"
+                            className="h-12 text-panel-sm font-semibold transition-all hover:bg-accent"
                         >
                             {isTesting ? (
                                 <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                     Testando...
                                 </>
                             ) : (
                                 <>
-                                    <RefreshCw className="mr-2 h-5 w-5" />
+                                    <ArrowClockwiseIcon size={20} weight="duotone" className="mr-2" />
                                     Testar Conexão
                                 </>
                             )}
                         </Button>
 
                         <Button
+                            variant="default"
                             onClick={handleSave}
                             disabled={isPending || !apiKey.trim()}
                             pill
-                            className={cn(
-                                "h-12 text-ui font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98]",
-                                !apiKey.trim() || isPending ? "opacity-40" : "bg-primary text-white hover:bg-primary/90"
-                            )}
+                            className="h-12 text-panel-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
                         >
                             {isPending ? (
                                 <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                     Salvando...
                                 </>
                             ) : (
                                 <>
-                                    <Check className="mr-2 h-5 w-5" />
+                                    <CheckIcon size={20} weight="bold" className="mr-2" />
                                     Salvar Configuração
                                 </>
                             )}
@@ -406,7 +413,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                                 onClick={handleToggle}
                                 disabled={isPending}
                                 pill
-                                className="h-12 text-ui font-semibold"
+                                className="h-12 text-panel-sm font-semibold"
                             >
                                 {currentSettings.is_enabled ? 'Desativar Integração' : 'Ativar Integração'}
                             </Button>
@@ -424,7 +431,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
                     {currentSettings ? (
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
-                                <span className="text-ui font-medium">Status:</span>
+                                <span className="text-panel-sm font-medium">Status:</span>
                                 {currentSettings.is_enabled ? (
                                     <Badge className="bg-green-100 text-green-800 border-green-300 rounded-full px-3">
                                         Ativada
@@ -436,7 +443,7 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
 
                             {currentSettings.last_test_status && (
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">Último teste:</span>
+                                    <span className="text-panel-sm font-medium">Último teste:</span>
                                     <Badge
                                         className={
                                             currentSettings.last_test_status === 'ok'
@@ -451,8 +458,8 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
 
                             {currentSettings.last_test_at && (
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">Data do teste:</span>
-                                    <span className="text-sm text-muted-foreground">
+                                    <span className="text-panel-sm font-medium">Data do teste:</span>
+                                    <span className="text-panel-sm text-muted-foreground">
                                         {new Date(currentSettings.last_test_at).toLocaleString('pt-BR')}
                                     </span>
                                 </div>
@@ -460,13 +467,13 @@ export function AsaasConfigForm({ sandboxSettings, productionSettings }: AsaasCo
 
                             {currentSettings.last_test_message && currentSettings.last_test_status === 'error' && (
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">Mensagem:</span>
-                                    <span className="text-sm text-red-600">{currentSettings.last_test_message}</span>
+                                    <span className="text-panel-sm font-medium">Mensagem:</span>
+                                    <span className="text-panel-sm text-red-600">{currentSettings.last_test_message}</span>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-panel-sm text-muted-foreground">
                             Nenhuma configuração salva para o ambiente <strong>{environment}</strong>.
                         </p>
                     )}

@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from 'lucide-react';
+import { PlusIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { createCategoryTable } from '../../../actions/categories';
 
@@ -46,7 +46,7 @@ export function CreateTableDialog() {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button pill>
-                    <Plus className="mr-2 h-4 w-4" />
+                    <PlusIcon size={20} weight="bold" className="mr-2" />
                     Criar nova tabela
                 </Button>
             </DialogTrigger>

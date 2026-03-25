@@ -22,7 +22,7 @@ export function TopEventsRevenueTable({ data }: TopEventsRevenueTableProps) {
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle className="text-h3">Ranking de Campeonatos</CardTitle>
+                <CardTitle className="text-panel-md font-semibold">Ranking de Campeonatos</CardTitle>
                 <CardDescription>Eventos com maior faturamento bruto.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -37,7 +37,7 @@ export function TopEventsRevenueTable({ data }: TopEventsRevenueTableProps) {
                     <TableBody>
                         {data.slice(0, 5).map((event) => (
                             <TableRow key={event.id}>
-                                <TableCell className="font-medium text-ui">{event.title}</TableCell>
+                                <TableCell className="font-medium text-panel-sm">{event.title}</TableCell>
                                 <TableCell className="text-center">{event.inscritos}</TableCell>
                                 <TableCell className="text-right text-emerald-600 font-medium">
                                     {formatter.format(event.receita)}

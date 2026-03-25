@@ -37,17 +37,17 @@ export default async function CategoryListPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-ui font-medium">Total de Tabelas</CardTitle>
+                        <CardTitle className="text-panel-sm font-medium">Total de Tabelas</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-h1">{tables.length}</div>
+                        <div className="text-panel-lg font-black">{tables.length}</div>
                     </CardContent>
                 </Card>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-h2">Listagem de Tabelas</CardTitle>
+                    <CardTitle className="text-panel-md font-semibold">Listagem de Tabelas</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
@@ -63,7 +63,7 @@ export default async function CategoryListPage() {
                         <TableBody>
                             {tables.map((table) => (
                                 <TableRow key={table.id}>
-                                    <TableCell className="pl-6 text-ui font-medium">
+                                    <TableCell className="pl-6 text-panel-sm font-medium">
                                         {table.name}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">

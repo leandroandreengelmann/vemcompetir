@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getDashboardKPIs } from "./actions";
 import { RevenueCards } from "./components/revenue-cards";
+import { SectionHeader } from "@/components/layout/SectionHeader";
 
 export default async function AdminDashboard() {
     const supabase = await createClient();
@@ -20,7 +21,11 @@ export default async function AdminDashboard() {
     const kpis = await getDashboardKPIs();
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 p-4">
+        <div className="space-y-6">
+            <SectionHeader
+                title="Painel Administrativo"
+                description="Visão geral financeira da plataforma COMPETIR"
+            />
             <RevenueCards
                 receitaTotalBruta={kpis.receitaTotalBruta}
                 receitaConfirmada={kpis.receitaConfirmada}

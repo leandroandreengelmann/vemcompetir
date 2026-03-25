@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireRole } from '@/lib/auth-guards';
 import { PricingManager } from '@/components/panel/PricingManager';
 import Link from 'next/link';
-import { ChevronLeft, DollarSign } from 'lucide-react';
+import { CaretLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/layout/SectionHeader";
 
@@ -37,7 +37,7 @@ export default async function AdminEventCategoryPricingPage(props: {
             <div className="flex items-center justify-between">
                 <Button pill variant="ghost" size="sm" asChild>
                     <Link href={`/admin/dashboard/eventos/${params.id}/categorias`}>
-                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        <CaretLeftIcon size={20} weight="duotone" className="mr-1" />
                         Voltar para Categorias
                     </Link>
                 </Button>

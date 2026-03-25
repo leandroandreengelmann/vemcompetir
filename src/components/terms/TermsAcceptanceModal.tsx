@@ -10,26 +10,64 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, FileText, AlertTriangle } from 'lucide-react';
+import { SpinnerGapIcon, FileTextIcon, WarningIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import { getTermsModalDataAction, acceptTermAction, type TermsModalData } from '@/app/atleta/components/terms-actions';
+import { getTermsModalDataAction, getTermsModalDataForAthleteAction, acceptTermAction, acceptTermForAthleteAction, type TermsModalData } from '@/app/atleta/components/terms-actions';
 import { cn } from '@/lib/utils';
 
-interface TermsAcceptanceModalProps {
-    open: boolean;
-    eventId: string;
-    onAccepted: () => void;
-    onCancel: () => void;
+const RELATIONSHIP_LABELS: Record<string, string> = {
+    pai: 'Pai',
+    mae: 'Mãe',
+    irmao: 'Irmão/Irmã',
+    tio: 'Tio/Tia',
+    padrinho: 'Padrinho/Madrinha',
+    outro: 'Outro',
+    academia: 'Academia/Equipe',
+};
+
+function formatCPF(cpf: string): string {
+    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 }
 
 function replacePlaceholders(content: string, data: TermsModalData): string {
-    return content
+    const today = new Date().toLocaleDateString('pt-BR');
+    const guardian = data.guardian;
+
+    let result = content
+        // Adult uppercase placeholders
         .replace(/{{NOME_ATLETA}}/g, data.athleteName)
         .replace(/{{NOME_EVENTO}}/g, data.event.title)
         .replace(/{{ENDERECO_EVENTO}}/g, data.event.address)
         .replace(/{{CIDADE_UF}}/g, data.event.cityState)
         .replace(/{{DATA_INICIAL}}/g, data.event.startDate)
-        .replace(/{{DATA_FINAL}}/g, data.event.endDate);
+        .replace(/{{DATA_FINAL}}/g, data.event.endDate)
+        // Minor lowercase placeholders — athlete & event
+        .replace(/{{atleta_nome}}/g, data.athleteName)
+        .replace(/{{evento_nome}}/g, data.event.title)
+        .replace(/{{evento_data}}/g, data.event.startDate)
+        .replace(/{{evento_local}}/g, data.event.cityState)
+        .replace(/{{data}}/g, today);
+
+    if (guardian) {
+        const vinculo = (RELATIONSHIP_LABELS[guardian.relationship ?? ''] ?? guardian.relationship) || '—';
+        const cpf = guardian.cpf ? formatCPF(guardian.cpf.replace(/\D/g, '')) : '—';
+        result = result
+            .replace(/{{responsavel_nome}}/g, guardian.name || '—')
+            .replace(/{{responsavel_cpf}}/g, cpf)
+            .replace(/{{responsavel_vinculo}}/g, vinculo)
+            .replace(/{{responsavel_telefone}}/g, guardian.phone || '—');
+    }
+
+    return result;
+}
+
+interface TermsAcceptanceModalProps {
+    open: boolean;
+    eventId: string;
+    /** When provided, fetches/accepts the term for this specific athlete (academy flow). */
+    athleteId?: string;
+    onAccepted: () => void;
+    onCancel: () => void;
 }
 
 function TermContent({ text }: { text: string }) {
@@ -54,7 +92,7 @@ function TermContent({ text }: { text: string }) {
     );
 }
 
-export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: TermsAcceptanceModalProps) {
+export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onCancel }: TermsAcceptanceModalProps) {
     const [data, setData] = useState<TermsModalData | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -72,7 +110,10 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
             return;
         }
         setLoading(true);
-        getTermsModalDataAction(eventId).then((result) => {
+        const fetchFn = athleteId
+            ? getTermsModalDataForAthleteAction(athleteId, eventId)
+            : getTermsModalDataAction(eventId);
+        fetchFn.then((result) => {
             if ('error' in result) {
                 setLoadError(result.error);
             } else {
@@ -80,7 +121,7 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
             }
             setLoading(false);
         });
-    }, [open, eventId]);
+    }, [open, eventId, athleteId]);
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (scrolledToBottom) return;
@@ -93,14 +134,17 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
         if (!data || !accepted) return;
 
         startTransition(async () => {
-            const result = await acceptTermAction(data.term.id, eventId, {
+            const snapshot = {
                 athleteName: data.athleteName,
                 eventTitle: data.event.title,
                 eventAddress: data.event.address,
                 eventCity: data.event.cityState,
                 startDate: data.event.startDate,
                 endDate: data.event.endDate,
-            });
+            };
+            const result = athleteId
+                ? await acceptTermForAthleteAction(athleteId, data.term.id, eventId, snapshot, data.term.isMinorTerm)
+                : await acceptTermAction(data.term.id, eventId, snapshot, data.term.isMinorTerm);
 
             if (result.error) {
                 toast.error(result.error);
@@ -116,19 +160,28 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
     return (
         <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
             <DialogContent className="max-w-2xl w-full gap-0 p-0 overflow-hidden">
-                {/* Wrapper interno resolve o conflito com o "grid" padrão do DialogContent */}
                 <div className="flex flex-col max-h-[90vh]">
                     <DialogHeader className="px-6 py-4 border-b flex-none">
                         <DialogTitle className="flex items-center gap-2 text-base">
-                            <FileText className="h-5 w-5 text-primary shrink-0" />
+                            <FileTextIcon size={20} weight="duotone" className="text-primary shrink-0" />
                             Termo de Responsabilidade e Ciência
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground pt-1">
                             Leia o termo completo até o final para habilitar o aceite.
                         </p>
+                        {/* Badge de atleta menor com dados do responsável */}
+                        {data?.isMinor && data.guardian && (
+                            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-0.5">
+                                <p className="font-semibold">Atleta menor de idade — termo para responsável legal</p>
+                                <p>Responsável: <span className="font-medium">{data.guardian.name || '—'}</span>
+                                    {data.guardian.relationship && (
+                                        <> ({RELATIONSHIP_LABELS[data.guardian.relationship] ?? data.guardian.relationship})</>
+                                    )}
+                                </p>
+                            </div>
+                        )}
                     </DialogHeader>
 
-                    {/* Corpo do modal — rola diretamente aqui, sem h-full aninhado */}
                     <div
                         ref={scrollRef}
                         className="flex-1 min-h-0 overflow-y-auto relative px-6 py-4"
@@ -136,13 +189,13 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
                     >
                         {loading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <SpinnerGapIcon size={20} weight="bold" className="animate-spin text-muted-foreground" />
                             </div>
                         )}
 
                         {loadError && (
                             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                                <AlertTriangle className="h-8 w-8 text-destructive" />
+                                <WarningIcon size={20} weight="duotone" className="text-destructive" />
                                 <p className="text-sm font-medium text-destructive">{loadError}</p>
                                 <Button variant="outline" size="sm" onClick={onCancel}>Fechar</Button>
                             </div>
@@ -156,7 +209,6 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
                         )}
                     </div>
 
-                    {/* Footer */}
                     {data && !loading && (
                         <div className="flex-none border-t px-6 py-4 space-y-4 bg-background">
                             {!scrolledToBottom && (
@@ -196,7 +248,7 @@ export function TermsAcceptanceModal({ open, eventId, onAccepted, onCancel }: Te
                                     disabled={!accepted || !scrolledToBottom || isPending}
                                     className="h-12 font-bold gap-2"
                                 >
-                                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                    {isPending ? <SpinnerGapIcon size={20} weight="bold" className="animate-spin" /> : null}
                                     {isPending ? 'Registrando...' : 'Aceitar e Continuar'}
                                 </Button>
                             </DialogFooter>

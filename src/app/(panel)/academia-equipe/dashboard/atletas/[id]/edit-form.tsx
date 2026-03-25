@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, CircleNotchIcon, TrashIcon, CheckCircleIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, SpinnerGapIcon, TrashIcon, CheckCircleIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -564,7 +564,7 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                                                                 });
                                                             }}
                                                         >
-                                                            {isPendingUnlink ? <CircleNotchIcon size={16} weight="bold" className="animate-spin" /> : 'Desvincular'}
+                                                            {isPendingUnlink ? <SpinnerGapIcon size={20} weight="bold" className="animate-spin" /> : 'Desvincular'}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -611,7 +611,7 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                             disabled={loading}
                             onClick={() => setDeleteDialogOpen(true)}
                         >
-                            <TrashIcon size={16} weight="duotone" className="mr-2" />
+                            <TrashIcon size={20} weight="duotone" className="mr-2" />
                             Excluir
                         </Button>
 
@@ -640,7 +640,7 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                         >
                             {loading ? (
                                 <>
-                                    <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                                    <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" />
                                     Salvando...
                                 </>
                             ) : (

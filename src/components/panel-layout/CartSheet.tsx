@@ -19,8 +19,11 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "./PixModal";
-import { cancelPendingCartItemAction } from "@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions";
+import { OwnEventConfirmModal } from "./OwnEventConfirmModal";
+import { cancelPendingCartItemAction, getOwnApiEventIdsAction } from "@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions";
+import { checkAthletesNeedingTermsAction } from "@/app/atleta/components/terms-actions";
 import { CancelRegistrationButton } from "@/app/atleta/dashboard/inscricoes/CancelRegistrationButton";
+import { TermsAcceptanceModal } from "@/components/terms/TermsAcceptanceModal";
 import { formatCPF } from "@/lib/validation";
 import {
     Tooltip,
@@ -56,7 +59,20 @@ export function CartSheet() {
     const [pixData, setPixData] = useState<any>(null);
     const [cpf, setCpf] = useState("");
     const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+    // Minor terms queue: athletes in this event who need to accept the term before payment
+    const [termsQueue, setTermsQueue] = useState<Array<{ athleteId: string; athleteName: string }>>([]);
+    const [pendingPayEventId, setPendingPayEventId] = useState<string | null>(null);
+    // Own event with own API: confirmation modal
+    const [ownApiEventIds, setOwnApiEventIds] = useState<Set<string>>(new Set());
+    const [ownEventConfirmEventId, setOwnEventConfirmEventId] = useState<string | null>(null);
     const router = useRouter();
+
+    // Detect own events with own Asaas API
+    useEffect(() => {
+        const eventIds = [...new Set(items.filter(i => i.status === 'carrinho').map(i => i.eventId))];
+        if (eventIds.length === 0) { setOwnApiEventIds(new Set()); return; }
+        getOwnApiEventIdsAction(eventIds).then(ids => setOwnApiEventIds(new Set(ids)));
+    }, [items]);
 
     // Filter only items in carrinho
     const cartItems = items.filter(i => i.status === 'carrinho');
@@ -79,7 +95,7 @@ export function CartSheet() {
 
     const hasPendingCompanion = pendingItems.some(i => i.promoSourceId != null);
 
-    const handlePay = async (eventId: string) => {
+    const doPayment = async (eventId: string) => {
         setSubmitting(true);
         try {
             const res = await fetch('/api/payments/create-event-payment', {
@@ -118,6 +134,53 @@ export function CartSheet() {
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handlePay = async (eventId: string) => {
+        const group = groupedItems[eventId];
+        if (!group) return;
+
+        // Own event with own Asaas API: show confirmation modal instead of Pix flow
+        if (ownApiEventIds.has(eventId)) {
+            setOwnEventConfirmEventId(eventId);
+            return;
+        }
+
+        // Collect unique athlete IDs for this event
+        const athleteIds = [...new Set(group.items.map(i => i.athleteId).filter(Boolean))] as string[];
+
+        // Check if any minor athletes still need to accept the term
+        const needingTerms = await checkAthletesNeedingTermsAction(eventId, athleteIds);
+
+        if (needingTerms.length > 0) {
+            // Build queue with names for display
+            const queue = needingTerms.map(id => {
+                const item = group.items.find(i => i.athleteId === id);
+                return { athleteId: id, athleteName: item?.athleteName ?? 'Atleta' };
+            });
+            setTermsQueue(queue);
+            setPendingPayEventId(eventId);
+            return;
+        }
+
+        await doPayment(eventId);
+    };
+
+    const handleTermAccepted = async () => {
+        const remaining = termsQueue.slice(1);
+        if (remaining.length > 0) {
+            setTermsQueue(remaining);
+        } else {
+            setTermsQueue([]);
+            const eventId = pendingPayEventId;
+            setPendingPayEventId(null);
+            if (eventId) await doPayment(eventId);
+        }
+    };
+
+    const handleTermCancel = () => {
+        setTermsQueue([]);
+        setPendingPayEventId(null);
     };
 
     const handleConfirmRemove = async () => {
@@ -323,25 +386,30 @@ export function CartSheet() {
                                                             R$ {eventSubtotal.toFixed(2)}
                                                         </span>
                                                     </div>
-                                                    <div className="space-y-2 px-2">
-                                                        <Label htmlFor={`cpf-${eventId}`} className="text-panel-sm font-black uppercase tracking-wide text-muted-foreground">CPF do Pagador (Obrigatório Asaas)</Label>
-                                                        <Input
-                                                            id={`cpf-${eventId}`}
-                                                            placeholder="000.000.000-00"
-                                                            value={cpf}
-                                                            onChange={(e) => setCpf(formatCPF(e.target.value))}
-                                                            maxLength={14}
-                                                            className="rounded-xl h-10 text-panel-sm bg-background"
-                                                        />
-                                                    </div>
+
+                                                    {!ownApiEventIds.has(eventId) && (
+                                                        <div className="space-y-2 px-2">
+                                                            <Label htmlFor={`cpf-${eventId}`} className="text-panel-sm font-black uppercase tracking-wide text-muted-foreground">CPF do Pagador (Obrigatório Asaas)</Label>
+                                                            <Input
+                                                                id={`cpf-${eventId}`}
+                                                                placeholder="000.000.000-00"
+                                                                value={cpf}
+                                                                onChange={(e) => setCpf(formatCPF(e.target.value))}
+                                                                maxLength={14}
+                                                                className="rounded-xl h-10 text-panel-sm bg-background"
+                                                            />
+                                                        </div>
+                                                    )}
 
                                                     <Button pill size="lg"
                                                         className="w-full font-bold shadow-md hover:shadow-lg transition-all h-12 text-panel-sm px-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                                                         onClick={() => handlePay(eventId)}
-                                                        disabled={submitting || isLoading || !cpf}
+                                                        disabled={submitting || isLoading || (!ownApiEventIds.has(eventId) && !cpf)}
                                                     >
                                                         {submitting ? <CircleNotchIcon size={20} weight="bold" className="animate-spin" /> : (
-                                                            <span className="truncate">Pagar {group.title}</span>
+                                                            <span className="truncate">
+                                                                {ownApiEventIds.has(eventId) ? `Confirmar inscrições` : `Pagar ${group.title}`}
+                                                            </span>
                                                         )}
                                                     </Button>
                                                 </div>
@@ -373,6 +441,28 @@ export function CartSheet() {
                         router.refresh();
                     }}
                     pixData={pixData}
+                />
+
+                <OwnEventConfirmModal
+                    open={ownEventConfirmEventId != null}
+                    eventTitle={ownEventConfirmEventId ? (groupedItems[ownEventConfirmEventId]?.title ?? '') : ''}
+                    items={ownEventConfirmEventId ? (groupedItems[ownEventConfirmEventId]?.items ?? []) : []}
+                    submitting={submitting}
+                    onConfirm={async () => {
+                        const eventId = ownEventConfirmEventId!;
+                        setOwnEventConfirmEventId(null);
+                        await doPayment(eventId);
+                    }}
+                    onCancel={() => setOwnEventConfirmEventId(null)}
+                />
+
+                {/* Minor athlete term acceptance — shown sequentially before payment */}
+                <TermsAcceptanceModal
+                    open={termsQueue.length > 0}
+                    eventId={pendingPayEventId ?? ''}
+                    athleteId={termsQueue[0]?.athleteId}
+                    onAccepted={handleTermAccepted}
+                    onCancel={handleTermCancel}
                 />
             </Sheet>
 

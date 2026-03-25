@@ -1,8 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { DollarSign, CheckCircle2, Clock } from 'lucide-react';
+import { MoneyIcon, CheckCircleIcon, ClockIcon } from '@phosphor-icons/react';
 import { Card, CardContent } from "@/components/ui/card";
+import type { Icon } from '@phosphor-icons/react';
 
 interface RevenueCardsProps {
     receitaTotalBruta: number;
@@ -15,12 +16,12 @@ function formatBRL(value: number) {
 }
 
 export function RevenueCards({ receitaTotalBruta, receitaConfirmada, receitaPendente }: RevenueCardsProps) {
-    const cards = [
+    const cards: { title: string; value: string; description: string; Icon: Icon; color: string; bg: string }[] = [
         {
             title: 'Receita Total',
             value: formatBRL(receitaTotalBruta),
             description: 'Todas as inscrições confirmadas',
-            icon: DollarSign,
+            Icon: MoneyIcon,
             color: 'text-primary',
             bg: 'bg-primary/5',
         },
@@ -28,7 +29,7 @@ export function RevenueCards({ receitaTotalBruta, receitaConfirmada, receitaPend
             title: 'Receita Confirmada',
             value: formatBRL(receitaConfirmada),
             description: 'Pagamentos aprovados e confirmados',
-            icon: CheckCircle2,
+            Icon: CheckCircleIcon,
             color: 'text-emerald-500',
             bg: 'bg-emerald-50',
         },
@@ -36,7 +37,7 @@ export function RevenueCards({ receitaTotalBruta, receitaConfirmada, receitaPend
             title: 'Aguardando Pagamento',
             value: formatBRL(receitaPendente),
             description: 'Inscrições pendentes de pagamento',
-            icon: Clock,
+            Icon: ClockIcon,
             color: 'text-amber-500',
             bg: 'bg-amber-50',
         },
@@ -55,8 +56,8 @@ export function RevenueCards({ receitaTotalBruta, receitaConfirmada, receitaPend
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-h2 font-bold text-foreground">Faturamento</h2>
-                <p className="text-ui text-muted-foreground">Visão geral da receita da plataforma</p>
+                <h2 className="text-panel-md font-bold text-foreground">Faturamento</h2>
+                <p className="text-panel-sm text-muted-foreground">Visão geral da receita da plataforma</p>
             </div>
 
             <motion.div
@@ -71,12 +72,12 @@ export function RevenueCards({ receitaTotalBruta, receitaConfirmada, receitaPend
                             <CardContent className="p-6">
                                 <div className="flex items-start justify-between">
                                     <div className="space-y-2">
-                                        <p className="text-ui font-medium text-muted-foreground">{card.title}</p>
-                                        <h3 className="text-h2 tracking-tight">{card.value}</h3>
-                                        <p className="text-caption text-muted-foreground">{card.description}</p>
+                                        <p className="text-panel-sm font-medium text-muted-foreground">{card.title}</p>
+                                        <h3 className="text-panel-lg font-black tracking-tight">{card.value}</h3>
+                                        <p className="text-panel-sm text-muted-foreground">{card.description}</p>
                                     </div>
                                     <div className={`p-3 rounded-2xl ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-300`}>
-                                        <card.icon className="h-5 w-5" />
+                                        <card.Icon size={20} weight="duotone" />
                                     </div>
                                 </div>
                             </CardContent>

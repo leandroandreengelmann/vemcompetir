@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { EventCategoryManager } from '@/components/panel/EventCategoryManager';
 
@@ -34,9 +34,9 @@ export default async function AdminEventCategoriesPage(props: { params: Promise<
         <div className="space-y-6">
             <Link
                 href={`/admin/dashboard/eventos/${params.id}/editar`}
-                className="text-ui font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+                className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
             >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
                 Voltar para o evento
             </Link>
 

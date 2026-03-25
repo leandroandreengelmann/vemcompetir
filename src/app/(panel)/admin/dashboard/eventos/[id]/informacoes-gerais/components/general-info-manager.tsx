@@ -124,18 +124,18 @@ function SortableItem({
                         </div>
                         <AccordionTrigger className="hover:no-underline py-4 flex-1">
                             <div className="flex items-center gap-3">
-                                <span className="text-muted-foreground font-mono text-label">{formattedNumber}.</span>
-                                <span className="text-ui font-medium">{info.title}</span>
+                                <span className="text-muted-foreground font-mono text-xs">{formattedNumber}.</span>
+                                <span className="text-panel-sm font-medium">{info.title}</span>
                             </div>
                         </AccordionTrigger>
                     </div>
                     <AccordionContent className="pt-2 pb-6 space-y-6">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-ui font-medium">Título do Tópico</label>
+                                <label className="text-panel-sm font-medium">Título do Tópico</label>
                                 <div className="p-1">
                                     <Input variant="lg"
-                                        className="text-h3"
+                                        className="text-panel-md font-semibold"
                                         defaultValue={info.title}
                                         onBlur={(e) => {
                                             if (e.target.value !== info.title) {
@@ -179,7 +179,7 @@ function SortableItem({
                                                 ) : (
                                                     <div className="w-full h-full flex flex-col items-center justify-center p-4">
                                                         <FileText className="h-8 w-8 text-muted-foreground mb-2" />
-                                                        <span className="text-label text-center line-clamp-2">{asset.file_name}</span>
+                                                        <span className="text-xs text-center line-clamp-2">{asset.file_name}</span>
                                                     </div>
                                                 )}
                                                 {/* Fallback shown when image fails to load */}
@@ -213,7 +213,7 @@ function SortableItem({
 
                                         <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl hover:bg-muted/20 cursor-pointer transition-colors relative">
                                             <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                                            <span className="text-label font-medium text-muted-foreground uppercase tracking-wider">Adicionar</span>
+                                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Adicionar</span>
                                             <input
                                                 type="file"
                                                 multiple
@@ -439,8 +439,8 @@ export function GeneralInfoManager({ eventId, tenantId, initialInfos }: GeneralI
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-muted/30 p-4 rounded-xl border">
                 <div>
-                    <h2 className="text-h2">Tópicos do Evento</h2>
-                    <p className="text-caption text-muted-foreground">Adicione e organize o conteúdo do evento.</p>
+                    <h2 className="text-panel-md font-semibold">Tópicos do Evento</h2>
+                    <p className="text-panel-sm text-muted-foreground">Adicione e organize o conteúdo do evento.</p>
                 </div>
                 <Button
                     pill

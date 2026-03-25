@@ -78,7 +78,7 @@ export default async function SettingsPage() {
                             await updateRegistrationTaxAction(formData);
                         }} className="flex items-end gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="tax" className="text-ui font-medium">Valor Padrão (R$)</Label>
+                                <Label htmlFor="tax" className="text-panel-sm font-medium">Valor Padrão (R$)</Label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
                                     <Input
@@ -130,7 +130,7 @@ export default async function SettingsPage() {
 
                                     return (
                                         <TableRow key={event.id}>
-                                            <TableCell className="text-ui font-medium">{event.title}</TableCell>
+                                            <TableCell className="text-panel-sm font-medium">{event.title}</TableCell>
                                             <TableCell>{organizerName || '-'}</TableCell>
                                             <TableCell>{new Date(event.event_date).toLocaleDateString('pt-BR')}</TableCell>
                                             <TableCell>
@@ -144,7 +144,7 @@ export default async function SettingsPage() {
                                                     await updateRegistrationTaxAction(formData);
                                                 }} className="flex items-center gap-2">
                                                     <div className="relative">
-                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-caption text-muted-foreground">R$</span>
+                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-panel-sm text-muted-foreground">R$</span>
                                                         <Input
                                                             name="tax"
                                                             type="number"
