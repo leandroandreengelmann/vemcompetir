@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { EventCategoryManager } from '@/components/panel/EventCategoryManager';
+import { ComboBundleManager } from '@/components/panel/ComboBundleManager';
 
 export default async function AdminEventCategoriesPage(props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
@@ -46,6 +47,8 @@ export default async function AdminEventCategoriesPage(props: { params: Promise<
             />
 
             <EventCategoryManager eventId={params.id} isSuperAdmin={true} />
+
+            <ComboBundleManager eventId={params.id} />
         </div>
     );
 }

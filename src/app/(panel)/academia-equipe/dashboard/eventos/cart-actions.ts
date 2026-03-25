@@ -12,6 +12,7 @@ import {
     AthleteProfile,
     CategoryRow,
 } from '@/app/atleta/dashboard/campeonatos/lib/eligible-categories';
+import { applyComboBundle } from '@/lib/apply-combo-bundle-to-cart';
 
 // Add item to cart (create registration with status 'carrinho')
 export async function addToCartAction(item: { eventId: string, athleteId: string, categoryId: string, price: number }) {
@@ -128,6 +129,16 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
                 };
             }
         }
+    }
+
+    // PROMO: combo_bundle — só para eventos de terceiros, re-avalia após toda alteração
+    if (!isOwnEvent) {
+        await applyComboBundle({
+            athleteId: item.athleteId,
+            eventId: item.eventId,
+            registeredById: profile.id,
+            tenantId: tenant_id,
+        });
     }
 
     revalidatePath('/academia-equipe/dashboard/eventos');
@@ -275,9 +286,16 @@ async function applyAcademyFreeCompanionCategory({
 
 // Remove from cart (delete registration if status is 'carrinho')
 export async function removeFromCartAction(registrationId: string) {
-    const { profile } = await requireTenantScope();
+    const { profile, tenant_id } = await requireTenantScope();
     const supabaseAdmin = createAdminClient();
     const supabase = await createClient();
+
+    // Busca event_id e athlete_id antes de deletar (para re-avaliar combo depois)
+    const { data: regToRemove } = await supabaseAdmin
+        .from('event_registrations')
+        .select('event_id, athlete_id')
+        .eq('id', registrationId)
+        .maybeSingle();
 
     // Cascade: remove any companion granted by this registration
     await supabaseAdmin
@@ -301,6 +319,16 @@ export async function removeFromCartAction(registrationId: string) {
 
     if (count === 0) {
         return { error: 'Item não encontrado ou não pode ser removido.' };
+    }
+
+    // PROMO: combo_bundle — re-avalia após remoção (pode desfazer o combo)
+    if (regToRemove?.event_id && regToRemove?.athlete_id) {
+        await applyComboBundle({
+            athleteId: regToRemove.athlete_id,
+            eventId: regToRemove.event_id,
+            registeredById: profile.id,
+            tenantId: tenant_id,
+        });
     }
 
     revalidatePath('/academia-equipe/dashboard/eventos');

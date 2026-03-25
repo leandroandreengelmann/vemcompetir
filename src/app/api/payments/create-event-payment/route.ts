@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         // 4. Fetch cart items for this event
         let cartQuery = admin
             .from('event_registrations')
-            .select('id, price, athlete_id, category_id, promo_source_id')
+            .select('id, price, athlete_id, category_id, promo_source_id, promo_type_applied')
             .eq('event_id', event_id)
             .eq('status', 'carrinho');
 
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 4.5. Validate promo companion items — ensure their source registration is in the same cart
-        type CartItem = typeof cartItems[number] & { promo_source_id?: string | null };
+        type CartItem = typeof cartItems[number] & { promo_source_id?: string | null; promo_type_applied?: string | null };
         const cartIds = new Set(cartItems.map(i => i.id));
         for (const item of cartItems) {
             const promoSourceId = (item as CartItem).promo_source_id;
@@ -159,6 +159,43 @@ export async function POST(request: NextRequest) {
                 if (!sourceReg || !['pago', 'confirmado', 'isento'].includes(sourceReg.status)) {
                     return NextResponse.json(
                         { error: 'Uma categoria gratuita no carrinho perdeu o benefício (a categoria Absoluto correspondente não está mais ativa). Por favor, remova-a e tente novamente.' },
+                        { status: 400 }
+                    );
+                }
+            }
+        }
+
+        // 4.6. Validate combo_bundle items — garante que o combo está completo e os preços batem
+        const comboBundleItems = cartItems.filter(i => (i as CartItem).promo_type_applied === 'combo_bundle');
+        if (comboBundleItems.length > 0) {
+            const { data: combo } = await admin
+                .from('event_combo_bundles')
+                .select('bundle_total, is_active')
+                .eq('event_id', event_id)
+                .eq('is_active', true)
+                .maybeSingle();
+
+            if (!combo) {
+                return NextResponse.json(
+                    { error: 'O combo de categorias foi desativado pelo organizador. Remova os itens do carrinho e adicione-os novamente pelo valor cheio.' },
+                    { status: 400 }
+                );
+            }
+
+            // Deve ter exatamente 4 itens no combo
+            if (comboBundleItems.length !== 4) {
+                return NextResponse.json(
+                    { error: 'O pacote combo está incompleto. Adicione todas as 4 categorias do combo ou remova os itens com desconto.' },
+                    { status: 400 }
+                );
+            }
+
+            // Verifica se o preço armazenado bate com o esperado
+            const expectedPrice = Math.round((combo.bundle_total / 4) * 100) / 100;
+            for (const item of comboBundleItems) {
+                if (Math.abs(Number(item.price) - expectedPrice) > 0.01) {
+                    return NextResponse.json(
+                        { error: 'O preço do combo diverge do configurado. Remova os itens e adicione-os novamente.' },
                         { status: 400 }
                     );
                 }

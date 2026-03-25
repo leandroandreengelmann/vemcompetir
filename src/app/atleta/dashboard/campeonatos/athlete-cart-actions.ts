@@ -10,6 +10,7 @@ import {
     AthleteProfile,
     CategoryRow,
 } from './lib/eligible-categories';
+import { applyComboBundle } from '@/lib/apply-combo-bundle-to-cart';
 
 export async function addToAthleteCartAction(item: {
     eventId: string;
@@ -129,7 +130,15 @@ export async function addToAthleteCartAction(item: {
         }
     }
 
-    return { success: true };
+    // PROMO: combo_bundle — re-avalia após toda alteração no carrinho
+    const comboResult = await applyComboBundle({
+        athleteId: user.id,
+        eventId: item.eventId,
+        registeredById: user.id,
+        tenantId: null,
+    });
+
+    return { success: true, comboApplied: comboResult.comboApplied };
 }
 
 /**
@@ -293,9 +302,18 @@ export async function removeFromAthleteCartAction(registrationId: string) {
 
     if (!user) throw new Error('Não autenticado');
 
+    const supabaseAdmin = createAdminClient();
+
+    // Busca event_id antes de deletar (necessário para re-avaliar combo depois)
+    const { data: regToRemove } = await supabaseAdmin
+        .from('event_registrations')
+        .select('event_id')
+        .eq('id', registrationId)
+        .eq('athlete_id', user.id)
+        .maybeSingle();
+
     // Remove any sponsored (free) category that was granted by this registration
     // Uses admin client to ensure bypass of RLS (companion was inserted via admin)
-    const supabaseAdmin = createAdminClient();
     await supabaseAdmin
         .from('event_registrations')
         .delete()
@@ -315,6 +333,16 @@ export async function removeFromAthleteCartAction(registrationId: string) {
     if (error) {
         console.error('removeFromAthleteCartAction error:', error);
         throw new Error('Erro ao remover da cesta.');
+    }
+
+    // PROMO: combo_bundle — re-avalia após remoção (pode desfazer o combo)
+    if (regToRemove?.event_id) {
+        await applyComboBundle({
+            athleteId: user.id,
+            eventId: regToRemove.event_id,
+            registeredById: user.id,
+            tenantId: null,
+        });
     }
 
     return { success: true };

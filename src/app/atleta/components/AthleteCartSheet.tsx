@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAthleteCart } from "@/hooks/use-athlete-cart";
-import { CircleNotchIcon, TrashIcon, ShoppingBagIcon, CreditCardIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon } from "@phosphor-icons/react";
+import { CircleNotchIcon, TrashIcon, ShoppingBagIcon, CreditCardIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon, PackageIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -215,6 +215,7 @@ export function AthleteCartSheet() {
                                 {events.map(([eventId, group]) => {
                                     const eventSubtotal = group.items.reduce((acc, item) => acc + item.price, 0);
                                     const hasCompanion = group.items.some(i => i.promoSourceId);
+                                    const hasCombo = group.items.some(i => i.promoTypeApplied === 'combo_bundle');
 
                                     return (
                                         <div key={eventId} className="space-y-5 pb-6 border-b last:border-0 last:pb-0">
@@ -232,6 +233,15 @@ export function AthleteCartSheet() {
                                                     <GiftIcon size={16} weight="duotone" className="shrink-0 mt-0.5 text-emerald-500" />
                                                     <p className="text-panel-sm font-semibold leading-relaxed">
                                                         Uma categoria foi adicionada <strong>gratuitamente</strong> com sua inscrição no Absoluto. Se você remover o Absoluto, o benefício também será removido.
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {hasCombo && (
+                                                <div className="flex items-start gap-2.5 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-2.5 text-indigo-800">
+                                                    <PackageIcon size={16} weight="duotone" className="shrink-0 mt-0.5 text-indigo-500" />
+                                                    <p className="text-panel-sm font-semibold leading-relaxed">
+                                                        <strong>Combo 4 categorias ativado!</strong> Você está pagando o valor promocional em todas as 4 categorias. Se remover qualquer uma delas, o desconto será desfeito.
                                                     </p>
                                                 </div>
                                             )}
@@ -254,6 +264,11 @@ export function AthleteCartSheet() {
                                                                         {item.promoTypeApplied === 'free_second_registration' && (
                                                                             <span className="inline-flex items-center gap-1 text-panel-sm font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                                                                                 <GiftIcon size={12} weight="duotone" /> Grátis com Absoluto
+                                                                            </span>
+                                                                        )}
+                                                                        {item.promoTypeApplied === 'combo_bundle' && (
+                                                                            <span className="inline-flex items-center gap-1 text-panel-sm font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                                                                                <PackageIcon size={12} weight="duotone" /> Combo 4x1
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -288,12 +303,20 @@ export function AthleteCartSheet() {
                                                                 </div>
                                                                 <div className="flex items-center justify-between pt-2 border-t border-dashed">
                                                                     <span className="text-panel-sm font-bold text-foreground uppercase tracking-wide">Valor</span>
-                                                                    <span className={`text-panel-sm font-bold ${item.promoTypeApplied === 'free_second_registration' ? 'text-emerald-600' : 'text-primary'}`}>
+                                                                    <span className={`text-panel-sm font-bold ${
+                                                                        item.promoTypeApplied === 'free_second_registration'
+                                                                            ? 'text-emerald-600'
+                                                                            : item.promoTypeApplied === 'combo_bundle'
+                                                                                ? 'text-indigo-600'
+                                                                                : 'text-primary'
+                                                                    }`}>
                                                                         {item.promoTypeApplied === 'free_second_registration'
                                                                             ? 'GRÁTIS'
-                                                                            : item.price > 0
-                                                                                ? `R$ ${item.price.toFixed(2)}`
-                                                                                : 'A definir'}
+                                                                            : item.promoTypeApplied === 'combo_bundle'
+                                                                                ? `R$ ${item.price.toFixed(2)} (Combo)`
+                                                                                : item.price > 0
+                                                                                    ? `R$ ${item.price.toFixed(2)}`
+                                                                                    : 'A definir'}
                                                                     </span>
                                                                 </div>
                                                             </div>
