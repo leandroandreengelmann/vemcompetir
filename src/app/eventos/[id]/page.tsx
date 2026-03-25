@@ -309,19 +309,6 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                             <SubscribeButton eventId={event.id} isLoggedIn={!!user} />
                                         </div>
 
-                                        <div className="flex items-center gap-5">
-                                            <div className="flex -space-x-4">
-                                                {[1, 2, 3, 4].map(i => (
-                                                    <div key={i} className="h-12 w-12 rounded-full border-4 border-white bg-neutral-200 ring-1 ring-black/5 flex items-center justify-center overflow-hidden grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">
-                                                        <Users className="h-6 w-6 text-neutral-400" />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-ui font-black text-foreground">+50 Atletas</p>
-                                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Inscritos</p>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <p className="text-[11px] text-muted-foreground/60 font-medium text-center sm:text-left px-2">
