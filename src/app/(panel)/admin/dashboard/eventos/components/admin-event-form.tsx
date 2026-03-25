@@ -479,6 +479,19 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                         {isEdit && (
                             <Button
                                 type="button"
+                                pill
+                                asChild
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
+                            >
+                                <Link href={`/admin/dashboard/eventos/${initialData.id}/passaporte`}>
+                                    Passaporte
+                                </Link>
+                            </Button>
+                        )}
+
+                        {isEdit && (
+                            <Button
+                                type="button"
                                 variant="destructive"
                                 pill
                                 onClick={() => setIsDeleteDialogOpen(true)}
