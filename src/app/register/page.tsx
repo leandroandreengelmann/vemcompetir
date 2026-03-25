@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -66,6 +66,7 @@ export default function RegisterPage() {
     const [cpfValue, setCpfValue] = useState('');
     const [guardianCpfValue, setGuardianCpfValue] = useState('');
     const [guardianPhoneValue, setGuardianPhoneValue] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         nome: '',
@@ -85,10 +86,23 @@ export default function RegisterPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const [birthDateDisplay, setBirthDateDisplay] = useState('');
+
     const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setFormData(prev => ({ ...prev, birth_date: value }));
-        if (value) setIsMinor(isUnder18(value));
+        const digits = normalizeNumeric(e.target.value).slice(0, 8);
+        let masked = digits;
+        if (digits.length > 4) masked = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+        else if (digits.length > 2) masked = digits.slice(0, 2) + '/' + digits.slice(2);
+        setBirthDateDisplay(masked);
+
+        if (digits.length === 8) {
+            const iso = `${digits.slice(4)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+            setFormData(prev => ({ ...prev, birth_date: iso }));
+            setIsMinor(isUnder18(iso));
+        } else {
+            setFormData(prev => ({ ...prev, birth_date: '' }));
+            setIsMinor(false);
+        }
     };
 
     const totalSteps = isMinor ? 5 : 3;
@@ -259,7 +273,7 @@ export default function RegisterPage() {
 
                             <div className="space-y-2">
                                 <label htmlFor="birth_date" className="text-sm font-medium">Data de Nascimento</label>
-                                <Input id="birth_date" name="birth_date" type="date" value={formData.birth_date} onChange={handleBirthDateChange} variant="lg" required disabled={loading} />
+                                <Input id="birth_date" name="birth_date" type="text" placeholder="dd/mm/aaaa" value={birthDateDisplay} onChange={handleBirthDateChange} variant="lg" required disabled={loading} inputMode="numeric" />
                             </div>
 
                             <div className="space-y-2">
@@ -431,7 +445,17 @@ export default function RegisterPage() {
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="senha" className="text-sm font-medium">Senha</label>
-                                <Input id="senha" name="senha" type="password" placeholder="••••••••" value={formData.senha} onChange={handleInputChange} variant="lg" required disabled={loading} />
+                                <div className="relative">
+                                    <Input id="senha" name="senha" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.senha} onChange={handleInputChange} variant="lg" required disabled={loading} className="pr-12" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(v => !v)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
                                 <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
                             </div>
 

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from 'next/link';
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SectionHeader } from "@/components/layout/SectionHeader";
@@ -17,6 +17,7 @@ export default function LoginPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
         senha: ''
@@ -166,17 +167,28 @@ export default function LoginPage() {
                                     Esqueceu a senha?
                                 </Link>
                             </div>
-                            <Input
-                                id="senha"
-                                name="senha"
-                                type="password"
-                                placeholder="••••••••"
-                                value={formData.senha}
-                                onChange={handleInputChange}
-                                variant="lg"
-                                required
-                                disabled={loading}
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="senha"
+                                    name="senha"
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="••••••••"
+                                    value={formData.senha}
+                                    onChange={handleInputChange}
+                                    variant="lg"
+                                    required
+                                    disabled={loading}
+                                    className="pr-12"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
