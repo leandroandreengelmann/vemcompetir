@@ -38,7 +38,9 @@ interface RegistrationPassportProps {
 }
 
 export function RegistrationPassport({ data, passportRef }: RegistrationPassportProps) {
-    const palette = getEventPalette(data.event_id);
+    const palette = (data.passport_bg_from && data.passport_bg_via)
+        ? { from: data.passport_bg_from, via: data.passport_bg_via }
+        : getEventPalette(data.event_id);
     const beltColor = getBeltColor(data.belt_color);
     const isLightBelt = ['branca', 'amarela'].includes(data.belt_color?.toLowerCase() || '');
     const beltTextColor = isLightBelt ? '#0f172a' : '#ffffff';
