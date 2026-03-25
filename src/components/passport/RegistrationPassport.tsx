@@ -134,31 +134,15 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     alt="COMPETIR"
                     style={{ height: '24px', objectFit: 'contain' }}
                 />
-                <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(16, 185, 129, 0.4)',
-                    borderRadius: '999px',
-                    padding: '4px 12px',
+                <span style={{
+                    color: textColor,
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    letterSpacing: '0.1em',
+                    opacity: 0.7,
                 }}>
-                    <div style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        background: '#10b981',
-                        flexShrink: 0,
-                    }} />
-                    <span style={{
-                        color: '#34d399',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        letterSpacing: '0.1em',
-                    }}>
-                        {STATUS_LABEL[data.status]}
-                    </span>
-                </div>
+                    {STATUS_LABEL[data.status]}
+                </span>
             </div>
 
             {/* Event info */}

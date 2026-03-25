@@ -153,14 +153,7 @@ export function PassportColorManager({
                         <div style={{ color: previewText, fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', opacity: 0.9 }}>
                             COMPETIR
                         </div>
-                        <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '5px',
-                            background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)',
-                            borderRadius: '999px', padding: '3px 9px',
-                        }}>
-                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }} />
-                            <span style={{ color: '#34d399', fontSize: '8px', fontWeight: 800, letterSpacing: '0.1em' }}>CONFIRMADO</span>
-                        </div>
+                        <span style={{ color: previewText, fontSize: '11px', fontWeight: 800, letterSpacing: '0.1em', opacity: 0.7 }}>CONFIRMADO</span>
                     </div>
 
                     {/* Event name */}
