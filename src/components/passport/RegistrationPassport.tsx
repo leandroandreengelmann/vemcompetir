@@ -1,10 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { getBeltColor } from '@/lib/belt-theme';
 import type { PassportData, PassportStatus } from '@/app/atleta/dashboard/inscricoes/passport-actions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const FONT_FAMILY_MAP: Record<string, string> = {
+    'Inter': "'Inter', sans-serif",
+    'Bebas Neue': "'Bebas Neue', cursive",
+    'Oswald': "'Oswald', sans-serif",
+    'Montserrat': "'Montserrat', sans-serif",
+    'Barlow': "'Barlow', sans-serif",
+    'Space Grotesk': "'Space Grotesk', sans-serif",
+};
+
+function getGoogleFontUrl(fontName: string): string {
+    const map: Record<string, string> = {
+        'Bebas Neue': 'Bebas+Neue',
+        'Oswald': 'Oswald:wght@400;700',
+        'Montserrat': 'Montserrat:wght@400;700;900',
+        'Barlow': 'Barlow:wght@400;700;900',
+        'Space Grotesk': 'Space+Grotesk:wght@400;700',
+    };
+    const param = map[fontName];
+    if (!param) return '';
+    return `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
+}
 
 const EVENT_PALETTES = [
     { from: '#0A0D12', via: '#141929' }, // navy (default)
@@ -41,7 +63,21 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
     const palette = (data.passport_bg_from && data.passport_bg_via)
         ? { from: data.passport_bg_from, via: data.passport_bg_via }
         : getEventPalette(data.event_id);
+    const textColor = data.passport_text_color ?? '#ffffff';
+    const fontFamily = data.passport_font ? (FONT_FAMILY_MAP[data.passport_font] ?? 'system-ui, -apple-system, sans-serif') : 'system-ui, -apple-system, sans-serif';
+    const borderRadius = data.passport_border_radius ?? 0;
     const beltColor = getBeltColor(data.belt_color);
+
+    useEffect(() => {
+        if (!data.passport_font || data.passport_font === 'Inter') return;
+        const url = getGoogleFontUrl(data.passport_font);
+        if (!url) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        document.head.appendChild(link);
+        return () => { document.head.removeChild(link); };
+    }, [data.passport_font]);
     const isLightBelt = ['branca', 'amarela'].includes(data.belt_color?.toLowerCase() || '');
     const beltTextColor = isLightBelt ? '#0f172a' : '#ffffff';
 
@@ -56,8 +92,9 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                 width: '390px',
                 minHeight: '620px',
                 background: `linear-gradient(160deg, ${palette.from} 0%, ${palette.via} 50%, ${palette.from} 100%)`,
+                borderRadius: `${borderRadius}px`,
                 overflow: 'visible',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontFamily,
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
@@ -127,7 +164,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
             {/* Event info */}
             <div style={{ padding: '0 24px 16px', flexShrink: 0 }}>
                 <p style={{
-                    color: '#ffffff',
+                    color: textColor,
                     fontSize: '15px',
                     fontWeight: 700,
                     lineHeight: 1.3,
@@ -138,14 +175,14 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     {formattedDate && (
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 500 }}>
-                            <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '6px' }}>Data</span>
+                        <span style={{ color: `${textColor}80`, fontSize: '12px', fontWeight: 500 }}>
+                            <span style={{ color: `${textColor}4d`, fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '6px' }}>Data</span>
                             {formattedDate}
                         </span>
                     )}
                     {data.event_location && (
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 500 }}>
-                            <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '6px' }}>Local</span>
+                        <span style={{ color: `${textColor}80`, fontSize: '12px', fontWeight: 500 }}>
+                            <span style={{ color: `${textColor}4d`, fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '6px' }}>Local</span>
                             {data.event_location}
                         </span>
                     )}
@@ -155,7 +192,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
             {/* Dashed separator — ticket stub style */}
             <div style={{
                 margin: '0 16px',
-                borderTop: '1.5px dashed rgba(255,255,255,0.12)',
+                borderTop: `1.5px dashed ${textColor}1f`,
                 position: 'relative',
                 flexShrink: 0,
             }}>
@@ -166,7 +203,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     width: '16px',
                     height: '16px',
                     borderRadius: '50%',
-                    background: '#ffffff',
+                    background: textColor,
                 }} />
                 <div style={{
                     position: 'absolute',
@@ -175,14 +212,14 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     width: '16px',
                     height: '16px',
                     borderRadius: '50%',
-                    background: '#ffffff',
+                    background: textColor,
                 }} />
             </div>
 
             {/* Athlete section */}
             <div style={{ padding: '20px 24px 16px', flexShrink: 0 }}>
                 <p style={{
-                    color: 'rgba(255,255,255,0.35)',
+                    color: `${textColor}59`,
                     fontSize: '10px',
                     fontWeight: 700,
                     letterSpacing: '0.15em',
@@ -193,7 +230,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     ATLETA
                 </p>
                 <p style={{
-                    color: '#ffffff',
+                    color: textColor,
                     fontSize: '28px',
                     fontWeight: 900,
                     lineHeight: 1.15,
@@ -205,8 +242,8 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     {data.gym_name && (
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 500 }}>
-                            <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginRight: '6px' }}>Academia</span>
+                        <span style={{ color: `${textColor}80`, fontSize: '12px', fontWeight: 500 }}>
+                            <span style={{ color: `${textColor}4d`, fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginRight: '6px' }}>Academia</span>
                             {data.gym_name}
                         </span>
                     )}
@@ -231,14 +268,14 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
             {/* Category box */}
             <div style={{
                 margin: '0 16px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: `${textColor}0f`,
+                border: `1px solid ${textColor}1a`,
                 borderRadius: '12px',
                 padding: '12px 16px',
                 flexShrink: 0,
             }}>
                 <p style={{
-                    color: 'rgba(255,255,255,0.35)',
+                    color: `${textColor}59`,
                     fontSize: '10px',
                     fontWeight: 700,
                     letterSpacing: '0.15em',
@@ -249,7 +286,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     CATEGORIA
                 </p>
                 <p style={{
-                    color: '#ffffff',
+                    color: textColor,
                     fontSize: '13px',
                     fontWeight: 700,
                     margin: 0,
@@ -266,7 +303,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                 flexShrink: 0,
             }}>
                 <p style={{
-                    color: 'rgba(255,255,255,0.35)',
+                    color: `${textColor}59`,
                     fontSize: '10px',
                     fontWeight: 700,
                     letterSpacing: '0.15em',
@@ -277,7 +314,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     CÓDIGO DE INSCRIÇÃO
                 </p>
                 <p style={{
-                    color: '#ffffff',
+                    color: textColor,
                     fontSize: '26px',
                     fontWeight: 900,
                     letterSpacing: '0.18em',
@@ -291,7 +328,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
             {/* Bottom tear line with cutout circles */}
             <div style={{
                 margin: '16px 16px 0',
-                borderTop: '1.5px dashed rgba(255,255,255,0.12)',
+                borderTop: `1.5px dashed ${textColor}1f`,
                 position: 'relative',
                 flexShrink: 0,
             }}>
@@ -302,7 +339,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     width: '16px',
                     height: '16px',
                     borderRadius: '50%',
-                    background: '#ffffff',
+                    background: textColor,
                 }} />
                 <div style={{
                     position: 'absolute',
@@ -311,7 +348,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                     width: '16px',
                     height: '16px',
                     borderRadius: '50%',
-                    background: '#ffffff',
+                    background: textColor,
                 }} />
             </div>
 
@@ -325,7 +362,7 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                 flexShrink: 0,
             }}>
                 <span style={{
-                    color: 'rgba(255,255,255,0.2)',
+                    color: `${textColor}33`,
                     fontSize: '11px',
                     fontWeight: 500,
                 }}>

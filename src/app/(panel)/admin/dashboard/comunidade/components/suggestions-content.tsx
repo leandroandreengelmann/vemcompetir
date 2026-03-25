@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UsersIcon, CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { UsersIcon, CheckCircleIcon, XCircleIcon, TrashIcon } from "@phosphor-icons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,9 +12,19 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { AthleteListModal, type AthleteDetail } from "./athlete-list-modal";
 import { RegisterGymModal } from "./register-gym-modal";
 import { Button } from "@/components/ui/button";
+import { dismissSuggestionAction } from "../actions";
 
 interface Suggestion {
     gym_name: string;
@@ -32,6 +42,19 @@ interface SuggestionsContentProps {
 export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
     const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
     const [registerSuggestion, setRegisterSuggestion] = useState<Suggestion | null>(null);
+    const [dismissSuggestion, setDismissSuggestion] = useState<Suggestion | null>(null);
+    const [dismissing, setDismissing] = useState(false);
+
+    const handleDismiss = async () => {
+        if (!dismissSuggestion) return;
+        setDismissing(true);
+        const result = await dismissSuggestionAction(dismissSuggestion.gym_name, dismissSuggestion.master_name);
+        if (result.error) {
+            alert(result.error);
+        }
+        setDismissing(false);
+        setDismissSuggestion(null);
+    };
 
     return (
         <>
@@ -49,6 +72,7 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
                                 <TableHead className="pl-6 font-semibold">Academia (Texto)</TableHead>
                                 <TableHead className="font-semibold text-panel-sm">Mestre (Texto)</TableHead>
                                 <TableHead className="text-center font-semibold w-32">Citações</TableHead>
+                                <TableHead className="w-12" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -109,6 +133,21 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
                                                 {item.count} {item.count === 1 ? 'atleta' : 'atletas'}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell className="pr-4 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDismissSuggestion(item);
+                                                }}
+                                                pill
+                                            >
+                                                <TrashIcon size={18} weight="duotone" />
+                                                <span className="sr-only">Dispensar sugestão</span>
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             ) : (
@@ -134,6 +173,45 @@ export function SuggestionsContent({ suggestions }: SuggestionsContentProps) {
                 onClose={() => setRegisterSuggestion(null)}
                 suggestion={registerSuggestion}
             />
+
+            <Dialog open={!!dismissSuggestion} onOpenChange={(open) => !open && setDismissSuggestion(null)}>
+                <DialogContent className="sm:max-w-[425px] rounded-2xl border-primary/10">
+                    <DialogHeader className="flex flex-col items-center text-center space-y-3">
+                        <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
+                            <AlertTriangle className="size-6 text-destructive" />
+                        </div>
+                        <DialogTitle className="text-h2">Dispensar sugestão?</DialogTitle>
+                        <DialogDescription className="text-ui text-muted-foreground">
+                            Os dados de academia/mestre de{' '}
+                            <strong>{dismissSuggestion?.count} {dismissSuggestion?.count === 1 ? 'atleta' : 'atletas'}</strong>{' '}
+                            serão removidos. Esta ação não pode ser desfeita.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="sm:justify-center gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            pill
+                            onClick={() => setDismissSuggestion(null)}
+                            className="w-full sm:w-auto px-8"
+                            disabled={dismissing}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            pill
+                            onClick={handleDismiss}
+                            className="w-full sm:w-auto px-8 font-bold"
+                            disabled={dismissing}
+                        >
+                            {dismissing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Sim, dispensar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

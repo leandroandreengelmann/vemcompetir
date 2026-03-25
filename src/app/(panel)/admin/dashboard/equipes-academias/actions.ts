@@ -279,6 +279,151 @@ export async function updateOrganizerAction(formData: FormData) {
     return { success: true };
 }
 
+export async function deleteAcademyAction(academyId: string) {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: academyProfile } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', academyId)
+        .single();
+
+    const tenantId = academyProfile?.tenant_id;
+
+    if (tenantId) {
+        // 1. Buscar IDs dos eventos do tenant
+        const { data: tenantEvents, error: eventsError } = await adminClient
+            .from('events')
+            .select('id')
+            .eq('tenant_id', tenantId);
+
+        if (eventsError) return { error: `[step1-events] ${eventsError.message}` };
+
+        const eventIds = tenantEvents?.map(e => e.id) ?? [];
+
+        if (eventIds.length > 0) {
+            // 2. Zerar payment_id nas inscrições
+            const { error: nullPaymentErr } = await adminClient
+                .from('event_registrations')
+                .update({ payment_id: null })
+                .in('event_id', eventIds);
+
+            if (nullPaymentErr) return { error: `[step2-null-payment] ${nullPaymentErr.message}` };
+
+            // 3. Deletar payments dos eventos
+            const { error: deletePaymentsErr } = await adminClient
+                .from('payments')
+                .delete()
+                .in('event_id', eventIds);
+
+            if (deletePaymentsErr) return { error: `[step3-delete-payments] ${deletePaymentsErr.message}` };
+        }
+
+        // 4. Desvincular TODOS os profiles do tenant (atletas + profile da academia)
+        const { error: nullProfilesErr } = await adminClient
+            .from('profiles')
+            .update({ tenant_id: null, master_id: null })
+            .eq('tenant_id', tenantId);
+
+        if (nullProfilesErr) return { error: `[step4-null-profiles] ${nullProfilesErr.message}` };
+
+        // 5. Zerar tenant_id nas inscrições
+        const { error: nullRegErr } = await adminClient
+            .from('event_registrations')
+            .update({ tenant_id: null })
+            .eq('tenant_id', tenantId);
+
+        if (nullRegErr) return { error: `[step5-null-registrations] ${nullRegErr.message}` };
+
+        // 6. Deletar o tenant
+        const { error: deleteTenantErr } = await adminClient
+            .from('tenants')
+            .delete()
+            .eq('id', tenantId);
+
+        if (deleteTenantErr) return { error: `[step6-delete-tenant] ${deleteTenantErr.message}` };
+    }
+
+    // 7. Zerar registered_by nas inscrições que referenciam o profile da academia
+    const { error: nullRegByErr } = await adminClient
+        .from('event_registrations')
+        .update({ registered_by: null })
+        .eq('registered_by', academyId);
+
+    if (nullRegByErr) return { error: `[step7-null-registered-by] ${nullRegByErr.message}` };
+
+    // 8. Deletar qualquer tenant cujo owner_id seja esse usuário
+    //    tenants.owner_id → auth.users(id) ON DELETE NO ACTION bloqueia o deleteUser
+    const { error: deleteOwnerTenantErr } = await adminClient
+        .from('tenants')
+        .delete()
+        .eq('owner_id', academyId);
+
+    if (deleteOwnerTenantErr) return { error: `[step8-delete-owner-tenant] ${deleteOwnerTenantErr.message}` };
+
+    // 9. Deletar o usuário auth
+    const { error } = await adminClient.auth.admin.deleteUser(academyId);
+    if (error) return { error: `[step9-delete-user] ${error.message}` };
+
+    revalidatePath('/admin/dashboard/equipes-academias');
+    return { success: true };
+}
+
+export async function deleteAthleteAction(athleteId: string, tenantId?: string) {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    // 1. Nullar master_id de outros profiles que apontam para este atleta
+    //    profiles.master_id → profiles.id é ON DELETE NO ACTION
+    await adminClient
+        .from('profiles')
+        .update({ master_id: null })
+        .eq('master_id', athleteId);
+
+    // 2. Nullar registered_by nas inscrições que referenciam este atleta
+    //    event_registrations.registered_by → profiles.id é ON DELETE NO ACTION
+    await adminClient
+        .from('event_registrations')
+        .update({ registered_by: null })
+        .eq('registered_by', athleteId);
+
+    // 3. Deletar o usuário auth — cascata deleta o profile, que cascata deleta
+    //    event_registrations (via athlete_id CASCADE), athlete_term_acceptances, academy_management_authorizations
+    const { error } = await adminClient.auth.admin.deleteUser(athleteId);
+    if (error) return { error: error.message };
+
+    if (tenantId) {
+        revalidatePath(`/admin/dashboard/equipes-academias/${tenantId}`);
+    }
+    revalidatePath('/admin/dashboard/equipes-academias');
+    return { success: true };
+}
+
 export async function getAsaasWebhookDetailsAction(entidadeId: string) {
     const supabase = await createClient();
     const { data: { user: currentUser } } = await supabase.auth.getUser();

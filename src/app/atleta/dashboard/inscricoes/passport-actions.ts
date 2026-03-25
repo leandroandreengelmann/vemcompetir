@@ -21,6 +21,9 @@ export interface PassportData {
     status: PassportStatus;
     passport_bg_from: string | null;
     passport_bg_via: string | null;
+    passport_text_color: string | null;
+    passport_font: string | null;
+    passport_border_radius: number | null;
 }
 
 type PassportActionResult =
@@ -42,7 +45,7 @@ export async function getPassportDataAction(registrationId: string): Promise<Pas
             registration_code,
             tenant_id,
             registered_by,
-            event:events(id, title, event_date, location, address_city, address_state, passport_bg_from, passport_bg_via),
+            event:events(id, title, event_date, location, address_city, address_state, passport_bg_from, passport_bg_via, passport_text_color, passport_font, passport_border_radius),
             category:category_rows(categoria_completa, faixa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg),
             athlete:profiles!athlete_id(full_name, belt_color, gym_name, tenant_id)
         `)
@@ -134,6 +137,9 @@ export async function getPassportDataAction(registrationId: string): Promise<Pas
             status: reg.status as PassportStatus,
             passport_bg_from: event?.passport_bg_from ?? null,
             passport_bg_via: event?.passport_bg_via ?? null,
+            passport_text_color: event?.passport_text_color ?? null,
+            passport_font: event?.passport_font ?? null,
+            passport_border_radius: event?.passport_border_radius ?? null,
         }
     };
 }

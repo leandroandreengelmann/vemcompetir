@@ -28,7 +28,7 @@ export default async function EventPassportePage({
     const admin = createAdminClient();
     const { data: event } = await admin
         .from('events')
-        .select('id, title, passport_bg_from, passport_bg_via')
+        .select('id, title, passport_bg_from, passport_bg_via, passport_text_color, passport_font, passport_border_radius')
         .eq('id', id)
         .single();
 
@@ -58,6 +58,9 @@ export default async function EventPassportePage({
                     eventTitle={event.title}
                     initialFrom={event.passport_bg_from ?? null}
                     initialVia={event.passport_bg_via ?? null}
+                    initialTextColor={event.passport_text_color ?? null}
+                    initialFont={event.passport_font ?? null}
+                    initialBorderRadius={event.passport_border_radius ?? null}
                 />
             </div>
         </div>

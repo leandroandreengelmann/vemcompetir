@@ -75,8 +75,20 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
         {
             label: "Atletas",
             icon: UsersIcon,
+            href: "/admin/dashboard/atletas",
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Gestão de Atletas",
+            icon: UsersIcon,
             href: "/academia-equipe/dashboard/atletas",
-            roles: ['admin_geral', 'academia/equipe'],
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Atletas",
+            icon: UsersIcon,
+            href: "/academia-equipe/dashboard/atletas",
+            roles: ['academia/equipe'],
         },
         {
             label: "Cortesias",

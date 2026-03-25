@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeftIcon, PencilSimpleIcon, UserIcon, UsersIcon, ShieldCheckIcon, GraduationCapIcon, MapPinIcon, EnvelopeIcon, CreditCardIcon, PhoneIcon } from '@phosphor-icons/react/dist/ssr';
+import DeleteAcademyButton from '../components/DeleteAcademyButton';
+import DeleteAthleteButton from '../components/DeleteAthleteButton';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -70,12 +72,18 @@ export default async function AcademyDetailPage(props: PageProps) {
                     <h1 className="text-panel-lg font-black tracking-tight">{academyUser.user_metadata?.full_name || 'Academia/Equipe'}</h1>
                     <p className="text-panel-sm text-muted-foreground">Visualização detalhada da organização.</p>
                 </div>
-                <Button pill asChild>
-                    <Link href={`/admin/dashboard/equipes-academias/${id}/editar`}>
-                        <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
-                        Editar Dados
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button pill asChild>
+                        <Link href={`/admin/dashboard/equipes-academias/${id}/editar`}>
+                            <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
+                            Editar Dados
+                        </Link>
+                    </Button>
+                    <DeleteAcademyButton
+                        academyId={id}
+                        academyName={academyUser.user_metadata?.full_name || 'Academia/Equipe'}
+                    />
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
@@ -161,6 +169,55 @@ export default async function AcademyDetailPage(props: PageProps) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Lista Completa de Atletas */}
+            <Card>
+                <CardHeader className="pb-3 border-b">
+                    <CardTitle className="text-panel-md font-semibold flex items-center justify-between">
+                        <div className="flex items-center">
+                            <UsersIcon size={20} weight="duotone" className="mr-2 text-primary" />
+                            Atletas Vinculados
+                        </div>
+                        <Badge variant="secondary" className="rounded-full">{members?.length || 0}</Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="hover:bg-transparent">
+                                <TableHead className="pl-6 text-panel-sm font-semibold">Nome</TableHead>
+                                <TableHead className="text-panel-sm font-semibold">CPF</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-center w-28">Faixa</TableHead>
+                                <TableHead className="w-12 pr-6" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {members && members.length > 0 ? members.map((member) => (
+                                <TableRow key={member.id}>
+                                    <TableCell className="pl-6 text-panel-sm font-medium">{member.full_name}</TableCell>
+                                    <TableCell className="text-panel-sm text-muted-foreground">{member.cpf || '-'}</TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="outline" className="rounded-full font-normal">{member.belt_color || '-'}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <DeleteAthleteButton
+                                            athleteId={member.id}
+                                            athleteName={member.full_name}
+                                            academyId={id}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center py-6 text-panel-sm text-muted-foreground italic">
+                                        Nenhum atleta vinculado.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
 
             {/* Listas de Pessoas Chave */}
             <div className="grid gap-6 md:grid-cols-2">

@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import AsaasConfigDialog from './components/AsaasConfigDialog';
+import DeleteAcademyButton from './components/DeleteAcademyButton';
 
 export default async function EquipesAcademiasPage() {
     const supabase = await createClient();
@@ -171,6 +172,10 @@ export default async function EquipesAcademiasPage() {
                                                     <span className="sr-only">Visualizar Detalhes</span>
                                                 </Link>
                                             </Button>
+                                            <DeleteAcademyButton
+                                                academyId={entidade.id}
+                                                academyName={entidade.full_name}
+                                            />
                                         </div>
                                     </TableCell>
                                 </TableRow>

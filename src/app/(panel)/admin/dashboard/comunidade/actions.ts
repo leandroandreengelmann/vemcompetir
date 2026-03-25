@@ -112,3 +112,33 @@ export async function registerSuggestedGym(formData: FormData) {
     revalidatePath('/admin/dashboard/comunidade');
     return { success: true };
 }
+
+export async function dismissSuggestionAction(gymName: string, masterName: string) {
+    await requireRole('admin_geral');
+
+    const adminClient = createAdminClient();
+
+    let query = adminClient
+        .from('profiles')
+        .update({ gym_name: null, master_name: null })
+        .eq('role', 'atleta')
+        .is('tenant_id', null);
+
+    if (gymName) {
+        query = query.eq('gym_name', gymName);
+    } else {
+        query = query.is('gym_name', null);
+    }
+
+    if (masterName) {
+        query = query.eq('master_name', masterName);
+    } else {
+        query = query.is('master_name', null);
+    }
+
+    const { error } = await query;
+    if (error) return { error: error.message };
+
+    revalidatePath('/admin/dashboard/comunidade');
+    return { success: true };
+}

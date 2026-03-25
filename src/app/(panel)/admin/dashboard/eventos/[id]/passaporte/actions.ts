@@ -20,13 +20,22 @@ export async function updatePassportColorAction(
     eventId: string,
     from: string | null,
     via: string | null,
+    textColor: string | null,
+    font: string | null,
+    borderRadius: number | null,
 ): Promise<{ success?: boolean; error?: string }> {
     if (!(await checkAdmin())) return { error: 'Não autorizado.' };
 
     const admin = createAdminClient();
     const { error } = await admin
         .from('events')
-        .update({ passport_bg_from: from, passport_bg_via: via })
+        .update({
+            passport_bg_from: from,
+            passport_bg_via: via,
+            passport_text_color: textColor,
+            passport_font: font,
+            passport_border_radius: borderRadius,
+        })
         .eq('id', eventId);
 
     if (error) return { error: 'Erro ao salvar cor do passaporte.' };
