@@ -207,6 +207,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
         if (s === 1) {
             const sexo = formData.get('sexo') as string;
             if (!sexo) return false;
+            if (!birthDateValue) return false;
             return true;
         }
 
@@ -343,7 +344,6 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 1 && "hidden")}>
                         {/* Campos já coletados no cadastro — enviados como hidden */}
                         <input type="hidden" name="full_name" value={profile?.full_name || ''} />
-                        <input type="hidden" name="birth_date" value={birthDateValue} />
                         <input type="hidden" name="cpf" value={cpfValue.replace(/\D/g, '')} />
                         <input type="hidden" name="email" value={emailValue} />
 
@@ -358,6 +358,39 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                     <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Feminino</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="birth_date" className="text-panel-sm font-medium text-muted-foreground">
+                                Data de nascimento <span className="text-red-500 ml-1">*</span>
+                            </Label>
+                            {profile?.birth_date ? (
+                                <>
+                                    <input type="hidden" name="birth_date" value={birthDateValue} />
+                                    <div className={`h-12 rounded-xl border px-3 flex items-center bg-muted/40 text-panel-sm font-medium text-muted-foreground ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
+                                        {new Date(birthDateValue + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                        {calculatedAge !== null && (
+                                            <span className="ml-2 text-muted-foreground/60">({calculatedAge} anos)</span>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <Input
+                                        id="birth_date"
+                                        name="birth_date"
+                                        type="date"
+                                        value={birthDateValue}
+                                        onChange={(e) => setBirthDateValue(e.target.value)}
+                                        required
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
+                                    />
+                                    {calculatedAge !== null && (
+                                        <p className="text-panel-sm text-muted-foreground font-medium">{calculatedAge} anos</p>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
 

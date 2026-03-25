@@ -14,7 +14,8 @@ import { CancelRegistrationWrapper } from './CancelRegistrationWrapper';
 import { PassportButton } from './PassportButton';
 
 const BELTS = [
-    'Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde',
+    'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
+    'Laranja e branca', 'Laranja', 'Laranja e preta', 'Verde e branca', 'Verde', 'Verde e preta',
     'Azul', 'Roxa', 'Marrom', 'Preta', 'Coral', 'Vermelha'
 ];
 
@@ -104,7 +105,7 @@ id,
             )}
 
             {/* Main Content */}
-            <div className={`flex - 1 flex flex - col items - center ${inscricoes.length === 0 ? 'justify-center max-w-2xl' : 'max-w-4xl'} mx - auto w - full pb - 20`}>
+            <div className={`flex-1 flex flex-col items-center ${inscricoes.length === 0 ? 'justify-center max-w-2xl' : 'max-w-4xl'} mx-auto w-full pb-20`}>
                 {inscricoes.length === 0 ? (
                     <div className="text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
                         <div className="mx-auto bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mb-6">
