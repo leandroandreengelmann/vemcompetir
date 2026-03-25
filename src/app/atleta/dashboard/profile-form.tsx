@@ -208,6 +208,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
             const sexo = formData.get('sexo') as string;
             if (!sexo) return false;
             if (!birthDateValue) return false;
+            if (!profile?.cpf && !cpfValue) return false;
+            if (!profile?.cpf && cpfValue && !validateCPF(cpfValue)) return false;
             return true;
         }
 
@@ -344,7 +346,6 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 1 && "hidden")}>
                         {/* Campos já coletados no cadastro — enviados como hidden */}
                         <input type="hidden" name="full_name" value={profile?.full_name || ''} />
-                        <input type="hidden" name="cpf" value={cpfValue.replace(/\D/g, '')} />
                         <input type="hidden" name="email" value={emailValue} />
 
                         <div className="space-y-2">
@@ -389,6 +390,37 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                     {calculatedAge !== null && (
                                         <p className="text-panel-sm text-muted-foreground font-medium">{calculatedAge} anos</p>
                                     )}
+                                </>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="cpf" className="text-panel-sm font-medium text-muted-foreground">
+                                CPF <span className="text-red-500 ml-1">*</span>
+                            </Label>
+                            {profile?.cpf ? (
+                                <>
+                                    <input type="hidden" name="cpf" value={cpfValue.replace(/\D/g, '')} />
+                                    <div className={`h-12 rounded-xl border px-3 flex items-center bg-muted/40 text-panel-sm font-medium text-muted-foreground ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
+                                        {formatCPF(profile.cpf)}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <Input
+                                        id="cpf"
+                                        name="cpf"
+                                        placeholder="000.000.000-00"
+                                        value={cpfValue}
+                                        onChange={(e) => {
+                                            const raw = normalizeNumeric(e.target.value).slice(0, 11);
+                                            setCpfValue(formatCPF(raw));
+                                            setCpfError(null);
+                                        }}
+                                        inputMode="numeric"
+                                        className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${cpfError ? 'border-red-400' : isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
+                                    />
+                                    {cpfError && <p className="text-panel-sm text-red-500 font-medium">{cpfError}</p>}
                                 </>
                             )}
                         </div>
