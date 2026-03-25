@@ -50,8 +50,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         openGraph: {
             title: event.title,
             description,
-            url: `https://competir.com.br/eventos/${id}`,
-            siteName: 'Competir',
+            url: `https://www.vemcompetir.com.br/eventos/${id}`,
+            siteName: 'Vem Competir',
             type: 'website',
             locale: 'pt_BR',
             images: coverUrl
@@ -297,7 +297,7 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                     registrationCount={registrationCount ?? 0}
                                     minPrice={minPrice}
                                     topics={shareTopics}
-                                    canonicalUrl={`https://competir.com.br/eventos/${id}`}
+                                    canonicalUrl={`https://www.vemcompetir.com.br/eventos/${id}`}
                                 />
                             </div>
 

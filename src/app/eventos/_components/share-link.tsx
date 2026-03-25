@@ -48,6 +48,8 @@ function buildWhatsAppMessage({
 }: ShareLinkProps): string {
     const lines: string[] = [];
 
+    lines.push(canonicalUrl);
+    lines.push('');
     lines.push(`${EM.sport} *${eventTitle}*`);
     lines.push('');
 
@@ -84,9 +86,7 @@ function buildWhatsAppMessage({
     }
 
     lines.push('');
-    lines.push(`--------------------`);
-    lines.push(`Garanta sua vaga:`);
-    lines.push(canonicalUrl);
+    lines.push(`Garanta sua vaga acima! ☝️`);
 
     return lines.join('\n');
 }
