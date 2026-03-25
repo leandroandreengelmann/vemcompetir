@@ -64,6 +64,7 @@ export async function updateAthleteProfile(formData: FormData) {
 
     revalidatePath('/atleta/dashboard');
     revalidatePath('/atleta/dashboard/perfil');
+    revalidatePath('/atleta/dashboard/inscricoes');
     return { success: true };
 }
 

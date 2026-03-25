@@ -47,7 +47,7 @@ id,
 
     const inscricoes = inscricoesData || [];
 
-    const isProfileIncomplete = !profile?.weight || !profile?.birth_date || !profile?.belt_color || !profile?.gym_name;
+    const isProfileIncomplete = !profile?.weight || !profile?.belt_color || !profile?.gym_name;
 
     const getStatusBadge = (status: string) => {
         switch (status) {

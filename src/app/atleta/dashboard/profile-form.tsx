@@ -29,7 +29,8 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
 import { cn } from '@/lib/utils';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface ProfileFormProps {
     profile: any;
@@ -39,6 +40,7 @@ interface ProfileFormProps {
 
 export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const initialStep = searchParams.get('step') ? parseInt(searchParams.get('step') as string, 10) : 1;
 
     const [step, setStep] = useState(initialStep);
@@ -203,15 +205,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
         const formData = new FormData(formRef.current);
 
         if (s === 1) {
-            const name = formData.get('full_name') as string;
-            const birth = formData.get('birth_date') as string;
             const sexo = formData.get('sexo') as string;
-            const cpf = cpfValue;
-            if (!name || name.length < 3) return false;
-            if (!birth) return false;
             if (!sexo) return false;
-            if (!emailValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) return false;
-            if (!cpf || !validateCPF(cpf)) return false;
             return true;
         }
 
@@ -285,10 +280,19 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
         if (result?.error) {
             setMessage({ type: 'error', text: result.error });
+            setLoading(false);
         } else {
-            setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
+            setLoading(false);
+            toast.custom(() => (
+                <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white">
+                    <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
+                    <div>
+                        <p className="text-panel-sm font-bold">Perfil completo! Vem Competir! OSS.</p>
+                    </div>
+                </div>
+            ), { duration: 5000 });
+            router.push('/atleta/dashboard/inscricoes');
         }
-        setLoading(false);
     };
 
     return (
@@ -303,10 +307,16 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         {step === 1 ? 'Identidade' : step === 2 ? 'Vínculo' : 'Técnico'}
                     </span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden flex gap-1 p-[2px]">
-                    <div className={cn("h-full rounded-full transition-all duration-500", step >= 1 ? "bg-primary flex-1" : "bg-transparent w-0")} />
-                    <div className={cn("h-full rounded-full transition-all duration-500", step >= 2 ? "bg-primary flex-1" : "bg-transparent w-0")} />
-                    <div className={cn("h-full rounded-full transition-all duration-500", step >= 3 ? "bg-primary flex-1" : "bg-transparent w-0")} />
+                <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                        className="h-full rounded-full transition-all duration-700 ease-in-out relative overflow-hidden"
+                        style={{
+                            width: `${(step / 3) * 100}%`,
+                            background: 'linear-gradient(90deg, #10b981, #34d399)',
+                        }}
+                    >
+                        <div className="absolute inset-0 animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12" />
+                    </div>
                 </div>
             </div>
 
@@ -331,92 +341,23 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                 <div className="min-h-[340px]">
                     {/* STEP 1: IDENTIDADE */}
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 1 && "hidden")}>
-                        <div className="space-y-2">
-                            <Label htmlFor="full_name" className="text-panel-sm font-medium text-muted-foreground">Nome completo <span className="text-red-500 ml-1">*</span></Label>
-                            <Input
-                                id="full_name"
-                                name="full_name"
-                                defaultValue={profile?.full_name || ''}
-                                placeholder="Seu nome oficial"
-                                required
-                                minLength={3}
-                                className="bg-background h-12 text-panel-md rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="sexo" className="text-panel-sm font-medium text-muted-foreground">Sexo <span className="text-red-500 ml-1">*</span></Label>
-                                <Select name="sexo" defaultValue={profile?.sexo || undefined}>
-                                    <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
-                                        <SelectValue placeholder="Selecione seu sexo" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        <SelectItem value="Masculino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Masculino</SelectItem>
-                                        <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Feminino</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="birth_date" className="text-panel-sm font-medium text-muted-foreground">Data de nascimento <span className="text-red-500 ml-1">*</span></Label>
-                                <div className="flex flex-col gap-1.5">
-                                    <Input
-                                        id="birth_date"
-                                        name="birth_date"
-                                        type="date"
-                                        value={birthDateValue}
-                                        onChange={(e) => setBirthDateValue(e.target.value)}
-                                        required
-                                        className="h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium"
-                                        style={{ accentColor: isWhiteBelt ? "black" : "hsl(var(--primary))" }}
-                                    />
-                                    {calculatedAge !== null && calculatedAge >= 0 && (
-                                        <p className="text-panel-sm font-medium pl-1 text-[hsl(var(--primary))]">
-                                            Sua idade é {calculatedAge} {calculatedAge === 1 ? 'ano' : 'anos'}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        {/* Campos já coletados no cadastro — enviados como hidden */}
+                        <input type="hidden" name="full_name" value={profile?.full_name || ''} />
+                        <input type="hidden" name="birth_date" value={birthDateValue} />
+                        <input type="hidden" name="cpf" value={cpfValue.replace(/\D/g, '')} />
+                        <input type="hidden" name="email" value={emailValue} />
 
                         <div className="space-y-2">
-                            <Label htmlFor="cpf" className="text-panel-sm font-medium text-muted-foreground">CPF <span className="text-red-500 ml-1">*</span></Label>
-                            <Input
-                                id="cpf"
-                                name="cpf"
-                                value={cpfValue}
-                                onChange={(e) => {
-                                    const formatted = formatCPF(e.target.value);
-                                    setCpfValue(formatted);
-                                    if (formatted.length === 14) {
-                                        if (!validateCPF(formatted)) {
-                                            setCpfError('CPF inválido');
-                                        } else {
-                                            setCpfError(null);
-                                        }
-                                    } else {
-                                        setCpfError(null);
-                                    }
-                                }}
-                                placeholder="000.000.000-00"
-                                required
-                                className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium ${cpfError ? 'border-red-500' : ''}`}
-                            />
-                            {cpfError && <p className="text-panel-sm text-red-500 font-medium">{cpfError}</p>}
-                        </div>
-
-                        <div className="space-y-2 pt-2">
-                            <Label htmlFor="email" className="text-panel-sm font-medium text-muted-foreground">E-mail (login) <span className="text-red-500 ml-1">*</span></Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                value={emailValue}
-                                onChange={(e) => setEmailValue(e.target.value)}
-                                className="h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium bg-background"
-                                required
-                            />
+                            <Label htmlFor="sexo" className="text-panel-sm font-medium text-muted-foreground">Sexo <span className="text-red-500 ml-1">*</span></Label>
+                            <Select name="sexo" defaultValue={profile?.sexo || undefined}>
+                                <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
+                                    <SelectValue placeholder="Selecione seu sexo" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="Masculino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Masculino</SelectItem>
+                                    <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Feminino</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
