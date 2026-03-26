@@ -65,8 +65,11 @@ async function buildOrganizerAsaasUpdate(
                 ],
             }),
         });
-        if (!webhookRes.ok) {
-            webhookWarning = 'Chave salva, mas o webhook não foi registrado automaticamente. Configure manualmente no painel Asaas.';
+        const webhookBody = await webhookRes.json().catch(() => null);
+        const hasBodyErrors = webhookBody?.errors?.length > 0;
+        if (!webhookRes.ok || hasBodyErrors) {
+            const detail = webhookBody?.errors?.[0]?.description ?? webhookBody?.message ?? webhookRes.status;
+            webhookWarning = `Chave salva, mas o webhook não foi registrado. Motivo: ${detail}. Configure manualmente no painel Asaas.`;
         }
     } catch {
         webhookWarning = 'Chave salva, mas não foi possível registrar o webhook. Configure manualmente no painel Asaas.';

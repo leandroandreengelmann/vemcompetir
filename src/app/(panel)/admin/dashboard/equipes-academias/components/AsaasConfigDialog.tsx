@@ -62,6 +62,7 @@ export default function AsaasConfigDialog({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [webhookWarning, setWebhookWarning] = useState<string | null>(null);
     const [useOwn, setUseOwn] = useState(useOwnAsaas);
     const [copied, setCopied] = useState(false);
 
@@ -99,6 +100,7 @@ export default function AsaasConfigDialog({
             setWebhookError(null);
             setSuccess(false);
             setError(null);
+            setWebhookWarning(null);
         }
     }
 
@@ -116,8 +118,13 @@ export default function AsaasConfigDialog({
         if ('error' in result && result.error) {
             setError(result.error);
         } else {
-            setSuccess(true);
-            setTimeout(() => setOpen(false), 1200);
+            const warning = 'webhookWarning' in result ? result.webhookWarning : undefined;
+            if (warning) {
+                setWebhookWarning(warning);
+            } else {
+                setSuccess(true);
+                setTimeout(() => setOpen(false), 1200);
+            }
         }
         setLoading(false);
     }
@@ -149,6 +156,19 @@ export default function AsaasConfigDialog({
                     <div className="flex flex-col items-center gap-3 py-6 text-center">
                         <CheckCircleIcon size={40} weight="duotone" className="text-green-500" />
                         <p className="text-ui font-medium">Configuração salva!</p>
+                    </div>
+                ) : webhookWarning ? (
+                    <div className="space-y-4 pt-2">
+                        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4">
+                            <WarningCircleIcon size={18} weight="duotone" className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <p className="text-ui font-medium text-amber-800 dark:text-amber-300">Chave salva — webhook pendente</p>
+                                <p className="text-caption text-amber-700 dark:text-amber-400">{webhookWarning}</p>
+                            </div>
+                        </div>
+                        <Button type="button" variant="outline" className="w-full" onClick={() => setWebhookWarning(null)}>
+                            Tentar registrar novamente
+                        </Button>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
