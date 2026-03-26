@@ -143,14 +143,13 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                     <TableHead>Categoria</TableHead>
                                     <TableHead className="hidden md:table-cell">Inscrito Por</TableHead>
                                     <TableHead className="hidden md:table-cell text-center">Passaporte</TableHead>
-                                    <TableHead className="hidden md:table-cell text-center">Categoria</TableHead>
                                     <TableHead className="text-right pr-6">Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!registrations || registrations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                             Nenhuma inscrição encontrada.
                                         </TableCell>
                                     </TableRow>
@@ -163,6 +162,15 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                                     <span className="sm:hidden block mt-0.5">
                                                         {renderBeltBadge(reg.athlete?.belt_color)}
                                                     </span>
+                                                    {['pago', 'paga', 'confirmado', 'isento'].includes(reg.status) && canChangeCategory(event) && (
+                                                        <Link
+                                                            href={`/academia-equipe/dashboard/eventos/${event.id}/inscricoes/${reg.id}/trocar-categoria`}
+                                                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors mt-0.5"
+                                                        >
+                                                            <ArrowsClockwiseIcon size={12} weight="duotone" />
+                                                            Trocar categoria
+                                                        </Link>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="hidden sm:table-cell">
@@ -193,21 +201,6 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                                             </Button>
                                                         }
                                                     />
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell text-center py-4">
-                                                {['pago', 'paga', 'confirmado', 'isento'].includes(reg.status) && canChangeCategory(event) && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-9 px-4 rounded-full font-bold text-xs tracking-wide text-muted-foreground border-muted-foreground/20 hover:bg-muted hover:text-foreground transition-colors"
-                                                        asChild
-                                                    >
-                                                        <Link href={`/academia-equipe/dashboard/eventos/${event.id}/inscricoes/${reg.id}/trocar-categoria`}>
-                                                            <ArrowsClockwiseIcon size={14} weight="duotone" className="mr-1.5" />
-                                                            Trocar
-                                                        </Link>
-                                                    </Button>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-4">
