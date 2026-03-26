@@ -56,6 +56,7 @@ async function buildOrganizerAsaasUpdate(
                 email: 'noreply@competir.com',
                 interrupted: false,
                 enabled: true,
+                sendType: 'SEQUENTIALLY',
                 authToken: webhookToken,
                 events: [
                     'PAYMENT_CONFIRMED',
@@ -694,6 +695,7 @@ export async function reregisterOrganizerWebhooksAction() {
                     email: 'noreply@competir.com',
                     interrupted: false,
                     enabled: true,
+                    sendType: 'SEQUENTIALLY',
                     authToken: webhookToken,
                     events: [
                         'PAYMENT_CONFIRMED',
