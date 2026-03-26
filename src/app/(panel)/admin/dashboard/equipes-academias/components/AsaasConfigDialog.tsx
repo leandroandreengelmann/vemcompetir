@@ -198,7 +198,7 @@ export default function AsaasConfigDialog({
                                     <Input
                                         id="asaas_api_key"
                                         name="asaas_api_key"
-                                        type="password"
+                                        type="text"
                                         placeholder={last4
                                             ? `Atual: ••••••••${last4} — deixe em branco para manter`
                                             : 'Cole a API Key da academia aqui'
