@@ -42,7 +42,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
             formData.append('id', initialData.id);
             const result = await updateOrganizerAction(formData);
 
-            if (result?.error) {
+            if ('error' in result && result.error) {
                 setError(result.error);
                 setLoading(false);
                 return;
