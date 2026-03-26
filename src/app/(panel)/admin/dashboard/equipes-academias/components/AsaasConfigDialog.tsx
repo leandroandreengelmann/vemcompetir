@@ -113,7 +113,7 @@ export default function AsaasConfigDialog({
 
         const result = await updateAsaasConfigAction(formData);
 
-        if (result?.error) {
+        if ('error' in result && result.error) {
             setError(result.error);
         } else {
             setSuccess(true);
