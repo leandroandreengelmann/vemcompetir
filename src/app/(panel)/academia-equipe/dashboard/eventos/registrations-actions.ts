@@ -347,6 +347,92 @@ export async function getEligibleCategoriesAction(
     return { suggestions, all, enrolledCategories };
 }
 
+export async function changeCategoryAction(
+    registrationId: string,
+    newCategoryId: string,
+) {
+    const { profile, tenant_id } = await requireTenantScope();
+    const adminClient = createAdminClient();
+
+    // 1. Load registration with event info
+    const { data: reg, error: regError } = await adminClient
+        .from('event_registrations')
+        .select(`
+            id,
+            status,
+            athlete_id,
+            category_id,
+            event_id,
+            tenant_id,
+            event:events!event_id (
+                event_date,
+                category_change_deadline_days,
+                tenant_id
+            )
+        `)
+        .eq('id', registrationId)
+        .single();
+
+    if (regError || !reg) return { error: 'Inscrição não encontrada.' };
+
+    const event = Array.isArray(reg.event) ? reg.event[0] : reg.event;
+
+    // 2. Permission: must be the registration's tenant OR the event organizer
+    const isRegistrationTenant = reg.tenant_id === tenant_id;
+    const isOrganizer = event?.tenant_id === tenant_id;
+    if (!isRegistrationTenant && !isOrganizer) {
+        return { error: 'Sem permissão para alterar esta inscrição.' };
+    }
+
+    // 3. Only paid/confirmed registrations can have category changed
+    const paidStatuses = ['pago', 'paga', 'confirmado', 'isento'];
+    if (!paidStatuses.includes(reg.status)) {
+        return { error: 'Só é possível trocar categoria de inscrições pagas ou confirmadas.' };
+    }
+
+    // 4. Check deadline
+    const deadlineDays = event?.category_change_deadline_days ?? 0;
+    if (deadlineDays === 0) {
+        return { error: 'Este evento não permite troca de categoria.' };
+    }
+
+    const eventDate = new Date(event.event_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const deadlineDate = new Date(eventDate);
+    deadlineDate.setDate(deadlineDate.getDate() - deadlineDays);
+
+    if (today > deadlineDate) {
+        return { error: `Prazo para troca de categoria encerrado em ${deadlineDate.toLocaleDateString('pt-BR')}.` };
+    }
+
+    // 5. Cannot change to same category
+    if (reg.category_id === newCategoryId) {
+        return { error: 'A categoria selecionada é a mesma da inscrição atual.' };
+    }
+
+    // 6. Update registration
+    const { error: updateError } = await adminClient
+        .from('event_registrations')
+        .update({ category_id: newCategoryId })
+        .eq('id', registrationId);
+
+    if (updateError) return { error: 'Erro ao atualizar categoria.' };
+
+    // 7. Insert audit record
+    await adminClient
+        .from('registration_category_changes')
+        .insert({
+            registration_id: registrationId,
+            changed_by: profile.id,
+            old_category_id: reg.category_id,
+            new_category_id: newCategoryId,
+        });
+
+    revalidatePath(`/academia-equipe/dashboard/eventos/${reg.event_id}/inscricoes`);
+    return { success: true };
+}
+
 export async function getAvailableEventsAction() {
     const { profile, tenant_id } = await requireTenantScope();
     const supabase = await createClient();

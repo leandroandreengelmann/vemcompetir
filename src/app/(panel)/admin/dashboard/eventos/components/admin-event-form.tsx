@@ -44,6 +44,8 @@ interface AdminEventFormProps {
         address_state?: string;
         address_zip?: string;
         status?: string;
+        registration_end_date?: string | null;
+        category_change_deadline_days?: number | null;
     };
     academies: Academy[];
 }
@@ -301,6 +303,39 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                         variant="lg"
                                         disabled={loading}
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="registration_end_date" className="text-panel-sm font-medium leading-none">
+                                        Prazo de Inscrições
+                                    </label>
+                                    <Input
+                                        id="registration_end_date"
+                                        name="registration_end_date"
+                                        type="date"
+                                        defaultValue={initialData?.registration_end_date ? initialData.registration_end_date.slice(0, 10) : ''}
+                                        variant="lg"
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="category_change_deadline_days" className="text-panel-sm font-medium leading-none">
+                                        Prazo para Troca de Categoria
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="category_change_deadline_days"
+                                            name="category_change_deadline_days"
+                                            type="number"
+                                            min="0"
+                                            defaultValue={initialData?.category_change_deadline_days ?? 0}
+                                            variant="lg"
+                                            disabled={loading}
+                                            className="max-w-[120px]"
+                                        />
+                                        <span className="text-panel-sm text-muted-foreground">dias antes do evento (0 = não permite)</span>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">

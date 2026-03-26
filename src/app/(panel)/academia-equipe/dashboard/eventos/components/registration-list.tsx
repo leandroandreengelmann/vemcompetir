@@ -14,7 +14,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { PlusIcon, IdentificationCardIcon } from '@phosphor-icons/react';
+import { PlusIcon, IdentificationCardIcon, ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { PassportModal } from '@/components/passport/PassportModal';
 
@@ -48,6 +48,8 @@ interface Event {
     id: string;
     title: string;
     tenant_id: string;
+    category_change_deadline_days?: number;
+    event_date?: string;
 }
 
 interface RegistrationListProps {
@@ -56,6 +58,17 @@ interface RegistrationListProps {
     athletes: any[]; // List of my athletes is not needed anymore for this component specifically, but kept for compatibility if needed or removed
     currentUserId: string;
     currentUserTenantId: string;
+}
+
+function canChangeCategory(event: Event): boolean {
+    const days = event.category_change_deadline_days ?? 0;
+    if (days === 0 || !event.event_date) return false;
+    const eventDate = new Date(event.event_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const deadline = new Date(eventDate);
+    deadline.setDate(deadline.getDate() - days);
+    return today <= deadline;
 }
 
 export function RegistrationList({ event, registrations, athletes, currentUserId, currentUserTenantId }: RegistrationListProps) {
@@ -130,13 +143,14 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                     <TableHead>Categoria</TableHead>
                                     <TableHead className="hidden md:table-cell">Inscrito Por</TableHead>
                                     <TableHead className="hidden md:table-cell text-center">Passaporte</TableHead>
+                                    <TableHead className="hidden md:table-cell text-center">Categoria</TableHead>
                                     <TableHead className="text-right pr-6">Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!registrations || registrations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                             Nenhuma inscrição encontrada.
                                         </TableCell>
                                     </TableRow>
@@ -179,6 +193,21 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                                             </Button>
                                                         }
                                                     />
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell text-center py-4">
+                                                {['pago', 'paga', 'confirmado', 'isento'].includes(reg.status) && canChangeCategory(event) && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-9 px-4 rounded-full font-bold text-xs tracking-wide text-muted-foreground border-muted-foreground/20 hover:bg-muted hover:text-foreground transition-colors"
+                                                        asChild
+                                                    >
+                                                        <Link href={`/academia-equipe/dashboard/eventos/${event.id}/inscricoes/${reg.id}/trocar-categoria`}>
+                                                            <ArrowsClockwiseIcon size={14} weight="duotone" className="mr-1.5" />
+                                                            Trocar
+                                                        </Link>
+                                                    </Button>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-4">
