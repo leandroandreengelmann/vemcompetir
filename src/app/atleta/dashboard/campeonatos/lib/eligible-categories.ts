@@ -477,11 +477,20 @@ export async function getEligibleCategories(eventId: string) {
         .filter(r => r.match.eligible)
         .sort((a, b) => b.score - a.score || a.categoria_completa.localeCompare(b.categoria_completa));
 
+    // 6. Combo bundle ativo para este evento
+    const { data: comboBundle } = await supabaseAdmin
+        .from('event_combo_bundles')
+        .select('bundle_total')
+        .eq('event_id', eventId)
+        .eq('is_active', true)
+        .maybeSingle();
+
     return {
         suggestions,
         all: categories.filter(c => !myEnrolledCategoryIds.has(c.id)), // Mantendo compatibilidade com itens invisíveis
         isIncomplete,
         profile: athlete,
-        incompleteReasons
+        incompleteReasons,
+        comboBundle: comboBundle ?? null,
     };
 }

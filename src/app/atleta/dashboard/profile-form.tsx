@@ -240,8 +240,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
         setMessage(null);
     };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+        e?.preventDefault();
 
         // Final validation
         if (!validateStep(1) || !validateStep(2)) {
@@ -249,7 +249,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
             return;
         }
 
-        const formDataObj = new FormData(e.currentTarget);
+        const formDataObj = new FormData(formRef.current!);
         const belt = formDataObj.get('belt_color') as string;
         const weight = formDataObj.get('weight') as string;
 
@@ -267,7 +267,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
         setLoading(true);
         setMessage(null);
 
-        const formData = new FormData(e.currentTarget);
+        const formData = new FormData(formRef.current!);
 
         if (selectedGym?.id) formData.append('tenant_id', selectedGym.id);
         if (selectedGym?.name) formData.append('gym_name', selectedGym.name);
@@ -325,7 +325,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
             <form
                 ref={formRef}
-                onSubmit={handleSubmit}
+                onSubmit={(e) => e.preventDefault()}
                 className="space-y-6"
                 style={{
                     '--primary': activeHsl,
@@ -672,7 +672,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                         </Button>
                     ) : (
                         <Button
-                            type="submit"
+                            type="button"
+                            onClick={() => handleSubmit()}
                             disabled={loading}
                             className={`flex-[1.5] h-12 rounded-full font-bold shadow-lg transition-all active:scale-[0.98] ${isWhiteBelt
                                 ? "bg-background text-foreground border border-brand-950/20 shadow-none hover:bg-muted/40"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { InfoIcon, TrophyIcon, CircleNotchIcon, CheckIcon } from '@phosphor-icons/react';
+import { InfoIcon, TrophyIcon, CircleNotchIcon, CheckIcon, PackageIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { getEligibleCategories } from '../lib/eligible-categories';
 import { addToAthleteCartAction } from '../athlete-cart-actions';
@@ -20,6 +20,7 @@ interface Event {
     id: string;
     title: string;
     event_date: string;
+    event_end_date?: string | null;
     location?: string;
     city?: string;
     image_path?: string;
@@ -48,6 +49,7 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
     const [loading, setLoading] = useState(false);
     const [isIncomplete, setIsIncomplete] = useState(false);
     const [incompleteReasons, setIncompleteReasons] = useState<string[]>([]);
+    const [comboBundle, setComboBundle] = useState<{ bundle_total: number } | null>(null);
 
     const cartItems = useAthleteCart(state => state.items);
 
@@ -58,6 +60,7 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
             setSuggestions(data.suggestions as any);
             setIsIncomplete(data.isIncomplete);
             setIncompleteReasons(data.incompleteReasons || []);
+            setComboBundle((data as any).comboBundle ?? null);
         } catch (error) {
             console.error(error);
         } finally {
@@ -92,6 +95,7 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
 
                         <EventSummary
                             date={event.event_date}
+                            endDate={event.event_end_date}
                             location={event.location}
                             city={event.city}
                         />
@@ -127,6 +131,15 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                 De acordo com a sua cor de faixa, peso, idade e sexo, aqui estão as categorias às quais você está apto a participar. Você pode verificar e se inscrever em mais de uma delas.
                             </p>
                         </div>
+
+                        {comboBundle && (
+                            <div className="flex items-start gap-2.5 rounded-2xl bg-indigo-50 border border-indigo-200 px-4 py-3 text-indigo-800">
+                                <PackageIcon size={18} weight="duotone" className="shrink-0 mt-0.5 text-indigo-500" />
+                                <p className="text-panel-sm font-semibold leading-relaxed">
+                                    <strong>Combo disponível!</strong> Inscreva-se nas 4 categorias (Absoluto Gi, Regular Gi, Absoluto No-Gi e Regular No-Gi) e pague apenas <strong>R$ {Number(comboBundle.bundle_total).toFixed(2)}</strong> no total.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="space-y-3">
                             {loading && suggestions.length === 0 ? (

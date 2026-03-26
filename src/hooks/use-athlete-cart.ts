@@ -93,6 +93,7 @@ export const useAthleteCart = create<AthleteCartState>((set, get) => ({
         }));
         try {
             await removeFromAthleteCartAction(registrationId);
+            await get().fetchCart();
         } catch (error) {
             console.error('Failed to remove from athlete cart', error);
             await get().fetchCart();

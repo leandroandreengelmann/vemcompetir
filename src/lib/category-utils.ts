@@ -68,7 +68,16 @@ export function formatCategoryTitle(cat: CategoryLike) {
         if (divisao.toLowerCase().includes('masculino') || title.toLowerCase().includes('masculino')) gender = 'Masculino';
         else if (divisao.toLowerCase().includes('feminino') || title.toLowerCase().includes('feminino')) gender = 'Feminino';
 
-        return `Absoluto ${cleanFaixa}${gender ? ` ${gender}` : ''}`.trim();
+        // Extrai o uniforme do último segmento de categoria_completa
+        let uniforme = '';
+        if (title.includes('•')) {
+            const lastPart = title.split('•').map(p => p.trim()).pop() || '';
+            if (lastPart && !lastPart.toLowerCase().includes('absoluto')) {
+                uniforme = lastPart;
+            }
+        }
+
+        return `Absoluto ${cleanFaixa}${gender ? ` ${gender}` : ''}${uniforme ? ` • ${uniforme}` : ''}`.trim();
     }
 
     // Para categorias regulares: Remover pontos, "Kimono" e o nome do peso

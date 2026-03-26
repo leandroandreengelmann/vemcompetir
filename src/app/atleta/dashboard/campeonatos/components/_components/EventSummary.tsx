@@ -4,12 +4,17 @@ import { ptBR } from 'date-fns/locale';
 
 interface EventSummaryProps {
     date: string;
+    endDate?: string | null;
     location?: string;
     city?: string;
 }
 
-export function EventSummary({ date, location, city }: EventSummaryProps) {
+export function EventSummary({ date, endDate, location, city }: EventSummaryProps) {
     const formattedDate = format(new Date(date), "dd 'de' MMMM, yyyy", { locale: ptBR });
+    const formattedEndDate = endDate ? format(new Date(endDate), "dd 'de' MMMM, yyyy", { locale: ptBR }) : null;
+    const dateDisplay = formattedEndDate && formattedEndDate !== formattedDate
+        ? `${formattedDate} – ${formattedEndDate}`
+        : formattedDate;
     const fullLocation = location || city || 'Local a definir';
 
     const isEndingSoon = React.useMemo(() => {
@@ -29,10 +34,10 @@ export function EventSummary({ date, location, city }: EventSummaryProps) {
                         Data do Evento
                     </p>
                     <p
-                        className="text-panel-sm font-medium leading-snug break-words truncate"
-                        title={formattedDate}
+                        className="text-panel-sm font-medium leading-snug break-words"
+                        title={dateDisplay}
                     >
-                        {formattedDate}
+                        {dateDisplay}
                     </p>
                 </div>
 

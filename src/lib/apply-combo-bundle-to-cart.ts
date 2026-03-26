@@ -41,7 +41,7 @@ export async function applyComboBundle({
         // 2. Buscar todos os itens no carrinho do atleta neste evento
         let cartQuery = supabaseAdmin
             .from('event_registrations')
-            .select('id, category_id, promo_type_applied, category_rows!category_id(uniforme, categoria_peso)')
+            .select('id, category_id, promo_type_applied, category_rows(uniforme, categoria_peso)')
             .eq('event_id', eventId)
             .eq('athlete_id', athleteId)
             .eq('status', 'carrinho');

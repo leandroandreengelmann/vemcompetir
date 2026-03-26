@@ -44,6 +44,7 @@ export function AthleteCartSheet() {
     const [pixModalOpen, setPixModalOpen] = useState(false);
     const [pixData, setPixData] = useState<any>(null);
     const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+    const [confirmComboRemoveId, setConfirmComboRemoveId] = useState<string | null>(null);
     const [termsEventId, setTermsEventId] = useState<string | null>(null);
     const router = useRouter();
 
@@ -290,6 +291,14 @@ export function AthleteCartSheet() {
                                                                                     </TooltipContent>
                                                                                 </Tooltip>
                                                                             </TooltipProvider>
+                                                                        ) : item.promoTypeApplied === 'combo_bundle' ? (
+                                                                            <Button pill variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                                                onClick={() => setConfirmComboRemoveId(item.id)}
+                                                                            >
+                                                                                <TrashIcon size={16} weight="duotone" />
+                                                                            </Button>
                                                                         ) : (
                                                                             <Button pill variant="ghost"
                                                                                 size="icon"
@@ -334,7 +343,7 @@ export function AthleteCartSheet() {
                                                 </div>
 
                                                 <Button pill size="lg"
-                                                    className="w-full font-bold shadow-md hover:shadow-lg transition-all h-12 text-panel-sm px-2"
+                                                    className="w-full font-bold shadow-md hover:shadow-lg transition-all h-12 text-panel-sm px-2 text-white"
                                                     onClick={() => handlePay(eventId)}
                                                     disabled={submitting || isLoading}
                                                 >
@@ -383,6 +392,34 @@ export function AthleteCartSheet() {
                 }}
                 pixData={pixData}
             />
+
+            <Dialog open={!!confirmComboRemoveId} onOpenChange={(open) => { if (!open) setConfirmComboRemoveId(null); }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <PackageIcon size={20} weight="duotone" className="text-indigo-500" />
+                            Perder o desconto combo?
+                        </DialogTitle>
+                        <DialogDescription className="text-panel-sm leading-relaxed pt-1">
+                            Ao remover esta categoria, o <strong>Combo 4x1 será desfeito</strong> e todas as outras categorias voltarão ao valor cheio de inscrição.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setConfirmComboRemoveId(null)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                if (confirmComboRemoveId) removeItem(confirmComboRemoveId);
+                                setConfirmComboRemoveId(null);
+                            }}
+                        >
+                            Sim, remover
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={!!confirmRemoveId} onOpenChange={(open) => { if (!open) setConfirmRemoveId(null); }}>
                 <DialogContent className="max-w-sm">
