@@ -51,6 +51,7 @@ async function buildOrganizerAsaasUpdate(
             method: 'POST',
             headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                name: 'VemCompetir',
                 url: `${appUrl}/api/webhooks/asaas`,
                 email: 'noreply@competir.com',
                 interrupted: false,
@@ -467,6 +468,46 @@ export async function deleteAthleteAction(athleteId: string, tenantId?: string) 
     return { success: true };
 }
 
+export async function getOrganizerApiKeyAction(entidadeId: string) {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: profileForTenant } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', entidadeId)
+        .single();
+
+    if (!profileForTenant?.tenant_id) return { error: 'Tenant não encontrado.' };
+
+    const { data: tenant } = await adminClient
+        .from('tenants')
+        .select('asaas_api_key_encrypted, asaas_api_key_iv')
+        .eq('id', profileForTenant.tenant_id)
+        .single();
+
+    if (!tenant?.asaas_api_key_encrypted || !tenant.asaas_api_key_iv) {
+        return { error: 'Nenhuma chave cadastrada.' };
+    }
+
+    try {
+        const apiKey = decrypt(tenant.asaas_api_key_encrypted, tenant.asaas_api_key_iv);
+        return { success: true, apiKey };
+    } catch {
+        return { error: 'Falha ao decifrar a chave.' };
+    }
+}
+
 export async function getAsaasWebhookDetailsAction(entidadeId: string) {
     const supabase = await createClient();
     const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -648,6 +689,7 @@ export async function reregisterOrganizerWebhooksAction() {
                 method: 'POST',
                 headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    name: 'VemCompetir',
                     url: `${appUrl}/api/webhooks/asaas`,
                     email: 'noreply@competir.com',
                     interrupted: false,
