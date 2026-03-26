@@ -50,6 +50,7 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
     const [isIncomplete, setIsIncomplete] = useState(false);
     const [incompleteReasons, setIncompleteReasons] = useState<string[]>([]);
     const [comboBundle, setComboBundle] = useState<{ bundle_total: number } | null>(null);
+    const [athleteProfile, setAthleteProfile] = useState<{ belt_color: string | null; weight: number | null; birth_date: string | null; sexo: string | null } | null>(null);
 
     const cartItems = useAthleteCart(state => state.items);
 
@@ -61,6 +62,7 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
             setIsIncomplete(data.isIncomplete);
             setIncompleteReasons(data.incompleteReasons || []);
             setComboBundle((data as any).comboBundle ?? null);
+            setAthleteProfile((data as any).profile ?? null);
         } catch (error) {
             console.error(error);
         } finally {
@@ -131,6 +133,40 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                                 De acordo com a sua cor de faixa, peso, idade e sexo, aqui estão as categorias às quais você está apto a participar. Você pode verificar e se inscrever em mais de uma delas.
                             </p>
                         </div>
+
+                        {athleteProfile && !isIncomplete && (
+                            <div className="flex flex-wrap gap-2">
+                                {athleteProfile.sexo && (
+                                    <div className="bg-muted px-3 py-1.5 rounded-lg text-panel-sm font-medium flex items-center gap-1.5">
+                                        <span className="text-muted-foreground opacity-60">Sexo:</span>
+                                        <span>{athleteProfile.sexo}</span>
+                                    </div>
+                                )}
+                                {athleteProfile.belt_color && (
+                                    <div className="bg-muted px-3 py-1.5 rounded-lg text-panel-sm font-medium flex items-center gap-1.5">
+                                        <span className="text-muted-foreground opacity-60">Faixa:</span>
+                                        <span>{athleteProfile.belt_color}</span>
+                                    </div>
+                                )}
+                                {athleteProfile.weight && (
+                                    <div className="bg-muted px-3 py-1.5 rounded-lg text-panel-sm font-medium flex items-center gap-1.5">
+                                        <span className="text-muted-foreground opacity-60">Peso:</span>
+                                        <span>{athleteProfile.weight}kg</span>
+                                    </div>
+                                )}
+                                {athleteProfile.birth_date && (() => {
+                                    const today = new Date();
+                                    const birth = new Date(athleteProfile.birth_date!);
+                                    const age = today.getFullYear() - birth.getFullYear() - (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+                                    return (
+                                        <div className="bg-muted px-3 py-1.5 rounded-lg text-panel-sm font-medium flex items-center gap-1.5">
+                                            <span className="text-muted-foreground opacity-60">Idade:</span>
+                                            <span>{age} anos</span>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
 
                         {comboBundle && (
                             <div className="flex items-start gap-2.5 rounded-2xl bg-indigo-50 border border-indigo-200 px-4 py-3 text-indigo-800">

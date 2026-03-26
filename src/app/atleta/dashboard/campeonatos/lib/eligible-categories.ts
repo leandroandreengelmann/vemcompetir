@@ -195,9 +195,9 @@ export async function parseAgeRangeFromText(
                 return { wildcard: true, parse_ok: true, source: source.name };
             }
 
-            // Se for contexto de jovens (Juvenil/Sub), o número isolado é o TETO (max)
+            // Se for contexto de jovens (Juvenil/Sub), o número isolado é a idade EXATA (min = max)
             if (isYouth && !isSenior) {
-                return { max: val, wildcard: false, parse_ok: true, source: source.name };
+                return { min: val, max: val, wildcard: false, parse_ok: true, source: source.name };
             }
 
             // Caso contrário (ou se for Adulto/Master), o número isolado é o PISO (min)
@@ -391,7 +391,13 @@ export async function getEligibleCategories(eventId: string) {
         }
     }
 
-    const categories = allCategories;
+    // Deduplicate by id (safety net for edge cases)
+    const seen = new Set<string>();
+    const categories = allCategories.filter(c => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+    });
     if (categories.length === 0) return { suggestions: [], isIncomplete, profile: athlete, incompleteReasons };
 
     // 4. Overrides

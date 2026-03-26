@@ -86,6 +86,7 @@ export function formatCategoryTitle(cat: CategoryLike) {
     let cleanTitle = title
         .replace(/•/g, ' ')
         .replace(/Kimono/gi, '')
+        .replace(/\s*\(\d+\)\s*/g, ' ')
         .replace(new RegExp(`\\b${pesoName}\\b`, 'gi'), '')
         .replace(/\s+/g, ' ')
         .trim();
