@@ -5,6 +5,84 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { encrypt, decrypt, getLast4, generateToken, hashToken } from '@/lib/crypto';
 
+// ---------------------------------------------------------------------------
+// Helper compartilhado: valida, criptografa e registra webhook da chave Asaas
+// Retorna os campos prontos para gravar no tenant, ou um erro descritivo.
+// ---------------------------------------------------------------------------
+async function buildOrganizerAsaasUpdate(
+    adminClient: ReturnType<typeof createAdminClient>,
+    apiKey: string,
+): Promise<
+    | { fields: Record<string, unknown>; webhookWarning?: string }
+    | { error: string }
+> {
+    const { data: asaasSettings } = await adminClient
+        .from('asaas_settings')
+        .select('environment')
+        .eq('is_enabled', true)
+        .single();
+
+    const baseUrl = asaasSettings?.environment === 'production'
+        ? 'https://api.asaas.com'
+        : 'https://api-sandbox.asaas.com';
+
+    // 1. Valida a chave antes de qualquer gravação
+    try {
+        const validateRes = await fetch(`${baseUrl}/v3/myAccount`, {
+            headers: { 'access_token': apiKey },
+        });
+        if (!validateRes.ok) {
+            return { error: 'Chave de API inválida. Verifique a chave e tente novamente.' };
+        }
+    } catch {
+        return { error: 'Não foi possível validar a chave. Verifique sua conexão e tente novamente.' };
+    }
+
+    // 2. Prepara campos criptografados
+    const { encrypted, iv } = encrypt(apiKey);
+    const webhookToken = generateToken();
+    const webhookTokenHash = hashToken(webhookToken);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+    // 3. Registra webhook na conta Asaas do organizador
+    let webhookWarning: string | undefined;
+    try {
+        const webhookRes = await fetch(`${baseUrl}/v3/webhooks`, {
+            method: 'POST',
+            headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: `${appUrl}/api/webhooks/asaas`,
+                email: 'noreply@competir.com',
+                interrupted: false,
+                enabled: true,
+                authToken: webhookToken,
+                events: [
+                    'PAYMENT_CONFIRMED',
+                    'PAYMENT_RECEIVED',
+                    'PAYMENT_OVERDUE',
+                    'PAYMENT_DELETED',
+                    'PAYMENT_REFUNDED',
+                ],
+            }),
+        });
+        if (!webhookRes.ok) {
+            webhookWarning = 'Chave salva, mas o webhook não foi registrado automaticamente. Configure manualmente no painel Asaas.';
+        }
+    } catch {
+        webhookWarning = 'Chave salva, mas não foi possível registrar o webhook. Configure manualmente no painel Asaas.';
+    }
+
+    return {
+        fields: {
+            asaas_api_key_encrypted: encrypted,
+            asaas_api_key_iv: iv,
+            asaas_api_key_last4: getLast4(apiKey),
+            asaas_webhook_token_hash: webhookTokenHash,
+        },
+        webhookWarning,
+    };
+}
+
 export async function createOrganizerAction(formData: FormData) {
     const supabase = await createClient();
     const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -223,47 +301,9 @@ export async function updateOrganizerAction(formData: FormData) {
         const tenantUpdate: Record<string, any> = { use_own_asaas_api };
 
         if (use_own_asaas_api && asaas_api_key && asaas_api_key.trim().length > 0) {
-            const { encrypted, iv } = encrypt(asaas_api_key.trim());
-            const last4 = getLast4(asaas_api_key.trim());
-            const webhookToken = generateToken();
-            const webhookTokenHash = hashToken(webhookToken);
-
-            // Buscar ambiente ativo para registrar webhook no endpoint correto
-            const { data: asaasSettings } = await adminClient
-                .from('asaas_settings')
-                .select('environment')
-                .eq('is_enabled', true)
-                .single();
-
-            const baseUrl = asaasSettings?.environment === 'production'
-                ? 'https://api.asaas.com'
-                : 'https://api-sandbox.asaas.com';
-
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-            await fetch(`${baseUrl}/v3/webhooks`, {
-                method: 'POST',
-                headers: { 'access_token': asaas_api_key.trim(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url: `${appUrl}/api/webhooks/asaas`,
-                    email: 'noreply@competir.com',
-                    interrupted: false,
-                    enabled: true,
-                    authToken: webhookToken,
-                    events: [
-                        'PAYMENT_CONFIRMED',
-                        'PAYMENT_RECEIVED',
-                        'PAYMENT_OVERDUE',
-                        'PAYMENT_DELETED',
-                        'PAYMENT_REFUNDED',
-                    ],
-                }),
-            });
-
-            tenantUpdate.asaas_api_key_encrypted = encrypted;
-            tenantUpdate.asaas_api_key_iv = iv;
-            tenantUpdate.asaas_api_key_last4 = last4;
-            tenantUpdate.asaas_webhook_token_hash = webhookTokenHash;
-
+            const result = await buildOrganizerAsaasUpdate(adminClient, asaas_api_key.trim());
+            if ('error' in result) return result;
+            Object.assign(tenantUpdate, result.fields);
         } else if (!use_own_asaas_api) {
             tenantUpdate.asaas_api_key_encrypted = null;
             tenantUpdate.asaas_api_key_iv = null;
@@ -533,46 +573,12 @@ export async function updateAsaasConfigAction(formData: FormData) {
     const tenantUpdate: Record<string, any> = { use_own_asaas_api };
 
     if (use_own_asaas_api && asaas_api_key && asaas_api_key.trim().length > 0) {
-        const { encrypted, iv } = encrypt(asaas_api_key.trim());
-        const last4 = getLast4(asaas_api_key.trim());
-        const webhookToken = generateToken();
-        const webhookTokenHash = hashToken(webhookToken);
-
-        const { data: asaasSettings } = await adminClient
-            .from('asaas_settings')
-            .select('environment')
-            .eq('is_enabled', true)
-            .single();
-
-        const baseUrl = asaasSettings?.environment === 'production'
-            ? 'https://api.asaas.com'
-            : 'https://api-sandbox.asaas.com';
-
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-        await fetch(`${baseUrl}/v3/webhooks`, {
-            method: 'POST',
-            headers: { 'access_token': asaas_api_key.trim(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                url: `${appUrl}/api/webhooks/asaas`,
-                email: 'noreply@competir.com',
-                interrupted: false,
-                enabled: true,
-                authToken: webhookToken,
-                events: [
-                    'PAYMENT_CONFIRMED',
-                    'PAYMENT_RECEIVED',
-                    'PAYMENT_OVERDUE',
-                    'PAYMENT_DELETED',
-                    'PAYMENT_REFUNDED',
-                ],
-            }),
-        });
-
-        tenantUpdate.asaas_api_key_encrypted = encrypted;
-        tenantUpdate.asaas_api_key_iv = iv;
-        tenantUpdate.asaas_api_key_last4 = last4;
-        tenantUpdate.asaas_webhook_token_hash = webhookTokenHash;
-
+        const result = await buildOrganizerAsaasUpdate(adminClient, asaas_api_key.trim());
+        if ('error' in result) return result;
+        Object.assign(tenantUpdate, result.fields);
+        await adminClient.from('tenants').update(tenantUpdate).eq('id', profileForTenant.tenant_id);
+        revalidatePath('/admin/dashboard/equipes-academias');
+        return { success: true, webhookWarning: result.webhookWarning };
     } else if (!use_own_asaas_api) {
         tenantUpdate.asaas_api_key_encrypted = null;
         tenantUpdate.asaas_api_key_iv = null;
@@ -584,4 +590,95 @@ export async function updateAsaasConfigAction(formData: FormData) {
 
     revalidatePath('/admin/dashboard/equipes-academias');
     return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Ação de uso único: re-registra os webhooks de todos os organizadores que
+// já possuem chave própria salva. Necessário após configurar NEXT_PUBLIC_APP_URL
+// em produção, para corrigir webhooks registrados com URL inválida.
+// ---------------------------------------------------------------------------
+export async function reregisterOrganizerWebhooksAction() {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: asaasSettings } = await adminClient
+        .from('asaas_settings')
+        .select('environment')
+        .eq('is_enabled', true)
+        .single();
+
+    const baseUrl = asaasSettings?.environment === 'production'
+        ? 'https://api.asaas.com'
+        : 'https://api-sandbox.asaas.com';
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+    const { data: tenants } = await adminClient
+        .from('tenants')
+        .select('id, asaas_api_key_encrypted, asaas_api_key_iv')
+        .eq('use_own_asaas_api', true)
+        .not('asaas_api_key_encrypted', 'is', null);
+
+    if (!tenants || tenants.length === 0) {
+        return { success: true, message: 'Nenhum organizador com chave própria encontrado.', results: [] };
+    }
+
+    const results: Array<{ tenant_id: string; ok: boolean; error?: string }> = [];
+
+    for (const tenant of tenants) {
+        try {
+            const apiKey = decrypt(tenant.asaas_api_key_encrypted!, tenant.asaas_api_key_iv!);
+            const webhookToken = generateToken();
+            const webhookTokenHash = hashToken(webhookToken);
+
+            const webhookRes = await fetch(`${baseUrl}/v3/webhooks`, {
+                method: 'POST',
+                headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: `${appUrl}/api/webhooks/asaas`,
+                    email: 'noreply@competir.com',
+                    interrupted: false,
+                    enabled: true,
+                    authToken: webhookToken,
+                    events: [
+                        'PAYMENT_CONFIRMED',
+                        'PAYMENT_RECEIVED',
+                        'PAYMENT_OVERDUE',
+                        'PAYMENT_DELETED',
+                        'PAYMENT_REFUNDED',
+                    ],
+                }),
+            });
+
+            if (webhookRes.ok) {
+                await adminClient
+                    .from('tenants')
+                    .update({ asaas_webhook_token_hash: webhookTokenHash })
+                    .eq('id', tenant.id);
+                results.push({ tenant_id: tenant.id, ok: true });
+            } else {
+                const errData = await webhookRes.json().catch(() => ({}));
+                results.push({ tenant_id: tenant.id, ok: false, error: JSON.stringify(errData) });
+            }
+        } catch (err) {
+            results.push({ tenant_id: tenant.id, ok: false, error: String(err) });
+        }
+    }
+
+    const successCount = results.filter(r => r.ok).length;
+    return {
+        success: true,
+        message: `${successCount}/${results.length} webhooks re-registrados com sucesso.`,
+        results,
+    };
 }
