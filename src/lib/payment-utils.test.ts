@@ -32,9 +32,9 @@ describe('calculateAsaasSplit', () => {
     })
 
     it('should not return negative fixedValue if fee exceeds total', () => {
-        // This is a safety check. In practice, the route should block this.
+        // When fee >= total the organizer receives nothing — no split needed
         const split = calculateAsaasSplit(50, 60, 'wallet-organizer')
-        expect(split![0].fixedValue).toBe(0)
+        expect(split).toBeUndefined()
     })
 
     it('should handle very small amounts', () => {

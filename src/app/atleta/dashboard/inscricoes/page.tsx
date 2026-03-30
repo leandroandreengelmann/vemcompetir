@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/auth-guards';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CaretLeftIcon, ClipboardTextIcon, MagnifyingGlassIcon, TrophyIcon, CalendarIcon, MapPinIcon } from '@phosphor-icons/react/dist/ssr';
+import { CaretLeftIcon, ClipboardTextIcon, MagnifyingGlassIcon, TrophyIcon, MapPinIcon } from '@phosphor-icons/react/dist/ssr';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,6 +12,7 @@ import { AthletePageHeader } from '../components/athlete-page-header';
 import { ReactivatePaymentButton } from './ReactivatePaymentButton';
 import { CancelRegistrationWrapper } from './CancelRegistrationWrapper';
 import { PassportButton } from './PassportButton';
+import { ChangeCategoryButton } from './ChangeCategoryButton';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -35,7 +36,7 @@ export default async function AthleteInscricoes() {
 id,
     status,
     created_at,
-    event: events(id, title, event_date, location, image_path),
+    event: events(id, title, event_date, location, image_path, category_change_deadline_days),
         category: category_rows(categoria_completa, faixa, categoria_peso)
         `)
         .eq('athlete_id', user.id)
@@ -49,6 +50,19 @@ id,
     const inscricoes = inscricoesData || [];
 
     const isProfileIncomplete = !profile?.weight || !profile?.belt_color || !profile?.gym_name;
+
+    const getBeltBadgeClass = (faixa?: string) => {
+        const lower = (faixa || '').toLowerCase();
+        if (lower.includes('azul')) return 'bg-blue-500 text-white border-blue-600';
+        if (lower.includes('roxa')) return 'bg-purple-500 text-white border-purple-600';
+        if (lower.includes('marrom')) return 'bg-amber-800 text-white border-amber-900';
+        if (lower.includes('preta')) return 'bg-slate-900 text-white border-slate-950';
+        if (lower.includes('cinza')) return 'bg-gray-400 text-white border-gray-500';
+        if (lower.includes('amarela')) return 'bg-yellow-400 text-yellow-950 border-yellow-500';
+        if (lower.includes('laranja')) return 'bg-orange-500 text-white border-orange-600';
+        if (lower.includes('verde')) return 'bg-green-600 text-white border-green-700';
+        return 'bg-white text-slate-800 border-slate-200'; // branca
+    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -143,60 +157,65 @@ id,
                                 <Link key={inscricao.id} href={`/atleta/dashboard/campeonatos/${inscricao.event?.id}`} className="block group">
                                     <Card className="overflow-hidden border-none shadow-premium hover:shadow-xl transition-all active:scale-[0.98] w-full bg-white flex flex-col sm:flex-row">
                                         {/* Imagem do Evento */}
-                                        <div className="sm:w-32 sm:h-auto h-32 bg-muted relative shrink-0">
+                                        <div className="sm:w-32 sm:h-auto sm:relative bg-muted shrink-0">
                                             {inscricao.event?.image_path ? (
                                                 <img
                                                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${inscricao.event.image_path}`}
                                                     alt={inscricao.event.title || 'Evento'}
-                                                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    className="w-full h-auto sm:absolute sm:inset-0 sm:h-full sm:object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
                                             ) : (
-                                                <div className="absolute inset-0 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 transition-colors">
+                                                <div className="h-24 sm:h-32 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 transition-colors">
                                                     <TrophyIcon size={32} weight="duotone" className="text-primary/20" />
                                                 </div>
                                             )}
                                         </div>
                                         {/* Detalhes da Inscrição */}
-                                        <div className="p-5 flex-1 flex flex-col justify-center">
-                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
-                                                <h3 className="font-bold text-panel-lg leading-tight line-clamp-2 text-brand-950 group-hover:text-primary transition-colors">
+                                        <div className="p-4 flex-1 flex flex-col justify-center gap-3">
+                                            {/* Título + badge de status */}
+                                            <div className="flex items-start justify-between gap-2">
+                                                <h3 className="font-bold text-panel-lg leading-tight text-brand-950 group-hover:text-primary transition-colors flex-1">
                                                     {inscricao.event?.title}
                                                 </h3>
-                                                <div className="shrink-0 flex items-center gap-2">
-                                                    {['aguardando_pagamento', 'pendente'].includes(inscricao.status) && (
-                                                        <>
-                                                            <ReactivatePaymentButton registrationId={inscricao.id} />
-                                                            <CancelRegistrationWrapper registrationId={inscricao.id} />
-                                                        </>
-                                                    )}
-                                                    {['pago', 'confirmado', 'isento'].includes(inscricao.status) && (
-                                                        <PassportButton registrationId={inscricao.id} />
-                                                    )}
-                                                    {getStatusBadge(inscricao.status)}
-                                                </div>
+                                                <div className="shrink-0">{getStatusBadge(inscricao.status)}</div>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-panel-sm text-muted-foreground mb-3">
-                                                {inscricao.event?.event_date && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <CalendarIcon size={16} weight="duotone" className="shrink-0 text-brand-950/40" />
-                                                        <span className="font-medium text-brand-950/70">{format(new Date(inscricao.event.event_date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
-                                                    </div>
-                                                )}
-                                                {inscricao.event?.city && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <MapPinIcon size={16} weight="duotone" className="shrink-0 text-brand-950/40" />
-                                                        <span className="font-medium text-brand-950/70">{inscricao.event.city}</span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            {/* Data */}
+                                            {inscricao.event?.event_date && (
+                                                <span className="text-panel-sm font-medium text-brand-950/70">
+                                                    {format(new Date(inscricao.event.event_date), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                                                </span>
+                                            )}
 
-                                            <div className="bg-[#f8f9fa] rounded-md p-3 border border-slate-100 mt-auto">
+                                            {/* Categoria */}
+                                            <div className="bg-[#f8f9fa] rounded-md p-3 border border-slate-100">
                                                 <span className="text-panel-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Categoria Inscrita</span>
-                                                <p className="text-panel-sm font-bold text-slate-700">
+                                                <p className="text-panel-sm font-bold text-slate-700 mb-2">
                                                     {inscricao.category?.categoria_completa || 'Categoria não informada no sistema'}
                                                 </p>
+                                                {inscricao.category?.faixa && (
+                                                    <span className={`inline-block text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${getBeltBadgeClass(inscricao.category.faixa)}`}>
+                                                        {inscricao.category.faixa}
+                                                    </span>
+                                                )}
                                             </div>
+
+                                            {/* Botões de ação */}
+                                            {['aguardando_pagamento', 'pendente'].includes(inscricao.status) && (
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <ReactivatePaymentButton registrationId={inscricao.id} />
+                                                    <CancelRegistrationWrapper registrationId={inscricao.id} />
+                                                </div>
+                                            )}
+                                            {['pago', 'confirmado', 'isento'].includes(inscricao.status) && (
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <PassportButton registrationId={inscricao.id} />
+                                                    <ChangeCategoryButton
+                                                        registrationId={inscricao.id}
+                                                        event={inscricao.event}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     </Card>
                                 </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RegistrationPassport } from './RegistrationPassport';
@@ -19,6 +19,18 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
     const [data, setData] = useState<PassportData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const passportRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1);
+
+    useEffect(() => {
+        const update = () => {
+            // Available width = viewport - dialog side padding (32px) - dialog internal padding (48px)
+            const available = Math.min(window.innerWidth - 32, 440) - 48;
+            setScale(Math.min(1, available / 390));
+        };
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
 
     const handleOpen = useCallback(async () => {
         setOpen(true);
@@ -99,12 +111,12 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
             </span>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="p-6 border-none outline-none ring-0 shadow-xl max-w-[440px] w-full bg-white rounded-2xl [&>button]:text-slate-500 [&>button]:hover:text-slate-800">
+                <DialogContent className="px-2 py-6 border-none outline-none ring-0 shadow-xl max-w-[440px] w-[calc(100%-16px)] bg-white rounded-2xl [&>button]:text-slate-500 [&>button]:hover:text-slate-800">
                     <DialogTitle className="sr-only">Passaporte de Inscrição</DialogTitle>
 
                     <div className="flex flex-col items-center gap-4">
                         {loading && (
-                            <div className="flex items-center justify-center w-[390px] h-[200px]">
+                            <div className="flex items-center justify-center h-[200px]">
                                 <CircleNotchIcon size={32} weight="bold" className="animate-spin text-slate-400" />
                             </div>
                         )}
@@ -116,11 +128,13 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
                         )}
 
                         {data && !loading && (
-                            <RegistrationPassport data={data} passportRef={passportRef as React.RefObject<HTMLDivElement>} />
+                            <div style={{ zoom: scale, width: 390 }}>
+                                <RegistrationPassport data={data} passportRef={passportRef as React.RefObject<HTMLDivElement>} />
+                            </div>
                         )}
 
                         {data && !loading && (
-                            <div className="flex gap-2 w-[390px]">
+                            <div className="flex gap-2 w-full">
                                 <Button
                                     pill
                                     variant="outline"
@@ -146,7 +160,7 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
                                     ) : (
                                         <ShareNetworkIcon size={16} weight="duotone" className="mr-2" />
                                     )}
-                                    WhatsApp
+                                    Compartilhar
                                 </Button>
                             </div>
                         )}

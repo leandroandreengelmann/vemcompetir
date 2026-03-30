@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { UserIcon, ArrowRightIcon, TrophyIcon, ClipboardTextIcon } from '@phosphor-icons/react/dist/ssr';
+import { UserIcon, ArrowRightIcon, TrophyIcon, ClipboardTextIcon, SealCheckIcon } from '@phosphor-icons/react/dist/ssr';
 import { AthleteProfileForm } from './profile-form';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
@@ -30,6 +30,17 @@ export default async function AthleteDashboard() {
     // Redirect if user is not an athlete (to prevent tenant overwrite)
     if (profile?.role === 'academia/equipe') {
         redirect('/academia-equipe/dashboard');
+    }
+
+    // Busca nome da academia se o atleta estiver vinculado
+    let verifiedByAcademy: string | null = null;
+    if (profile?.tenant_id) {
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('name')
+            .eq('id', profile.tenant_id)
+            .single();
+        verifiedByAcademy = tenant?.name ?? null;
     }
 
     const isProfileIncomplete = !profile?.weight || !profile?.birth_date || !profile?.belt_color || !profile?.gym_name;
@@ -77,6 +88,12 @@ export default async function AthleteDashboard() {
                     <span className={`mt-9 text-panel-sm font-semibold ${isWhiteBelt ? "text-brand-950" : "text-primary"}`}>
                         Olá, {profile?.full_name?.split(' ')[0] || 'Atleta'}
                     </span>
+                    {verifiedByAcademy && (
+                        <span className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 w-fit">
+                            <SealCheckIcon size={48} weight="fill" />
+                            {verifiedByAcademy}
+                        </span>
+                    )}
                 </div>
 
                 {/* Right: Belt Illustration */}
@@ -90,6 +107,14 @@ export default async function AthleteDashboard() {
                 For now, let's inject a server-side check. */}
             <InterestNotificationWrapper beltColor={beltColor} />
 
+
+            {/* Badge verificado — desktop (abaixo do header mobile que é hidden) */}
+            {verifiedByAcademy && (
+                <div className="hidden md:flex items-center gap-1.5 mb-2 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1 z-10">
+                    <SealCheckIcon size={48} weight="fill" />
+                    Verificado por {verifiedByAcademy}
+                </div>
+            )}
 
             {/* Main Content: Navigation Cards */}
             <div className="w-full max-w-lg md:max-w-xl grid grid-cols-2 gap-4 md:gap-5 p-4 md:p-0 z-10">

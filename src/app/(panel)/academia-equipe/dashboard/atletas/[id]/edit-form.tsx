@@ -64,6 +64,18 @@ interface EditAthleteFormProps {
     isGlobalAdmin?: boolean;
 }
 
+const BELTS = [
+    'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
+    'Laranja e branca', 'Laranja', 'Laranja e preta', 'Verde e branca', 'Verde', 'Verde e preta',
+    'Azul', 'Roxa', 'Marrom', 'Preta', 'Coral', 'Vermelha',
+];
+
+// Normaliza belt_color para o valor exato do array (case-insensitive)
+function normalizeBeltColor(value: string | null | undefined): string | undefined {
+    if (!value) return undefined;
+    return BELTS.find(b => b.toLowerCase() === value.toLowerCase()) ?? undefined;
+}
+
 export default function EditAthleteForm({ athlete, masters, suggestedMasters = [], linkedSuggestions = [], isGlobalAdmin = false }: EditAthleteFormProps) {
     const router = useRouter();
     const [isPendingUnlink, startUnlink] = useTransition();
@@ -418,7 +430,7 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                             <label htmlFor="belt_color" className="text-panel-sm font-semibold text-muted-foreground">
                                 Faixa
                             </label>
-                            <Select name="belt_color" defaultValue={athlete.belt_color || undefined} disabled={loading}>
+                            <Select name="belt_color" defaultValue={normalizeBeltColor(athlete.belt_color)} disabled={loading}>
                                 <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0">
                                     <SelectValue placeholder="Selecione a faixa" />
                                 </SelectTrigger>
@@ -446,6 +458,18 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                             </Select>
                         </div>
                     </div>
+
+                    {/* E-mail — somente leitura para atletas com conta própria */}
+                    {!athlete.email?.includes('@dummy.competir.com') && athlete.email && (
+                        <div className="space-y-2">
+                            <label className="text-panel-sm font-semibold text-muted-foreground">
+                                E-mail (conta própria)
+                            </label>
+                            <div className="flex h-12 items-center rounded-xl border bg-muted/40 px-3 text-panel-sm text-muted-foreground select-all">
+                                {athlete.email}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Telefone — só aparece se o atleta tem conta real */}
                     {!athlete.email?.includes('@dummy.competir.com') && (
@@ -605,15 +629,18 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
 
                     {/* Botões */}
                     <div className="flex flex-row items-center justify-center gap-4 pt-2">
-                        <Button pill type="button"
-                            variant="destructive"
-                            className="flex-1 h-12 font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
-                            disabled={loading}
-                            onClick={() => setDeleteDialogOpen(true)}
-                        >
-                            <TrashIcon size={20} weight="duotone" className="mr-2" />
-                            Excluir
-                        </Button>
+                        {/* Excluir — apenas para atletas sem conta própria ou admin geral */}
+                        {(athlete.email?.includes('@dummy.competir.com') || isGlobalAdmin) && (
+                            <Button pill type="button"
+                                variant="destructive"
+                                className="flex-1 h-12 font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+                                disabled={loading}
+                                onClick={() => setDeleteDialogOpen(true)}
+                            >
+                                <TrashIcon size={20} weight="duotone" className="mr-2" />
+                                Excluir
+                            </Button>
+                        )}
 
                         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                             <DialogContent showCloseButton={false}>

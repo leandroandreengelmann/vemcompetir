@@ -15,6 +15,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { PlusIcon, IdentificationCardIcon, ArrowsClockwiseIcon } from '@phosphor-icons/react';
+import { formatFullCategoryName } from '@/lib/category-utils';
 import Link from 'next/link';
 import { PassportModal } from '@/components/passport/PassportModal';
 
@@ -38,6 +39,8 @@ interface Registration {
         sexo: string;
         faixa: string;
         categoria_completa?: string;
+        peso_min_kg?: number;
+        peso_max_kg?: number;
     };
     registered_by_profile: {
         full_name: string;
@@ -178,8 +181,7 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-panel-sm font-bold text-foreground">{reg.category?.categoria_completa || reg.category?.divisao_idade}</span>
-                                                    {!reg.category?.categoria_completa && <span className="text-panel-sm text-muted-foreground font-medium">{reg.category?.categoria_peso}</span>}
+                                                    <span className="text-panel-sm font-bold text-foreground">{reg.category ? formatFullCategoryName(reg.category) : '—'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-panel-sm font-medium hidden md:table-cell">

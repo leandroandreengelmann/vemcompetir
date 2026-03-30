@@ -49,6 +49,7 @@ function makeMock(defaultResolve = { error: null, count: null as number | null, 
         order: vi.fn().mockReturnThis(),
         range: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         // eq and in are both chainable AND terminal — they return a thenable mock
         // so tests can choose to chain or await
         eq: vi.fn(),
@@ -112,7 +113,7 @@ describe('addToCartAction', () => {
     });
 
     it('should update price when item already exists in cart', async () => {
-        supabaseMock.single.mockResolvedValue({ data: { id: 'existing-reg', status: 'carrinho' }, error: null });
+        supabaseMock.maybeSingle.mockResolvedValue({ data: { id: 'existing-reg', status: 'carrinho' }, error: null });
         // The update().eq() chain resolves via thenable mock (default: { error: null })
         supabaseMock._setResolve({ error: null, count: null, data: null });
 
@@ -125,7 +126,7 @@ describe('addToCartAction', () => {
     });
 
     it('should return error when athlete has a non-cart active registration', async () => {
-        supabaseMock.single.mockResolvedValue({ data: { id: 'reg-1', status: 'pago' }, error: null });
+        supabaseMock.maybeSingle.mockResolvedValue({ data: { id: 'reg-1', status: 'pago' }, error: null });
 
         const result = await addToCartAction({
             eventId: 'event-1', athleteId: 'athlete-1', categoryId: 'cat-1', price: 100,
@@ -157,6 +158,7 @@ describe('removeFromCartAction', () => {
         vi.clearAllMocks();
         supabaseMock = makeMock();
         (createClient as any).mockResolvedValue(supabaseMock);
+        (createAdminClient as any).mockReturnValue(supabaseMock);
         (requireTenantScope as any).mockResolvedValue({ profile: defaultProfile, tenant_id: 'tenant-1' });
     });
 
@@ -323,6 +325,7 @@ describe('reactivateCartItemAction', () => {
         vi.clearAllMocks();
         supabaseMock = makeMock();
         (createClient as any).mockResolvedValue(supabaseMock);
+        (createAdminClient as any).mockReturnValue(supabaseMock);
         (requireTenantScope as any).mockResolvedValue({ profile: defaultProfile, tenant_id: 'tenant-1' });
     });
 

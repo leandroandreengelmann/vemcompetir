@@ -28,7 +28,6 @@ export default async function EventDetailPage(props: { params: Promise<{ id: str
                 title={event.title}
                 description="Confira os detalhes e realize sua inscrição."
                 backHref="/atleta/dashboard/campeonatos"
-                // @ts-expect-error - belt_color might be missing on profile type
                 beltColor={profile?.belt_color}
             />
             <AthleteEventDetail event={event} beltColor={(profile as any)?.belt_color} />

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { encrypt, decrypt, getLast4, generateToken, hashToken } from '@/lib/crypto';
+import { grantTokens } from '@/lib/token-utils';
 
 // ---------------------------------------------------------------------------
 // Helper compartilhado: valida, criptografa e registra webhook da chave Asaas
@@ -292,8 +293,10 @@ export async function updateOrganizerAction(formData: FormData) {
             });
     }
 
-    // 3. Atualizar configuração Asaas do tenant
+    // 3. Atualizar configuração Asaas e funcionalidades do tenant
     const use_own_asaas_api = formData.get('use_own_asaas_api') === 'true';
+    const can_register_academies = formData.get('can_register_academies') === 'true';
+    const token_management_enabled = formData.get('token_management_enabled') === 'true';
     const asaas_api_key = formData.get('asaas_api_key') as string | null;
 
     const { data: profileForTenant } = await adminClient
@@ -303,7 +306,7 @@ export async function updateOrganizerAction(formData: FormData) {
         .single();
 
     if (profileForTenant?.tenant_id) {
-        const tenantUpdate: Record<string, any> = { use_own_asaas_api };
+        const tenantUpdate: Record<string, any> = { use_own_asaas_api, can_register_academies, token_management_enabled };
 
         if (use_own_asaas_api && asaas_api_key && asaas_api_key.trim().length > 0) {
             const result = await buildOrganizerAsaasUpdate(adminClient, asaas_api_key.trim());
@@ -635,6 +638,49 @@ export async function updateAsaasConfigAction(formData: FormData) {
 
     revalidatePath('/admin/dashboard/equipes-academias');
     return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Concede tokens a uma academia (admin)
+// ---------------------------------------------------------------------------
+export async function grantTokensToAcademyAction(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const academyId = formData.get('academy_id') as string;
+    const amount = parseInt(formData.get('amount') as string, 10);
+    const notes = (formData.get('notes') as string)?.trim() || null;
+    const tokenPackageId = (formData.get('token_package_id') as string) || undefined;
+
+    if (!academyId || !amount || amount < 1) return { error: 'Quantidade inválida.' };
+
+    const adminClient = createAdminClient();
+    const { data: academyProfile } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', academyId)
+        .single();
+
+    if (!academyProfile?.tenant_id) return { error: 'Tenant não encontrado.' };
+
+    const result = await grantTokens(academyProfile.tenant_id, amount, {
+        tokenPackageId,
+        notes: notes ?? undefined,
+        createdBy: currentUser.id,
+    });
+
+    if (!result.success) return { error: result.error };
+
+    revalidatePath(`/admin/dashboard/equipes-academias/${academyId}`);
+    return { success: true, newBalance: result.newBalance };
 }
 
 // ---------------------------------------------------------------------------

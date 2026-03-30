@@ -36,7 +36,7 @@ export default async function EditAcademiaEquipePage(props: PageProps) {
     const { data: tenant } = profile?.tenant_id
         ? await adminClient
             .from('tenants')
-            .select('use_own_asaas_api, asaas_api_key_last4')
+            .select('use_own_asaas_api, asaas_api_key_last4, can_register_academies, token_management_enabled, inscription_token_balance')
             .eq('id', profile.tenant_id)
             .single()
         : { data: null };
@@ -53,6 +53,9 @@ export default async function EditAcademiaEquipePage(props: PageProps) {
         address_zip_code: organizer.user_metadata?.address_zip_code || '',
         use_own_asaas_api: tenant?.use_own_asaas_api ?? false,
         asaas_api_key_last4: tenant?.asaas_api_key_last4 ?? null,
+        can_register_academies: tenant?.can_register_academies ?? false,
+        token_management_enabled: tenant?.token_management_enabled ?? false,
+        inscription_token_balance: tenant?.inscription_token_balance ?? 0,
     };
 
     return <EditAcademiaEquipeForm initialData={initialData} />;

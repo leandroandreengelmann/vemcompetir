@@ -29,25 +29,28 @@ export default async function EditAthletePage(props: EditAthletePageProps) {
         redirect('/academia-equipe/dashboard');
     }
 
-    // Fetch athlete profile and verify tenant
-    let query = supabase
+    const adminClient = createAdminClient();
+
+    // Fetch athlete profile using adminClient to bypass RLS (covers both
+    // academy-created athletes and self-registered claimed athletes).
+    // Tenant isolation is enforced manually below.
+    let athleteQuery = adminClient
         .from('profiles')
         .select('*')
-        .eq('id', id);
+        .eq('id', id)
+        .eq('role', 'atleta');
 
-    // If it's an academy, enforce tenant isolation
     if (isConfiguredAcademy) {
-        query = query.eq('tenant_id', orgProfile.tenant_id);
+        athleteQuery = athleteQuery.eq('tenant_id', orgProfile.tenant_id);
     }
 
-    const { data: athleteProfile, error } = await query.single();
+    const { data: athleteProfile, error } = await athleteQuery.single();
 
     if (error || !athleteProfile) {
         notFound();
     }
 
     // Fetch athlete email
-    const adminClient = createAdminClient();
     const { data: { user: authUser }, error: authError } = await adminClient.auth.admin.getUserById(id);
 
     if (authError || !authUser) {

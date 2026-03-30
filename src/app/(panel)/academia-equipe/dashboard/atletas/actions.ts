@@ -409,6 +409,85 @@ export async function unlinkSuggestedMasterAction(masterId: string, suggestionNa
     return { success: true };
 }
 
+export async function unclaimAthleteAction(athleteId: string) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: athleteProfile } = await adminClient
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', athleteId)
+        .single();
+
+    if (!athleteProfile) return { error: 'Atleta não encontrado.' };
+    if (athleteProfile.role !== 'atleta') return { error: 'Perfil não é de atleta.' };
+    if (athleteProfile.tenant_id !== tenant_id) return { error: 'Este atleta não pertence à sua academia.' };
+
+    const { error } = await adminClient
+        .from('profiles')
+        .update({ tenant_id: null })
+        .eq('id', athleteId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/academia-equipe/dashboard/atletas');
+    return { success: true };
+}
+
+export async function claimAthleteAction(
+    athleteId: string,
+    masterId: string | null,
+    masterName: string | null,
+) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe') return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+
+    // Busca nome oficial da academia
+    const supabase = await createClient();
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('name')
+        .eq('id', tenant_id)
+        .single();
+
+    if (!tenant) return { error: 'Academia não encontrada.' };
+
+    // Garante que o atleta ainda está sem academia vinculada (tenant_id IS NULL)
+    const { data: athleteProfile } = await adminClient
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', athleteId)
+        .single();
+
+    if (!athleteProfile) return { error: 'Atleta não encontrado.' };
+    if (athleteProfile.role !== 'atleta') return { error: 'Perfil não é de atleta.' };
+    if (athleteProfile.tenant_id !== null) return { error: 'Este atleta já está vinculado a uma academia.' };
+
+    const updatePayload: Record<string, unknown> = {
+        tenant_id,
+        gym_name: tenant.name,
+    };
+
+    if (masterId !== undefined) updatePayload.master_id = masterId;
+    if (masterName !== undefined) updatePayload.master_name = masterName;
+
+    const { error } = await adminClient
+        .from('profiles')
+        .update(updatePayload)
+        .eq('id', athleteId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/academia-equipe/dashboard/atletas');
+    return { success: true };
+}
+
 export async function generateAthleteAccessAction(formData: FormData) {
     const { profile, tenant_id } = await requireTenantScope();
 

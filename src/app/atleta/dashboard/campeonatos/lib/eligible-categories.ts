@@ -195,9 +195,9 @@ export async function parseAgeRangeFromText(
                 return { wildcard: true, parse_ok: true, source: source.name };
             }
 
-            // Se for contexto de jovens (Juvenil/Sub), o número isolado é a idade EXATA (min = max)
+            // Se for contexto de jovens (Juvenil/Sub), o número isolado é o LIMITE MÁXIMO (≤ val)
             if (isYouth && !isSenior) {
-                return { min: val, max: val, wildcard: false, parse_ok: true, source: source.name };
+                return { max: val, wildcard: false, parse_ok: true, source: source.name };
             }
 
             // Caso contrário (ou se for Adulto/Master), o número isolado é o PISO (min)

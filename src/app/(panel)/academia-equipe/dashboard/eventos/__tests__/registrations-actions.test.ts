@@ -19,10 +19,16 @@ vi.mock('@/lib/registration-logic', () => ({
     isMasterLivre: vi.fn(),
     normalizeText: vi.fn(),
 }));
+vi.mock('@/lib/token-utils', () => ({
+    consumeTokens: vi.fn().mockResolvedValue({ success: true }),
+    refundTokens: vi.fn().mockResolvedValue({ success: true }),
+    getEventTenantId: vi.fn().mockResolvedValue(null),
+}));
 
 import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
+import { consumeTokens, getEventTenantId } from '@/lib/token-utils';
 
 // ---------------------------------------------------------------------------
 // Mock factory
@@ -32,20 +38,52 @@ import { revalidatePath } from 'next/cache';
  * Creates a Supabase-like chainable mock.
  *
  * Design goals:
- * - All builder methods (from, select, insert, update, delete, neq, order, range)
- *   return `this` for chaining.
+ * - All builder methods (from, insert, update, delete, neq, order, range) return `this`.
+ * - `select` returns a "selectThenable": awaitable directly (for batch insert pattern)
+ *   AND chainable with `.single()`, `.eq()`, `.in()` (for query chains).
  * - `single` is a vi.fn() with its own resolved value (overrideable per-test).
- * - `eq` and `in` return a "thenable" so chains can be `await`ed as terminals,
- *   while still supporting further chaining. The resolved value is controlled
- *   by calling `mock._setResolve(...)` before running the action.
+ * - `eq` and `in` return a "thenable" so chains can be `await`ed as terminals.
+ * - `_setResolve(v)` controls what `await eq()/in()` resolves to.
+ * - `_setSelectResolve(v)` controls what `await select()` resolves to (batch insert).
  */
 function makeMock(defaultResolve = { error: null as any, count: null as number | null, data: null as any }) {
     let resolveValue = { ...defaultResolve };
+    let selectResolveValue: { data: any; error: any } = { data: null, error: null };
 
-    const self: any = {
+    // Forward-declared so makeSelectThenable can reference self.single
+    let self: any;
+
+    const makeThenable = () => {
+        const t: any = Object.create(self);
+        t.then = (resolve: (v: any) => void) => Promise.resolve(resolveValue).then(resolve);
+        t.catch = (reject: (v: any) => void) => Promise.resolve(resolveValue).catch(reject);
+        return t;
+    };
+
+    const makeSelectThenable = () => {
+        const t: any = {
+            // Awaitable directly: resolves to selectResolveValue
+            then: (resolve: (v: any) => void) => Promise.resolve(selectResolveValue).then(resolve),
+            catch: (reject: (v: any) => void) => Promise.resolve(selectResolveValue).catch(reject),
+            // Chainable with .single() — shares the top-level single mock
+            single: null as any, // assigned after self is created
+            eq: vi.fn().mockImplementation(() => makeThenable()),
+            in: vi.fn().mockImplementation(() => makeThenable()),
+            order: vi.fn().mockReturnThis(),
+            range: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+        };
+        return t;
+    };
+
+    self = {
         from: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        select: vi.fn().mockImplementation(() => {
+            const t = makeSelectThenable();
+            t.single = self.single;  // share the single mock
+            return t;
+        }),
+        insert: vi.fn().mockReturnThis(),
         update: vi.fn().mockReturnThis(),
         upsert: vi.fn().mockReturnThis(),
         delete: vi.fn().mockReturnThis(),
@@ -56,14 +94,7 @@ function makeMock(defaultResolve = { error: null as any, count: null as number |
         eq: vi.fn(),
         in: vi.fn(),
         _setResolve(v: typeof defaultResolve) { resolveValue = v; },
-    };
-
-    // Make a thenable proxy so `await chain.eq(...)` resolves, yet `.eq().eq()` still chains.
-    const makeThenable = () => {
-        const t: any = Object.create(self);
-        t.then = (resolve: (v: any) => void) => Promise.resolve(resolveValue).then(resolve);
-        t.catch = (reject: (v: any) => void) => Promise.resolve(resolveValue).catch(reject);
-        return t;
+        _setSelectResolve(v: { data: any; error: any }) { selectResolveValue = v; },
     };
 
     self.eq.mockImplementation(() => makeThenable());
@@ -106,8 +137,9 @@ describe('registerAthleteAction', () => {
     });
 
     it('should register athlete successfully when no duplicate exists', async () => {
-        supabaseMock.single.mockResolvedValue({ data: null, error: null });
-        supabaseMock.insert.mockResolvedValue({ error: null });
+        supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })          // duplicate check
+            .mockResolvedValueOnce({ data: { id: 'reg-1' }, error: null }); // insert result
 
         const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
 
@@ -129,17 +161,44 @@ describe('registerAthleteAction', () => {
     });
 
     it('should return error when database insert fails', async () => {
-        supabaseMock.single.mockResolvedValue({ data: null, error: null });
-        supabaseMock.insert.mockResolvedValue({ error: { message: 'DB insert failed' } });
+        supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })  // duplicate check
+            .mockResolvedValueOnce({ data: null, error: { message: 'DB insert failed' } }); // insert
 
         const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
 
         expect(result).toEqual({ error: 'Erro ao realizar inscrição.' });
     });
 
+    it('should rollback registration and return error when consumeTokens fails', async () => {
+        supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })
+            .mockResolvedValueOnce({ data: { id: 'reg-1' }, error: null });
+        (getEventTenantId as any).mockResolvedValueOnce('event-tenant-1');
+        (consumeTokens as any).mockResolvedValueOnce({ success: false, error: 'Saldo insuficiente.' });
+        supabaseMock._setResolve({ error: null, count: null, data: null }); // rollback delete
+
+        const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
+
+        expect(result).toEqual({ error: 'Saldo insuficiente.' });
+    });
+
+    it('should succeed without token consumption when event has no tenant', async () => {
+        supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })
+            .mockResolvedValueOnce({ data: { id: 'reg-2' }, error: null });
+        (getEventTenantId as any).mockResolvedValueOnce(null);
+
+        const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
+
+        expect(result).toEqual({ success: true });
+        expect(consumeTokens).not.toHaveBeenCalled();
+    });
+
     it('should set registered_by to the current user profile id', async () => {
-        supabaseMock.single.mockResolvedValue({ data: null, error: null });
-        supabaseMock.insert.mockResolvedValue({ error: null });
+        supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })
+            .mockResolvedValueOnce({ data: { id: 'reg-3' }, error: null });
 
         await registerAthleteAction('event-1', 'athlete-2', 'cat-2');
 
@@ -269,14 +328,13 @@ describe('registerBatchAction', () => {
     it('should deduplicate same athleteId+categoryId pairs within the batch', async () => {
         // In the action: uniqueRegistrations will have length 1 after dedup
         supabaseMock.in.mockImplementation(() => {
-            // eq chain that returns existing registrations (empty — no DB conflicts)
             const t: any = {
                 then: (resolve: any) => Promise.resolve({ data: [], error: null }).then(resolve),
                 catch: (rej: any) => Promise.resolve({ data: [], error: null }).catch(rej),
             };
             return t;
         });
-        supabaseMock.insert.mockResolvedValue({ error: null });
+        supabaseMock._setSelectResolve({ data: [{ id: 'new-1' }], error: null });
 
         const result = await registerBatchAction('event-1', [
             { athleteId: 'a1', categoryId: 'c1' },
@@ -300,7 +358,7 @@ describe('registerBatchAction', () => {
             };
             return t;
         });
-        supabaseMock.insert.mockResolvedValue({ error: null });
+        supabaseMock._setSelectResolve({ data: [{ id: 'new-2' }], error: null });
 
         const result = await registerBatchAction('event-1', [
             { athleteId: 'a1', categoryId: 'c1' }, // already in DB
@@ -338,7 +396,7 @@ describe('registerBatchAction', () => {
             };
             return t;
         });
-        supabaseMock.insert.mockResolvedValue({ error: null });
+        supabaseMock._setSelectResolve({ data: [{ id: 'r1' }, { id: 'r2' }], error: null });
 
         await registerBatchAction('event-1', [
             { athleteId: 'a1', categoryId: 'c1' },
@@ -362,7 +420,7 @@ describe('registerBatchAction', () => {
             };
             return t;
         });
-        supabaseMock.insert.mockResolvedValue({ error: { message: 'Batch insert failed' } });
+        supabaseMock._setSelectResolve({ data: null, error: { message: 'Batch insert failed' } });
 
         const result = await registerBatchAction('event-1', [{ athleteId: 'a1', categoryId: 'c1' }]);
 

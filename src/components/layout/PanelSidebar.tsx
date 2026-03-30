@@ -22,6 +22,10 @@ import {
     ScalesIcon,
     ChartBarIcon,
     TicketIcon,
+    ArrowsClockwiseIcon,
+    TreeStructureIcon,
+    CurrencyCircleDollarIcon,
+    CoinsIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -34,9 +38,13 @@ import {
 
 interface PanelSidebarProps {
     role: string;
+    canRegisterAcademies?: boolean;
+    hasActiveCredits?: boolean;
+    hasOwnedEvents?: boolean;
+    hasTokenManagement?: boolean;
 }
 
-export function PanelSidebar({ role }: PanelSidebarProps) {
+export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCredits = false, hasOwnedEvents = false, hasTokenManagement = false }: PanelSidebarProps) {
     const pathname = usePathname();
     const [, setOpen] = useState(false);
     const { isCollapsed, toggleSidebar } = useSidebar();
@@ -95,7 +103,44 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             icon: TicketIcon,
             href: "/academia-equipe/dashboard/cortesias",
             roles: ['academia/equipe'],
+            isNew: true,
         },
+        {
+            label: "Checagem",
+            icon: ArrowsClockwiseIcon,
+            href: "/academia-equipe/dashboard/trocar-categoria",
+            roles: ['academia/equipe'],
+            isNew: true,
+        },
+        ...(canRegisterAcademies ? [{
+            label: "Academias Afiliadas",
+            icon: TreeStructureIcon,
+            href: "/academia-equipe/dashboard/academias-afiliadas",
+            roles: ['academia/equipe'] as string[],
+            isNew: true,
+            isExclusive: true,
+        }] : []),
+        ...(hasOwnedEvents ? [{
+            label: "Pacotes de Inscrição",
+            icon: CurrencyCircleDollarIcon,
+            href: "/academia-equipe/dashboard/pacotes-inscricoes",
+            roles: ['academia/equipe'] as string[],
+            isNew: true,
+        }] : []),
+        ...(hasActiveCredits ? [{
+            label: "Créditos",
+            icon: TicketIcon,
+            href: "/academia-equipe/dashboard/creditos-inscricoes",
+            roles: ['academia/equipe'] as string[],
+            isNew: true,
+            accent: true,
+        }] : []),
+        ...(hasTokenManagement ? [{
+            label: "Tokens",
+            icon: CoinsIcon,
+            href: "/academia-equipe/dashboard/tokens",
+            roles: ['academia/equipe'] as string[],
+        }] : []),
         {
             label: "Eventos Disponíveis",
             icon: CalendarIcon,
@@ -145,6 +190,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
             roles: ['admin_geral'],
         },
         {
+            label: "Tokens",
+            icon: CoinsIcon,
+            href: "/admin/dashboard/pacotes-tokens",
+            roles: ['admin_geral'],
+        },
+        {
             label: "Integrações",
             icon: PlugIcon,
             href: "/admin/dashboard/integracoes/asaas",
@@ -188,9 +239,12 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                                                 weight="duotone"
                                                 className={cn(
                                                     "transition-colors size-6",
-                                                    isActive ? "text-foreground" : "text-muted-foreground"
+                                                    isActive ? "text-foreground" : (route as any).accent ? "text-blue-500" : "text-muted-foreground"
                                                 )}
                                             />
+                                            {(route as any).isNew && (
+                                                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-500" />
+                                            )}
                                         </Link>
                                     </Button>
                                 </TooltipTrigger>
@@ -202,12 +256,14 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                     );
                 }
 
+                const hasBadges = (route as any).isNew || (route as any).isExclusive;
                 return (
                     <Button
                         key={route.href}
                         variant="ghost"
                         className={cn(
-                            "relative justify-start gap-3 h-11 px-3 transition-all duration-200",
+                            "relative justify-start gap-3 px-3 transition-all duration-200",
+                            hasBadges ? "h-auto py-2" : "h-11",
                             "hover:bg-muted/40 hover:text-foreground",
                             isActive && "bg-muted/60 rounded-xl font-semibold text-foreground",
                             isActive && "before:absolute before:left-0 before:w-[3px] before:h-6 before:rounded-full before:bg-foreground/70"
@@ -222,10 +278,30 @@ export function PanelSidebar({ role }: PanelSidebarProps) {
                                 weight="duotone"
                                 className={cn(
                                     "transition-colors size-6",
-                                    isActive ? "text-foreground" : "text-muted-foreground"
+                                    isActive ? "text-foreground" : (route as any).accent ? "text-blue-500" : "text-muted-foreground"
                                 )}
                             />
-                            {(!isCollapsed || isMobile) && <span>{route.label}</span>}
+                            {(!isCollapsed || isMobile) && (
+                                <span className="flex flex-col flex-1 min-w-0">
+                                    <span className={cn(!isActive && (route as any).accent && "text-blue-600 font-medium")}>
+                                        {route.label}
+                                    </span>
+                                    {((route as any).isNew || (route as any).isExclusive) && (
+                                        <span className="flex items-center gap-1 mt-0.5">
+                                            {(route as any).isNew && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500 text-white leading-none">
+                                                    Novo
+                                                </span>
+                                            )}
+                                            {(route as any).isExclusive && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-500 text-white leading-none">
+                                                    Exclusivo
+                                                </span>
+                                            )}
+                                        </span>
+                                    )}
+                                </span>
+                            )}
                         </Link>
                     </Button>
                 );

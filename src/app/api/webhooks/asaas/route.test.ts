@@ -14,6 +14,10 @@ vi.mock('@/lib/crypto', () => ({
     hashToken: vi.fn(), // Mock hashToken
 }));
 
+vi.mock('@/lib/audit-log', () => ({
+    auditLog: vi.fn(),
+}));
+
 // Mock global fetch
 global.fetch = vi.fn();
 
@@ -30,6 +34,8 @@ describe('Asaas Webhook Route', () => {
             single: vi.fn().mockImplementation(() => ({ data: null })),
             update: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
+            // .not() is used by the tenants query — resolves to empty list by default
+            not: vi.fn().mockResolvedValue({ data: [] }),
         };
 
         (createAdminClient as any).mockReturnValue(mockSupabase);

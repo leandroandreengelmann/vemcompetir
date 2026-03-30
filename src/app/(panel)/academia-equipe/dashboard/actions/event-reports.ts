@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { getEventFee } from '@/lib/fee-calculator';
+import { formatFullCategoryName } from '@/lib/category-utils';
 
 // 1. Inscrições
 export async function getEventReportInscricoes(eventId: string, filters: { status?: string; search?: string; categoryId?: string; page?: number }) {
@@ -23,7 +24,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
         .select(`
             *,
             athlete:profiles!athlete_id(full_name, cpf, belt_color, gym_name),
-            category:category_rows!category_id(categoria_completa),
+            category:category_rows!category_id(categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg),
             payment:payments!payment_id(is_no_split)
         `, { count: 'exact' })
         .eq('event_id', eventId);
@@ -46,12 +47,8 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
 
     const processedData = (data || [])
         .map((item: any) => {
-            let cat = item.category?.categoria_completa || 'Sem categoria';
-            if (cat.toLowerCase().includes('absoluto')) {
-                const parts = cat.split(' • ');
-                if (parts.length >= 4) {
-                    item.category.categoria_completa = parts.slice(-4).join(' • ');
-                }
+            if (item.category) {
+                item.category.categoria_completa = formatFullCategoryName(item.category);
             }
             return item;
         });

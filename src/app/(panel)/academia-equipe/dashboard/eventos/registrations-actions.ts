@@ -5,6 +5,7 @@ import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { checkEligibility, parseAgeRangeFromText, isMasterLivre, normalizeText } from '@/lib/registration-logic';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { consumeTokens, refundTokens, getEventTenantId } from '@/lib/token-utils';
 
 export async function registerAthleteAction(
     eventId: string,
@@ -30,7 +31,9 @@ export async function registerAthleteAction(
         return { error: 'Atleta já inscrito nesta categoria.' };
     }
 
-    const { error } = await supabase
+    const eventTenantId = await getEventTenantId(eventId);
+
+    const { data: registration, error } = await supabase
         .from('event_registrations')
         .insert({
             event_id: eventId,
@@ -39,11 +42,27 @@ export async function registerAthleteAction(
             registered_by: profile.id,
             tenant_id: tenant_id,
             status: 'pendente'
-        });
+        })
+        .select('id')
+        .single();
 
-    if (error) {
+    if (error || !registration) {
         console.error('Registration error:', error);
         return { error: 'Erro ao realizar inscrição.' };
+    }
+
+    // Consome 1 token do organizador do evento (se habilitado)
+    if (eventTenantId) {
+        const tokenResult = await consumeTokens(eventTenantId, 1, {
+            registrationId: registration.id,
+            eventId,
+            createdBy: profile.id,
+        });
+        if (!tokenResult.success && tokenResult.error) {
+            // Rollback: remove a inscrição recém-criada
+            await supabase.from('event_registrations').delete().eq('id', registration.id);
+            return { error: tokenResult.error };
+        }
     }
 
     revalidatePath(`/academia-equipe/dashboard/eventos/${eventId}/inscricoes`);
@@ -58,7 +77,7 @@ export async function removeRegistrationAction(registrationId: string) {
     // Verify ownership or permission
     const { data: registration } = await supabase
         .from('event_registrations')
-        .select('registered_by, event_id, tenant_id')
+        .select('registered_by, event_id, tenant_id, package_id')
         .eq('id', registrationId)
         .single();
 
@@ -91,6 +110,18 @@ export async function removeRegistrationAction(registrationId: string) {
 
     if (error) {
         return { error: 'Erro ao remover inscrição.' };
+    }
+
+    // Estorna token para o organizador do evento — exceto se veio de pacote de créditos
+    // (tokens de pacote foram consumidos no ato de criação do pacote, não por inscrição individual)
+    if (!registration.package_id) {
+        const eventTenantId = await getEventTenantId(registration.event_id);
+        if (eventTenantId) {
+            await refundTokens(eventTenantId, 1, {
+                eventId: registration.event_id,
+                notes: 'Estorno por cancelamento de inscrição',
+            });
+        }
     }
 
     revalidatePath(`/academia-equipe/dashboard/eventos/${registration.event_id}/inscricoes`);
@@ -134,7 +165,26 @@ export async function registerBatchAction(
         return { error: 'Todos os atletas selecionados já estão inscritos nas categorias indicadas.' };
     }
 
-    // 3. Prepare inserts
+    // 3. Verifica saldo de tokens do organizador antes de inserir
+    const eventTenantId = await getEventTenantId(eventId);
+    if (eventTenantId) {
+        const { createAdminClient: getAdmin } = await import('@/lib/supabase/admin');
+        const adminForCheck = getAdmin();
+        const { data: tenantData } = await adminForCheck
+            .from('tenants')
+            .select('inscription_token_balance, token_management_enabled')
+            .eq('id', eventTenantId)
+            .single();
+
+        if (tenantData?.token_management_enabled) {
+            const projectedBalance = (tenantData.inscription_token_balance ?? 0) - newRegistrations.length;
+            if (projectedBalance < -20) {
+                return { error: `Saldo de tokens insuficiente para ${newRegistrations.length} inscrições. Saldo atual: ${tenantData.inscription_token_balance}.` };
+            }
+        }
+    }
+
+    // 4. Prepare inserts
     const inserts = newRegistrations.map(reg => ({
         event_id: eventId,
         athlete_id: reg.athleteId,
@@ -144,13 +194,25 @@ export async function registerBatchAction(
         status: 'pendente'
     }));
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
         .from('event_registrations')
-        .insert(inserts);
+        .insert(inserts)
+        .select('id');
 
-    if (error) {
+    if (error || !inserted) {
         console.error('Batch registration error:', error);
         return { error: 'Erro ao realizar inscrições em lote.' };
+    }
+
+    // 5. Consome tokens em lote (uma transação por inscrição)
+    if (eventTenantId) {
+        for (const reg of inserted) {
+            await consumeTokens(eventTenantId, 1, {
+                registrationId: reg.id,
+                eventId,
+                createdBy: profile.id,
+            });
+        }
     }
 
     revalidatePath(`/academia-equipe/dashboard/eventos/${eventId}/inscricoes`);
@@ -499,6 +561,7 @@ export async function getEventRegistrationsAction(eventId: string) {
                 categoria_peso,
                 sexo,
                 faixa,
+                peso_min_kg,
                 peso_max_kg,
                 categoria_completa
             ),

@@ -176,7 +176,7 @@ describe('createAthleteAction', () => {
             password: 'Pass123!',
         }));
 
-        expect(result).toEqual({ error: 'Este e-mail já está cadastrado em nossa base de dados.' });
+        expect(result).toEqual({ error: 'Este atleta já possui um cadastro na plataforma.' });
     });
 
     it('should return the auth error message for other createUser failures', async () => {
@@ -191,7 +191,7 @@ describe('createAthleteAction', () => {
             password: 'Pass123!',
         }));
 
-        expect(result).toEqual({ error: 'Invalid email format' });
+        expect(result).toEqual({ error: 'Não foi possível cadastrar o atleta. Tente novamente.' });
     });
 
     it('should strip non-numeric characters from CPF before saving', async () => {

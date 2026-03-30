@@ -92,7 +92,7 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                     <Badge
                         variant="outline"
                         style={getBeltStyle(category.faixa)}
-                        className="text-panel-sm px-4 py-2 uppercase tracking-wider h-8 flex items-center shadow-sm rounded-md border-border/50"
+                        className="text-panel-sm px-3 py-1 uppercase tracking-wider flex items-center shadow-sm rounded-full border-border/50"
                     >
                         {category.faixa}
                     </Badge>
@@ -117,9 +117,9 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                 )}
 
                 {/* Rodapé: Preço e Ação */}
-                <div className="flex items-center justify-between mt-auto pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto pt-2 gap-2">
                     <div className="flex items-center gap-2">
-                        <span className="text-panel-sm font-semibold text-foreground whitespace-nowrap">
+                        <span className="text-panel-sm font-semibold text-foreground">
                             Valor da inscrição
                         </span>
                         <span className={`text-panel-md font-bold tabular-nums ${isWhiteBelt ? 'text-brand-950' : 'text-primary'}`}>
@@ -127,42 +127,40 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {onAddToCart && (
-                            <button
-                                type="button"
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-panel-sm font-bold transition-all ${isActuallyInCart
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 opacity-100 cursor-default'
-                                    : isWhiteBelt
-                                        ? 'bg-brand-950 text-white hover:bg-brand-800'
-                                        : 'bg-primary text-primary-foreground hover:opacity-90'
-                                    }`}
-                                disabled={adding || isActuallyInCart}
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (isActuallyInCart) return;
-                                    setAdding(true);
-                                    try {
-                                        await onAddToCart();
-                                        setAdded(true);
-                                    } catch {
-                                        // error handled by parent
-                                    } finally {
-                                        setAdding(false);
-                                    }
-                                }}
-                            >
-                                {adding ? (
-                                    <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
-                                ) : isActuallyInCart ? (
-                                    <CheckIcon size={14} weight="duotone" />
-                                ) : (
-                                    <ShoppingBagIcon size={14} weight="duotone" />
-                                )}
-                                {isActuallyInCart ? 'Na sacola' : 'Inscrever'}
-                            </button>
-                        )}
-                    </div>
+                    {onAddToCart && (
+                        <button
+                            type="button"
+                            className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-panel-sm font-bold transition-all w-full sm:w-auto ${isActuallyInCart
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 opacity-100 cursor-default'
+                                : isWhiteBelt
+                                    ? 'bg-brand-950 text-white hover:bg-brand-800'
+                                    : 'bg-primary text-primary-foreground hover:opacity-90'
+                                }`}
+                            disabled={adding || isActuallyInCart}
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                if (isActuallyInCart) return;
+                                setAdding(true);
+                                try {
+                                    await onAddToCart();
+                                    setAdded(true);
+                                } catch {
+                                    // error handled by parent
+                                } finally {
+                                    setAdding(false);
+                                }
+                            }}
+                        >
+                            {adding ? (
+                                <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                            ) : isActuallyInCart ? (
+                                <CheckIcon size={14} weight="duotone" />
+                            ) : (
+                                <ShoppingBagIcon size={14} weight="duotone" />
+                            )}
+                            {isActuallyInCart ? 'Na sacola' : 'Inscrever'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Athletes Preview Footer */}

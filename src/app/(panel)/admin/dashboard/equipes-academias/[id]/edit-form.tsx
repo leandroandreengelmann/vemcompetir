@@ -7,7 +7,7 @@ import { ArrowLeftIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { updateOrganizerAction } from '../actions';
+import { updateOrganizerAction, grantTokensToAcademyAction } from '../actions';
 
 interface EditAcademiaEquipeFormProps {
     initialData: {
@@ -23,6 +23,9 @@ interface EditAcademiaEquipeFormProps {
         address_zip_code?: string;
         use_own_asaas_api?: boolean;
         asaas_api_key_last4?: string | null;
+        can_register_academies?: boolean;
+        token_management_enabled?: boolean;
+        inscription_token_balance?: number;
     }
 }
 
@@ -31,6 +34,14 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [useOwnAsaas, setUseOwnAsaas] = useState(initialData.use_own_asaas_api ?? false);
+    const [canRegisterAcademies, setCanRegisterAcademies] = useState(initialData.can_register_academies ?? false);
+    const [tokenManagementEnabled, setTokenManagementEnabled] = useState(initialData.token_management_enabled ?? false);
+    const [grantAmount, setGrantAmount] = useState('');
+    const [grantNotes, setGrantNotes] = useState('');
+    const [grantLoading, setGrantLoading] = useState(false);
+    const [grantError, setGrantError] = useState<string | null>(null);
+    const [grantSuccess, setGrantSuccess] = useState<string | null>(null);
+    const [tokenBalance, setTokenBalance] = useState(initialData.inscription_token_balance ?? 0);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -54,6 +65,27 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
             setError(err.message || 'Ocorreu um erro ao atualizar os dados.');
             setLoading(false);
         }
+    };
+
+    const handleGrantTokens = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setGrantLoading(true);
+        setGrantError(null);
+        setGrantSuccess(null);
+        const fd = new FormData();
+        fd.append('academy_id', initialData.id);
+        fd.append('amount', grantAmount);
+        fd.append('notes', grantNotes);
+        const result = await grantTokensToAcademyAction(fd);
+        if ('error' in result && result.error) {
+            setGrantError(result.error);
+        } else if ('newBalance' in result) {
+            setTokenBalance(result.newBalance as number);
+            setGrantSuccess(`Tokens concedidos! Novo saldo: ${result.newBalance}`);
+            setGrantAmount('');
+            setGrantNotes('');
+        }
+        setGrantLoading(false);
     };
 
     return (
@@ -192,6 +224,103 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                                 />
                             </div>
                         </div>
+
+                        {/* Funcionalidades */}
+                        <div className="space-y-4">
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Funcionalidades</h2>
+
+                            <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                                <div className="space-y-0.5">
+                                    <p className="text-ui font-medium">Registrar academias afiliadas</p>
+                                    <p className="text-caption text-muted-foreground">
+                                        Permite que esta academia cadastre outras academias afiliadas
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={canRegisterAcademies}
+                                    onCheckedChange={setCanRegisterAcademies}
+                                    disabled={loading}
+                                />
+                                <input type="hidden" name="can_register_academies" value={canRegisterAcademies ? 'true' : 'false'} />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                                <div className="space-y-0.5">
+                                    <p className="text-ui font-medium">Gestão por token</p>
+                                    <p className="text-caption text-muted-foreground">
+                                        Ativa o sistema de tokens de inscrição para esta academia
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={tokenManagementEnabled}
+                                    onCheckedChange={setTokenManagementEnabled}
+                                    disabled={loading}
+                                />
+                                <input type="hidden" name="token_management_enabled" value={tokenManagementEnabled ? 'true' : 'false'} />
+                            </div>
+                        </div>
+
+                        {/* Tokens de Inscrição */}
+                        {tokenManagementEnabled && (
+                        <div className="space-y-4">
+                            <h2 className="text-panel-md font-semibold border-b pb-2">Tokens de Inscrição</h2>
+
+                            <div className="p-4 rounded-xl border bg-muted/30 flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <p className="text-ui font-medium">Saldo atual</p>
+                                    <p className="text-caption text-muted-foreground">Tokens disponíveis para inscrições</p>
+                                </div>
+                                <span className={`text-panel-lg font-black tabular-nums ${tokenBalance <= 20 ? 'text-destructive' : 'text-foreground'}`}>
+                                    {tokenBalance}
+                                </span>
+                            </div>
+
+                            <form onSubmit={handleGrantTokens} className="space-y-3">
+                                <p className="text-ui font-medium">Conceder tokens</p>
+                                {grantError && (
+                                    <p className="text-caption text-destructive">{grantError}</p>
+                                )}
+                                {grantSuccess && (
+                                    <p className="text-caption text-emerald-600">{grantSuccess}</p>
+                                )}
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        placeholder="Qtd de tokens"
+                                        value={grantAmount}
+                                        onChange={e => setGrantAmount(e.target.value)}
+                                        className="bg-background w-36"
+                                        required
+                                        disabled={grantLoading}
+                                    />
+                                    <Input
+                                        placeholder="Observação (opcional)"
+                                        value={grantNotes}
+                                        onChange={e => setGrantNotes(e.target.value)}
+                                        className="bg-background flex-1"
+                                        disabled={grantLoading}
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={grantLoading || !grantAmount}
+                                    className="w-full"
+                                >
+                                    {grantLoading ? (
+                                        <>
+                                            <SpinnerGapIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                                            Concedendo...
+                                        </>
+                                    ) : (
+                                        'Conceder tokens'
+                                    )}
+                                </Button>
+                            </form>
+                        </div>
+                        )}
 
                         {/* Integração Asaas */}
                         <div className="space-y-4">

@@ -40,7 +40,9 @@ export default async function TrocarCategoriaPage(props: Props) {
                 faixa,
                 divisao_idade,
                 categoria_peso,
-                sexo
+                sexo,
+                peso_min_kg,
+                peso_max_kg
             )
         `)
         .eq('id', registrationId)
@@ -102,8 +104,82 @@ export default async function TrocarCategoriaPage(props: Props) {
     const athlete = Array.isArray(reg.athlete) ? reg.athlete[0] : reg.athlete;
     const currentCategory = Array.isArray(reg.category) ? reg.category[0] : reg.category;
 
-    // Filter out current category
-    const availableCategories = (allCategories || []).filter((c: any) => c.id !== reg.category_id);
+    // Sort all categories by peso_min_kg (nulls last), then alphabetically
+    const sorted = [...(allCategories || [])].sort((a, b) => {
+        const aW = a.peso_min_kg ?? 99999;
+        const bW = b.peso_min_kg ?? 99999;
+        if (aW !== bW) return aW - bW;
+        return (a.categoria_completa || '').localeCompare(b.categoria_completa || '');
+    });
+
+    // Find position of current category in sorted list
+    const currentIndex = sorted.findIndex((c) => c.id === reg.category_id);
+
+    // Take 2 before and 2 after (excluding current)
+    const neighbors: typeof sorted = [];
+    for (let offset = -2; offset <= 2; offset++) {
+        if (offset === 0) continue;
+        const idx = currentIndex + offset;
+        if (idx >= 0 && idx < sorted.length) {
+            neighbors.push(sorted[idx]);
+        }
+    }
+
+    // Pass sorted neighbors AND their positions relative to current for visual display
+    const categoriesWithPosition = neighbors.map((cat) => {
+        const idx = sorted.findIndex((c) => c.id === cat.id);
+        return { ...cat, relativePosition: idx - currentIndex };
+    });
+
+    // Fetch confirmed athletes per category (current + neighbors)
+    const categoryIds = [reg.category_id, ...neighbors.map((c) => c.id)];
+    const { data: confirmedRegs } = await adminClient
+        .from('event_registrations')
+        .select(`
+            category_id,
+            athlete:profiles!athlete_id (full_name, belt_color)
+        `)
+        .eq('event_id', eventId)
+        .in('category_id', categoryIds)
+        .in('status', ['pago', 'paga', 'confirmado', 'isento']);
+
+    // Group athletes by category_id
+    const athletesByCategory: Record<string, { full_name: string; belt_color?: string }[]> = {};
+    for (const r of confirmedRegs || []) {
+        const catId = r.category_id;
+        const ath = Array.isArray(r.athlete) ? r.athlete[0] : r.athlete;
+        if (!ath) continue;
+        if (!athletesByCategory[catId]) athletesByCategory[catId] = [];
+        athletesByCategory[catId].push(ath as any);
+    }
+
+    // Fetch change history for this registration
+    const { data: rawHistory } = await adminClient
+        .from('registration_category_changes')
+        .select(`
+            id,
+            created_at,
+            old_category_id,
+            new_category_id,
+            changed_by,
+            old_category:category_rows!old_category_id (id, categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg),
+            new_category:category_rows!new_category_id (id, categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg),
+            changed_by_profile:profiles!changed_by (full_name)
+        `)
+        .eq('registration_id', registrationId)
+        .order('created_at', { ascending: false });
+
+    const history = (rawHistory || []).map((h: any) => ({
+        id: h.id,
+        created_at: h.created_at,
+        old_category_id: h.old_category_id,
+        new_category_id: h.new_category_id,
+        old_category: Array.isArray(h.old_category) ? h.old_category[0] : h.old_category,
+        new_category: Array.isArray(h.new_category) ? h.new_category[0] : h.new_category,
+        changed_by_name: Array.isArray(h.changed_by_profile)
+            ? h.changed_by_profile[0]?.full_name
+            : h.changed_by_profile?.full_name,
+    }));
 
     return (
         <ChangeCategoryForm
@@ -112,8 +188,10 @@ export default async function TrocarCategoriaPage(props: Props) {
             eventTitle={event.title}
             athleteName={athlete?.full_name || ''}
             currentCategory={currentCategory}
-            availableCategories={availableCategories}
+            availableCategories={categoriesWithPosition}
             deadlineDate={deadlineDate.toLocaleDateString('pt-BR')}
+            athletesByCategory={athletesByCategory}
+            history={history}
         />
     );
 }
