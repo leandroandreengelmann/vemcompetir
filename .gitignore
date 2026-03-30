@@ -58,3 +58,7 @@ image.png
 # Arquivos do Assistente IA
 # replace_dom.py
 # etc...
+
+# Supabase
+supabase/migrations/
+supabase/.temp/
