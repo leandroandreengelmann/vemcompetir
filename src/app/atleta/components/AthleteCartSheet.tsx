@@ -167,9 +167,20 @@ export function AthleteCartSheet() {
                                                 Aguardando Pagamento ({pendingItems.length})
                                             </h3>
                                         </div>
-                                        <div className="bg-muted/50 border border-border/60 rounded-lg p-3 text-panel-sm font-semibold text-foreground leading-relaxed shadow-sm">
-                                            Clique no botão <strong>Refazer</strong> para devolver a inscrição à cesta e tentar realizar o pagamento novamente.
+                                        <div className="flex items-start gap-2.5 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2.5 text-blue-800">
+                                            <InfoIcon size={16} weight="duotone" className="shrink-0 mt-0.5 text-blue-500" />
+                                            <p className="text-panel-sm font-semibold leading-relaxed">
+                                                Clique em <strong>Refazer</strong> para devolver a inscrição à cesta e tentar o pagamento novamente.
+                                            </p>
                                         </div>
+                                        {pendingItems.some(i => i.promoTypeApplied === 'combo_bundle') && (
+                                            <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-amber-800">
+                                                <InfoIcon size={16} weight="duotone" className="shrink-0 mt-0.5 text-amber-500" />
+                                                <p className="text-panel-sm font-semibold leading-relaxed">
+                                                    Você tem categorias do <strong>Combo 4x1</strong> aguardando. Se reativar apenas algumas delas, o desconto será cancelado e todas voltarão ao valor cheio.
+                                                </p>
+                                            </div>
+                                        )}
                                         {pendingItems.some(i => i.promoSourceId) && (
                                             <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-amber-800">
                                                 <InfoIcon size={16} weight="duotone" className="shrink-0 mt-0.5 text-amber-500" />

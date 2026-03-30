@@ -389,10 +389,10 @@ export async function reactivateAthleteCartItemAction(registrationId: string) {
 
     const supabaseAdmin = createAdminClient();
 
-    // Fetch the registration to check if it's a promo companion
+    // Fetch the registration to check if it's a promo companion and get event_id
     const { data: reg } = await supabaseAdmin
         .from('event_registrations')
-        .select('promo_source_id')
+        .select('promo_source_id, event_id')
         .eq('id', registrationId)
         .eq('athlete_id', user.id)
         .single();
@@ -429,6 +429,16 @@ export async function reactivateAthleteCartItemAction(registrationId: string) {
         .eq('promo_source_id', registrationId)
         .eq('athlete_id', user.id)
         .eq('status', 'aguardando_pagamento');
+
+    // PROMO: combo_bundle — re-avalia após reativação para corrigir preços se combo incompleto
+    if (reg?.event_id) {
+        await applyComboBundle({
+            athleteId: user.id,
+            eventId: reg.event_id,
+            registeredById: user.id,
+            tenantId: null,
+        });
+    }
 
     return { success: true };
 }
