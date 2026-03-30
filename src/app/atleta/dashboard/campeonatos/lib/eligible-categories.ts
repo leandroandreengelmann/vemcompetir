@@ -95,6 +95,17 @@ export async function parseBelts(input: string | null): Promise<string[]> {
     const text = await normalizeText(input);
     if (!text) return [];
 
+    // Categorias combinadas: eventos pequenos agrupam faixas kids em uma única categoria.
+    // Ex: "Cinza Amarela" = atletas com faixa cinza OU amarela (qualquer variante) podem entrar.
+    const COMBINED_BELT_CATEGORIES: Record<string, string[]> = {
+        "cinza amarela": ["cinza", "cinza e branca", "cinza e preta"],
+        "laranja verde": ["laranja", "laranja e branca", "laranja e preta", "verde", "verde e branca", "verde e preta"],
+        "cinza amarela laranja": ["cinza", "cinza e branca", "cinza e preta", "amarela", "amarela e branca", "amarela e preta", "laranja", "laranja e branca", "laranja e preta"],
+    };
+    if (COMBINED_BELT_CATEGORIES[text]) {
+        return COMBINED_BELT_CATEGORIES[text];
+    }
+
     // Lista de faixas compostas (BJJ Kids) que não devem ser quebradas pelo "e"
     const compositeBelts = [
         "cinza e branca",
@@ -112,7 +123,6 @@ export async function parseBelts(input: string | null): Promise<string[]> {
     let protectedText = text;
     compositeBelts.forEach((belt, index) => {
         const placeholder = `__BELT_${index}__`;
-        // Usamos regex global para garantir que todas as ocorrências sejam protegidas
         protectedText = protectedText.split(belt).join(placeholder);
     });
 

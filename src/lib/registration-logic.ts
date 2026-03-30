@@ -69,6 +69,16 @@ export async function parseBelts(input: string | null): Promise<string[]> {
     const text = await normalizeText(input);
     if (!text) return [];
 
+    // Categorias combinadas: eventos pequenos agrupam faixas kids em uma única categoria.
+    const COMBINED_BELT_CATEGORIES: Record<string, string[]> = {
+        "cinza amarela": ["cinza", "cinza e branca", "cinza e preta"],
+        "laranja verde": ["laranja", "laranja e branca", "laranja e preta", "verde", "verde e branca", "verde e preta"],
+        "cinza amarela laranja": ["cinza", "cinza e branca", "cinza e preta", "amarela", "amarela e branca", "amarela e preta", "laranja", "laranja e branca", "laranja e preta"],
+    };
+    if (COMBINED_BELT_CATEGORIES[text]) {
+        return COMBINED_BELT_CATEGORIES[text];
+    }
+
     const compositeBelts = [
         "cinza e branca", "cinza e preta",
         "amarela e branca", "amarela e preta",
