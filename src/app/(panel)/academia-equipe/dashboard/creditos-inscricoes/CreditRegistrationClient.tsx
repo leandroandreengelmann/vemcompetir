@@ -269,7 +269,7 @@ export default function CreditRegistrationClient({ packages, athletes }: Props) 
                         </DialogTitle>
                         <DialogDescription>
                             {selectedPkg?.event?.title}
-                            {(selectedPkg?.excluded_divisions?.length ?? 0) > 0 && (
+                            {selectedPkg?.excluded_divisions && selectedPkg.excluded_divisions.length > 0 && (
                                 <> — divisões excluídas: <strong>{selectedPkg.excluded_divisions.join(', ')}</strong></>
                             )}
                         </DialogDescription>
