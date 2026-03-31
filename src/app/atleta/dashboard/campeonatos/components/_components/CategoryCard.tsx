@@ -32,9 +32,11 @@ interface CategoryCardProps {
     showMatchDetails?: boolean;
     isWhiteBelt?: boolean;
     isInCart?: boolean;
+    addToCartLabel?: string;
+    inCartLabel?: string;
 }
 
-export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatchDetails = false, isWhiteBelt = false, isInCart = false }: CategoryCardProps) {
+export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatchDetails = false, isWhiteBelt = false, isInCart = false, addToCartLabel = 'Inscrever', inCartLabel = 'Na sacola' }: CategoryCardProps) {
     const [adding, setAdding] = useState(false);
     const [added, setAdded] = useState(false);
 
@@ -158,7 +160,7 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                             ) : (
                                 <ShoppingBagIcon size={14} weight="duotone" />
                             )}
-                            {isActuallyInCart ? 'Na sacola' : 'Inscrever'}
+                            {isActuallyInCart ? inCartLabel : addToCartLabel}
                         </button>
                     )}
                 </div>

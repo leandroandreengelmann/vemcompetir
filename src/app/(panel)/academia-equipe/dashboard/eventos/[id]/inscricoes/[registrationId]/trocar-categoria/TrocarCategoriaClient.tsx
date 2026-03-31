@@ -1,20 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CategorySearchPanel } from '@/app/atleta/dashboard/campeonatos/components/_components/CategorySearchPanel';
-import { AthletePageHeader } from '@/app/atleta/dashboard/components/athlete-page-header';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-    ArrowsClockwiseIcon, SpinnerGapIcon, CheckCircleIcon,
+    ArrowsClockwiseIcon, CircleNotchIcon, SpinnerGapIcon, CheckCircleIcon,
     ClockCounterClockwiseIcon,
 } from '@phosphor-icons/react';
-import { athleteChangeCategoryAction } from '../../athlete-category-actions';
-import { formatFullCategoryName, formatCategoryTitle } from '@/lib/category-utils';
+import { changeCategoryAction, getEligibleCategoriesAction } from '../../../../registrations-actions';
+import { formatCategoryTitle } from '@/lib/category-utils';
 import { toast } from 'sonner';
 
 interface Category {
@@ -40,13 +38,9 @@ interface HistoryEntry {
 interface Props {
     registrationId: string;
     eventId: string;
-    eventTitle: string;
-    athleteName: string;
-    beltColor: string;
-    athleteAge?: number | null;
+    athleteId: string;
     currentCategory: Category;
-    allCategories: Category[];
-    deadlineDate: string;
+    athleteAge?: number | null;
     history: HistoryEntry[];
 }
 
@@ -55,32 +49,42 @@ function catLabel(cat: Category | null) {
     return formatCategoryTitle(cat) || cat.divisao_idade || '—';
 }
 
-export default function AthleteChangeCategoryForm({
+export default function TrocarCategoriaClient({
     registrationId,
     eventId,
-    eventTitle,
-    athleteName,
-    beltColor,
-    athleteAge,
+    athleteId,
     currentCategory,
-    allCategories,
-    deadlineDate,
+    athleteAge,
     history,
 }: Props) {
     const router = useRouter();
 
+    const [categories, setCategories] = useState<any[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
     const [selected, setSelected] = useState<Category | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
-    const otherCategories = allCategories.filter(c => c.id !== currentCategory.id);
+    useEffect(() => {
+        getEligibleCategoriesAction(eventId, athleteId)
+            .then(data => {
+                if ('error' in data && data.error) {
+                    toast.error(data.error);
+                } else {
+                    const cats = (data.all || []).filter((c: any) => c.id !== currentCategory.id);
+                    setCategories(cats);
+                }
+            })
+            .catch(() => toast.error('Erro ao carregar categorias.'))
+            .finally(() => setLoadingCategories(false));
+    }, [eventId, athleteId, currentCategory.id]);
 
     async function handleConfirm() {
         if (!selected) return;
         setSaving(true);
-        const result = await athleteChangeCategoryAction(registrationId, selected.id);
+        const result = await changeCategoryAction(registrationId, selected.id);
         setSaving(false);
         setConfirmOpen(false);
 
@@ -91,75 +95,44 @@ export default function AthleteChangeCategoryForm({
 
         setShowSuccess(true);
         setTimeout(() => {
-            router.push('/atleta/dashboard/inscricoes');
+            router.push('/academia-equipe/dashboard/trocar-categoria');
         }, 2000);
     }
 
     return (
-        <div className="min-h-screen bg-[#FAFAFA] p-4 md:p-8 pb-8">
-            <div className="max-w-2xl mx-auto flex flex-col gap-6">
+        <div className="space-y-4">
 
-                <AthletePageHeader
-                    title="Trocar Categoria"
-                    description={eventTitle}
-                    backHref="/atleta/dashboard/inscricoes"
-                    beltColor={beltColor}
-                />
-
-                {/* Athlete info + deadline */}
-                <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 via-primary/4 to-transparent p-5">
-                    <div className="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                    <div className="space-y-3 relative">
-                        <span className="text-panel-sm font-semibold uppercase tracking-widest text-primary/70">Atleta</span>
-                        <p className="text-panel-md font-black text-foreground">{athleteName}</p>
-                        <div className="flex items-center justify-between pt-1 border-t border-primary/10">
-                            <span className="text-panel-sm text-muted-foreground font-medium">Prazo para troca</span>
-                            <Badge variant="outline" className="font-semibold border-primary/20 text-primary bg-primary/5">
-                                {deadlineDate}
-                            </Badge>
-                        </div>
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <ArrowsClockwiseIcon size={20} weight="duotone" className="text-muted-foreground" />
+                    <div>
+                        <p className="text-base font-bold">Trocar categoria</p>
+                        <p className="text-xs text-muted-foreground">Busque a categoria para a qual deseja fazer a troca</p>
                     </div>
                 </div>
+                {history.length > 0 && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full gap-1.5 text-xs font-semibold shrink-0"
+                        onClick={() => setHistoryOpen(true)}
+                    >
+                        <ClockCounterClockwiseIcon size={14} weight="duotone" />
+                        Histórico ({history.length})
+                    </Button>
+                )}
+            </div>
 
-                {/* Current category */}
-                <div>
-                    <p className="text-panel-sm font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">Categoria atual</p>
-                    <div className="flex items-center gap-3 px-4 py-3.5 bg-primary/5 border-2 border-primary rounded-2xl">
-                        <p className="text-ui font-black text-foreground flex-1 leading-snug">
-                            {formatFullCategoryName(currentCategory)}
-                        </p>
-                        <Badge className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border-primary/20 shrink-0">
-                            Atual
-                        </Badge>
-                    </div>
+            {loadingCategories ? (
+                <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+                    <CircleNotchIcon size={36} weight="bold" className="text-primary/20 animate-spin mb-3" />
+                    <p className="text-sm text-muted-foreground italic">Carregando categorias...</p>
                 </div>
-
-                {/* Search header + history button */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <ArrowsClockwiseIcon size={20} weight="duotone" className="text-muted-foreground" />
-                        <div>
-                            <p className="text-panel-md font-bold">Trocar categoria</p>
-                            <p className="text-panel-sm text-muted-foreground">Busque a categoria para a qual deseja fazer a troca</p>
-                        </div>
-                    </div>
-                    {history.length > 0 && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-full gap-1.5 text-xs font-semibold shrink-0"
-                            onClick={() => setHistoryOpen(true)}
-                        >
-                            <ClockCounterClockwiseIcon size={14} weight="duotone" />
-                            Histórico ({history.length})
-                        </Button>
-                    )}
-                </div>
-
-                {/* Category search */}
+            ) : (
                 <CategorySearchPanel
                     eventId={eventId}
-                    categories={otherCategories as any}
+                    categories={categories}
                     isWhiteBelt={false}
                     athleteSex={null}
                     athleteAge={null}
@@ -171,7 +144,7 @@ export default function AthleteChangeCategoryForm({
                         : { requireFilter: true }
                     )}
                     onAddToCart={async (categoryId) => {
-                        const cat = otherCategories.find(c => c.id === categoryId);
+                        const cat = categories.find((c: any) => c.id === categoryId);
                         if (cat) {
                             setSelected(cat);
                             setConfirmOpen(true);
@@ -179,12 +152,11 @@ export default function AthleteChangeCategoryForm({
                     }}
                     cartCategoryIds={new Set(selected ? [selected.id] : [])}
                 />
-
-            </div>
+            )}
 
             {/* Confirm modal */}
             <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) { setConfirmOpen(false); setSelected(null); } }}>
-                <DialogContent className="max-w-sm mx-4">
+                <DialogContent className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle className="text-base font-bold">Confirmar troca de categoria?</DialogTitle>
                     </DialogHeader>
@@ -202,8 +174,8 @@ export default function AthleteChangeCategoryForm({
                         <Button variant="outline" className="rounded-full" onClick={() => { setConfirmOpen(false); setSelected(null); }} disabled={saving}>
                             Cancelar
                         </Button>
-                        <Button className="rounded-full bg-brand-950 hover:bg-brand-900 text-white font-bold" disabled={saving} onClick={handleConfirm}>
-                            {saving ? <><SpinnerGapIcon size={16} weight="bold" className="mr-2 animate-spin" />Salvando...</> : 'Confirmar'}
+                        <Button className="rounded-full bg-brand-800 hover:bg-brand-900 text-white font-bold" disabled={saving} onClick={handleConfirm}>
+                            {saving ? <><SpinnerGapIcon size={16} className="mr-2 animate-spin" />Salvando...</> : 'Confirmar'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -211,7 +183,7 @@ export default function AthleteChangeCategoryForm({
 
             {/* History modal */}
             <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-                <DialogContent className="max-w-sm mx-4">
+                <DialogContent className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle className="text-base font-bold flex items-center gap-2">
                             <ClockCounterClockwiseIcon size={18} weight="duotone" className="text-primary" />
@@ -237,10 +209,10 @@ export default function AthleteChangeCategoryForm({
             </Dialog>
 
             {showSuccess && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100%-2rem)] max-w-sm">
-                    <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
-                        <CheckCircleIcon size={22} weight="fill" className="shrink-0" />
-                        <span className="text-panel-sm font-bold">Categoria alterada com sucesso!</span>
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
+                        <CheckCircleIcon size={22} weight="fill" />
+                        <span className="text-sm font-semibold">Categoria alterada com sucesso!</span>
                     </div>
                 </div>
             )}

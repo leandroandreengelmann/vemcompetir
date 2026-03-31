@@ -154,8 +154,8 @@ id,
                         <h2 className="text-panel-sm font-bold text-brand-950 mb-2">Histórico de Inscrições</h2>
                         <div className="grid gap-4 w-full">
                             {inscricoes.map((inscricao: any) => (
-                                <Link key={inscricao.id} href={`/atleta/dashboard/campeonatos/${inscricao.event?.id}`} className="block group">
-                                    <Card className="overflow-hidden border-none shadow-premium hover:shadow-xl transition-all active:scale-[0.98] w-full bg-white flex flex-col sm:flex-row">
+                                <div key={inscricao.id}>
+                                    <Card className="overflow-hidden border-none shadow-premium w-full bg-white flex flex-col sm:flex-row">
                                         {/* Imagem do Evento */}
                                         <div className="sm:w-32 sm:h-auto sm:relative bg-muted shrink-0">
                                             {inscricao.event?.image_path ? (
@@ -218,7 +218,7 @@ id,
                                             )}
                                         </div>
                                     </Card>
-                                </Link>
+                                </div>
                             ))}
                         </div>
                     </div>

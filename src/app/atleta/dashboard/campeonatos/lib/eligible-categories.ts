@@ -503,7 +503,8 @@ export async function getEligibleCategories(eventId: string) {
 
     return {
         suggestions,
-        all: categories.filter(c => !myEnrolledCategoryIds.has(c.id)), // Mantendo compatibilidade com itens invisíveis
+        all: categories.filter(c => !myEnrolledCategoryIds.has(c.id)),
+        allWithMeta: results, // todas as categorias com preço, contagem e metadados (para o buscador)
         isIncomplete,
         profile: athlete,
         incompleteReasons,

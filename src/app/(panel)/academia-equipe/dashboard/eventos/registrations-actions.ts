@@ -274,6 +274,7 @@ export async function getEligibleCategoriesAction(
             .from('category_rows')
             .select('*')
             .in('table_id', tableIds)
+            .order('id')
             .range(page * limit, (page + 1) * limit - 1);
 
         if (error || !categories || categories.length === 0) {
@@ -288,7 +289,13 @@ export async function getEligibleCategoriesAction(
         }
     }
 
-    const categories = allCategories;
+    // Deduplicate by id (paginação sem order pode retornar a mesma row em páginas diferentes)
+    const seen = new Set<string>();
+    const categories = allCategories.filter(c => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+    });
 
     if (!categories || categories.length === 0) return { suggestions: [], all: [], enrolledCategories: [] };
 
