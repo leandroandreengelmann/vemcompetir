@@ -260,67 +260,6 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                             </div>
                         </div>
 
-                        {/* Tokens de Inscrição */}
-                        {tokenManagementEnabled && (
-                        <div className="space-y-4">
-                            <h2 className="text-panel-md font-semibold border-b pb-2">Tokens de Inscrição</h2>
-
-                            <div className="p-4 rounded-xl border bg-muted/30 flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <p className="text-ui font-medium">Saldo atual</p>
-                                    <p className="text-caption text-muted-foreground">Tokens disponíveis para inscrições</p>
-                                </div>
-                                <span className={`text-panel-lg font-black tabular-nums ${tokenBalance <= 20 ? 'text-destructive' : 'text-foreground'}`}>
-                                    {tokenBalance}
-                                </span>
-                            </div>
-
-                            <form onSubmit={handleGrantTokens} className="space-y-3">
-                                <p className="text-ui font-medium">Conceder tokens</p>
-                                {grantError && (
-                                    <p className="text-caption text-destructive">{grantError}</p>
-                                )}
-                                {grantSuccess && (
-                                    <p className="text-caption text-emerald-600">{grantSuccess}</p>
-                                )}
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        placeholder="Qtd de tokens"
-                                        value={grantAmount}
-                                        onChange={e => setGrantAmount(e.target.value)}
-                                        className="bg-background w-36"
-                                        required
-                                        disabled={grantLoading}
-                                    />
-                                    <Input
-                                        placeholder="Observação (opcional)"
-                                        value={grantNotes}
-                                        onChange={e => setGrantNotes(e.target.value)}
-                                        className="bg-background flex-1"
-                                        disabled={grantLoading}
-                                    />
-                                </div>
-                                <Button
-                                    type="submit"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={grantLoading || !grantAmount}
-                                    className="w-full"
-                                >
-                                    {grantLoading ? (
-                                        <>
-                                            <SpinnerGapIcon size={16} weight="bold" className="mr-2 animate-spin" />
-                                            Concedendo...
-                                        </>
-                                    ) : (
-                                        'Conceder tokens'
-                                    )}
-                                </Button>
-                            </form>
-                        </div>
-                        )}
 
                         {/* Integração Asaas */}
                         <div className="space-y-4">
@@ -419,6 +358,67 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                         </Button>
                     </div>
                 </form>
+            {/* Tokens de Inscrição — fora do form principal para evitar form aninhado */}
+            {tokenManagementEnabled && (
+                <div className="space-y-4 w-full max-w-md">
+                    <h2 className="text-panel-md font-semibold border-b pb-2">Tokens de Inscrição</h2>
+
+                    <div className="p-4 rounded-xl border bg-muted/30 flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <p className="text-ui font-medium">Saldo atual</p>
+                            <p className="text-caption text-muted-foreground">Tokens disponíveis para inscrições</p>
+                        </div>
+                        <span className={`text-panel-lg font-black tabular-nums ${tokenBalance <= 20 ? 'text-destructive' : 'text-foreground'}`}>
+                            {tokenBalance}
+                        </span>
+                    </div>
+
+                    <form onSubmit={handleGrantTokens} className="space-y-3">
+                        <p className="text-ui font-medium">Conceder tokens</p>
+                        {grantError && (
+                            <p className="text-caption text-destructive">{grantError}</p>
+                        )}
+                        {grantSuccess && (
+                            <p className="text-caption text-emerald-600">{grantSuccess}</p>
+                        )}
+                        <div className="flex gap-2">
+                            <Input
+                                type="number"
+                                min="1"
+                                placeholder="Qtd de tokens"
+                                value={grantAmount}
+                                onChange={e => setGrantAmount(e.target.value)}
+                                className="bg-background w-36"
+                                required
+                                disabled={grantLoading}
+                            />
+                            <Input
+                                placeholder="Observação (opcional)"
+                                value={grantNotes}
+                                onChange={e => setGrantNotes(e.target.value)}
+                                className="bg-background flex-1"
+                                disabled={grantLoading}
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            size="sm"
+                            disabled={grantLoading || !grantAmount}
+                            className="w-full"
+                        >
+                            {grantLoading ? (
+                                <>
+                                    <SpinnerGapIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                                    Concedendo...
+                                </>
+                            ) : (
+                                'Conceder tokens'
+                            )}
+                        </Button>
+                    </form>
+                </div>
+            )}
             </div>
         </div>
     );
