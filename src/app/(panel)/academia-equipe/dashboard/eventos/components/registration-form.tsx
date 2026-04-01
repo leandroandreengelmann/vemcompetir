@@ -49,7 +49,7 @@ interface Athlete {
     belt_color: string;
     birth_date: string;
     weight: number;
-    email?: string;
+    hasOwnAccount?: boolean;
 }
 
 interface Event {
@@ -174,7 +174,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                     <div className="flex items-center justify-between w-full">
                                         <span className="flex items-center gap-1.5 text-panel-sm font-semibold">
                                             {selectedAthlete.full_name}
-                                            {!selectedAthlete.email?.includes('@dummy.competir.com') && (
+                                            {selectedAthlete.hasOwnAccount && (
                                                 <DeviceMobileIcon size={14} weight="duotone" className="text-emerald-500 shrink-0" />
                                             )}
                                         </span>
@@ -200,7 +200,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                             <div className="flex flex-col min-w-0">
                                                 <span className="flex items-center gap-1.5 text-panel-sm font-semibold text-foreground truncate">
                                                     {athlete.full_name}
-                                                    {!athlete.email?.includes('@dummy.competir.com') && (
+                                                    {athlete.hasOwnAccount && (
                                                         <DeviceMobileIcon size={13} weight="duotone" className="text-emerald-500 shrink-0" />
                                                     )}
                                                 </span>

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect, notFound } from 'next/navigation';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { RegistrationForm } from '../../components/registration-form';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getSystemSetting, getSystemSettingsMap } from '@/lib/dal/system-settings';
+import { getSystemSettingsMap } from '@/lib/dal/system-settings';
 
 interface SubscribePageProps {
     params: Promise<{ id: string }>;
@@ -42,25 +43,33 @@ export default async function SubscribePage(props: SubscribePageProps) {
     }
 
     // Fetch my athletes
-    const { data: athletes } = await supabase
+    const { data: athletesRaw } = await supabase
         .from('profiles')
-        .select('id, full_name, sexo, belt_color, birth_date, weight, email')
+        .select('id, full_name, sexo, belt_color, birth_date, weight')
         .eq('tenant_id', profile.tenant_id)
-        .eq('role', 'atleta')
         .eq('role', 'atleta')
         .order('full_name', { ascending: true });
 
+    // Fetch auth emails to determine if athlete has own account
+    const adminClient = createAdminClient();
+    const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+
+    const athletes = (athletesRaw || []).map(a => {
+        const authUser = authUsers.find(u => u.id === a.id);
+        const email = authUser?.email || '';
+        return {
+            ...a,
+            hasOwnAccount: !!email && !email.includes('@dummy.competir.com'),
+        };
+    });
+
     // Check ownership
-    // Using tenant_id to check ownership relative to the profile's tenant_id
     const isOwner = event.tenant_id === profile.tenant_id;
 
     // Fetch tax
-    // Try to get specific event tax first
     const specificTaxKey = `event_tax_${event.id}`;
     const globalTaxKey = 'own_event_registration_tax';
 
-    // We can fetch both in parallel or use getSystemSettingsMap if we had multiple keys (here just 2)
-    // Let's use getSystemSettingsMap for efficiency or just parallel promises
     const settingsMap = await getSystemSettingsMap([specificTaxKey, globalTaxKey]);
 
     const specificTaxVal = settingsMap.get(specificTaxKey);
@@ -97,7 +106,7 @@ export default async function SubscribePage(props: SubscribePageProps) {
 
             <RegistrationForm
                 event={event}
-                athletes={athletes || []}
+                athletes={athletes}
                 isOwner={isOwner}
                 adminTax={adminTax}
             />
