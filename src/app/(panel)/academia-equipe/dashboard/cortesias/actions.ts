@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { isUnder18, generateGuardianDeclaration } from '@/lib/guardian-declarations';
 import { auditLog } from '@/lib/audit-log';
 import { checkEligibility } from '@/lib/registration-logic';
+import { consumeTokens } from '@/lib/token-utils';
 
 // Retorna os eventos organizados pela academia atual
 export async function getAcademyEventsForCourtesyAction() {
@@ -384,6 +385,12 @@ export async function createCourtesyRegistrationAction({
         return { error: 'Erro ao criar inscrição de cortesia.' };
     }
 
+    const tokenResult = await consumeTokens(tenant_id, 1, {
+        eventId,
+        notes: `Cortesia: ${athlete.full_name} — ${reason}`,
+        createdBy: profile.id,
+    });
+
     auditLog('PAYMENT_FREE_CONFIRMED', {
         type: 'courtesy',
         event_id: eventId,
@@ -396,7 +403,7 @@ export async function createCourtesyRegistrationAction({
     });
 
     revalidatePath('/academia-equipe/dashboard/cortesias');
-    return { success: true };
+    return { success: true, tokenWarning: tokenResult.warning ?? null };
 }
 
 // Retorna as cortesias já dadas pela academia

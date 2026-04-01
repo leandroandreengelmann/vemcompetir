@@ -235,6 +235,13 @@ export function CourtesyClient({ events, initialCourtesies }: Props) {
                 </div>
             ), { duration: 4000 });
 
+            if (result.tokenWarning) {
+                toast.warning('Saldo de tokens negativo', {
+                    description: result.tokenWarning,
+                    duration: 8000,
+                });
+            }
+
             const updated = await getCourtesyRegistrationsAction(filterEventId === 'all' ? undefined : filterEventId);
             if (updated.data) setCourtesies(updated.data as unknown as CourtesyRegistration[]);
 
