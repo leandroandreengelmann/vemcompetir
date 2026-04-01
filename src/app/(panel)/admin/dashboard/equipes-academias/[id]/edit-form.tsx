@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { updateOrganizerAction, grantTokensToAcademyAction } from '../actions';
+import { toast } from 'sonner';
 
 interface EditAcademiaEquipeFormProps {
     initialData: {
@@ -55,10 +56,12 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
 
             if ('error' in result && result.error) {
                 setError(result.error);
+                toast.error(result.error);
                 setLoading(false);
                 return;
             }
 
+            toast.success('Alterações salvas com sucesso!');
             router.push(`/admin/dashboard/equipes-academias/${initialData.id}`);
             router.refresh();
         } catch (err: any) {
@@ -79,9 +82,11 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
         const result = await grantTokensToAcademyAction(fd);
         if ('error' in result && result.error) {
             setGrantError(result.error);
+            toast.error(result.error);
         } else if ('newBalance' in result) {
             setTokenBalance(result.newBalance as number);
             setGrantSuccess(`Tokens concedidos! Novo saldo: ${result.newBalance}`);
+            toast.success(`Tokens concedidos com sucesso! Novo saldo: ${result.newBalance}`);
             setGrantAmount('');
             setGrantNotes('');
         }
