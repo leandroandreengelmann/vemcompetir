@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ArrowRightIcon, ShoppingBagIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon, InfoIcon, GiftIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, ShoppingBagIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon, InfoIcon } from '@phosphor-icons/react';
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { getCategoryEnrolledAthletes } from '@/app/(panel)/actions/event-categories';
@@ -100,15 +100,6 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                     </Badge>
                 </div>
 
-                {/* Promo: inscrição grátis na categoria regular */}
-                {category.promo_type === 'free_second_registration' && (
-                    <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-emerald-800">
-                        <GiftIcon size={16} weight="duotone" className="shrink-0 text-emerald-500" />
-                        <p className="text-panel-sm font-semibold leading-relaxed">
-                            Ao se inscrever nesta categoria, você ganha gratuitamente sua categoria regular correspondente.
-                        </p>
-                    </div>
-                )}
 
                 {/* Descrição / Observação do organizador */}
                 {category.description && (
