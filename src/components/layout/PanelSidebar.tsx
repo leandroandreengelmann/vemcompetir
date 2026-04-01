@@ -293,10 +293,10 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
                                         {route.label}
                                         {(route as any).tokenCount !== undefined && (
                                             <span className={cn(
-                                                "text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none tabular-nums",
+                                                "text-xs font-bold px-2 py-0.5 rounded-full tabular-nums",
                                                 (route as any).tokenLow
-                                                    ? "bg-destructive/15 text-destructive"
-                                                    : "bg-blue-500/15 text-blue-600"
+                                                    ? "bg-destructive/20 text-destructive"
+                                                    : "bg-blue-500/20 text-blue-600"
                                             )}>
                                                 {(route as any).tokenCount}
                                             </span>
