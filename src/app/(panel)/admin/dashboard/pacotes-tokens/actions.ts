@@ -102,3 +102,45 @@ export async function getAcademiesTokenSummaryAction() {
         .order('inscription_token_balance', { ascending: true });
     return data ?? [];
 }
+
+export async function sellTokensToAcademyAction(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+    if (profile?.role !== 'admin_geral') return { error: 'Sem permissão.' };
+
+    const tenant_id = formData.get('tenant_id') as string;
+    const token_package_id = formData.get('token_package_id') as string;
+    const notes = (formData.get('notes') as string)?.trim() || null;
+
+    if (!tenant_id || !token_package_id) return { error: 'Dados inválidos.' };
+
+    const adminClient = createAdminClient();
+
+    const { data: pkg } = await adminClient
+        .from('token_packages')
+        .select('token_count, name, price_cents')
+        .eq('id', token_package_id)
+        .eq('is_active', true)
+        .single();
+
+    if (!pkg) return { error: 'Pacote não encontrado.' };
+
+    const { grantTokens } = await import('@/lib/token-utils');
+    const result = await grantTokens(tenant_id, pkg.token_count, {
+        tokenPackageId: token_package_id,
+        notes: notes ?? `Venda: ${pkg.name}`,
+        createdBy: user.id,
+    });
+
+    if (!result.success) return { error: result.error };
+
+    revalidatePath('/admin/dashboard/pacotes-tokens');
+    return { success: true, newBalance: result.newBalance, tokensAdded: pkg.token_count };
+}

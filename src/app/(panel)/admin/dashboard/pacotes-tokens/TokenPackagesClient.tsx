@@ -12,9 +12,13 @@ import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-    PlusIcon, PencilSimpleIcon, TrashIcon, SpinnerGapIcon, CoinsIcon, WarningIcon, PackageIcon,
+    PlusIcon, PencilSimpleIcon, TrashIcon, SpinnerGapIcon, CoinsIcon, WarningIcon, PackageIcon, ShoppingCartIcon,
 } from '@phosphor-icons/react';
-import { createTokenPackageAction, updateTokenPackageAction, deleteTokenPackageAction } from './actions';
+import { createTokenPackageAction, updateTokenPackageAction, deleteTokenPackageAction, sellTokensToAcademyAction } from './actions';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface TokenPackage {
     id: string;
@@ -151,8 +155,130 @@ function PackageFormDialog({
     );
 }
 
-export default function TokenPackagesClient({ packages: initialPackages, academies }: Props) {
+function SellTokensDialog({
+    academy,
+    packages,
+    onSold,
+}: {
+    academy: AcademySummary;
+    packages: TokenPackage[];
+    onSold: (tenantId: string, newBalance: number) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedPkgId, setSelectedPkgId] = useState('');
+
+    const selectedPkg = packages.find(p => p.id === selectedPkgId);
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        const fd = new FormData(e.currentTarget);
+        fd.append('tenant_id', academy.id);
+        const result = await sellTokensToAcademyAction(fd);
+        if ('error' in result && result.error) {
+            setError(result.error);
+        } else if ('newBalance' in result) {
+            toast.success(`Venda registrada! ${result.tokensAdded} tokens adicionados. Novo saldo: ${result.newBalance}`);
+            onSold(academy.id, result.newBalance as number);
+            setOpen(false);
+            setSelectedPkgId('');
+        }
+        setLoading(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={v => { setOpen(v); setError(null); setSelectedPkgId(''); }}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" pill>
+                    <ShoppingCartIcon size={16} weight="duotone" />
+                    <span className="sr-only">Vender tokens</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Vender tokens</DialogTitle>
+                    <DialogDescription>
+                        Registre a venda de tokens para <strong>{academy.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 py-2">
+                    {error && (
+                        <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <label className="text-panel-sm font-semibold text-muted-foreground">Pacote</label>
+                        <Select value={selectedPkgId} onValueChange={setSelectedPkgId} name="token_package_id" required>
+                            <SelectTrigger className="h-11 rounded-xl shadow-none">
+                                <SelectValue placeholder="Selecione o pacote" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {packages.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                        {p.name} — {p.token_count} tokens — {(p.price_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <input type="hidden" name="token_package_id" value={selectedPkgId} />
+                    </div>
+
+                    {selectedPkg && (
+                        <div className="p-3 rounded-xl bg-muted/40 border text-panel-sm space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Tokens a adicionar</span>
+                                <span className="font-bold">+{selectedPkg.token_count}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Valor da venda</span>
+                                <span className="font-bold text-emerald-600">
+                                    {(selectedPkg.price_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Saldo após</span>
+                                <span className="font-bold">{academy.inscription_token_balance + selectedPkg.token_count}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <label className="text-panel-sm font-semibold text-muted-foreground">Observação <span className="font-normal">(opcional)</span></label>
+                        <Input
+                            name="notes"
+                            placeholder="Ex: Pago via PIX"
+                            className="bg-background"
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <DialogFooter className="pt-2">
+                        <Button pill type="button" variant="ghost" onClick={() => setOpen(false)} disabled={loading}>
+                            Cancelar
+                        </Button>
+                        <Button pill type="submit" disabled={loading || !selectedPkgId} className="gap-2">
+                            {loading && <SpinnerGapIcon size={16} weight="bold" className="animate-spin" />}
+                            Confirmar venda
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export default function TokenPackagesClient({ packages: initialPackages, academies: initialAcademies }: Props) {
     const [packages, setPackages] = useState(initialPackages);
+    const [academies, setAcademies] = useState(initialAcademies);
+
+    const handleSold = (tenantId: string, newBalance: number) => {
+        setAcademies(prev => prev.map(a => a.id === tenantId ? { ...a, inscription_token_balance: newBalance } : a));
+    };
 
     const handleDelete = async (id: string, name: string) => {
         if (!confirm(`Desativar o pacote "${name}"?`)) return;
@@ -313,7 +439,8 @@ export default function TokenPackagesClient({ packages: initialPackages, academi
                         <TableHeader>
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className="pl-6 text-panel-sm font-semibold">Academia</TableHead>
-                                <TableHead className="text-panel-sm font-semibold text-right pr-6">Saldo de tokens</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-right">Saldo de tokens</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-right pr-6">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -333,10 +460,17 @@ export default function TokenPackagesClient({ packages: initialPackages, academi
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-right pr-6">
-                                            <span className={`text-panel-md font-black tabular-nums ${ac.inscription_token_balance <= 20 ? 'text-destructive' : 'text-foreground'}`}>
+                                        <TableCell className="text-right tabular-nums font-black">
+                                            <span className={ac.inscription_token_balance <= 20 ? 'text-destructive' : 'text-foreground'}>
                                                 {ac.inscription_token_balance}
                                             </span>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6">
+                                            <SellTokensDialog
+                                                academy={ac}
+                                                packages={activePackages}
+                                                onSold={handleSold}
+                                            />
                                         </TableCell>
                                     </TableRow>
                                 ))

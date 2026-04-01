@@ -28,8 +28,8 @@ interface Props {
 const TYPE_CONFIG = {
     consumed: { label: 'Consumido', icon: ArrowDownIcon,  color: 'text-destructive',  bg: 'bg-destructive/10'  },
     refunded: { label: 'Estornado', icon: ArrowUpIcon,    color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
-    granted:  { label: 'Concedido', icon: GiftIcon,       color: 'text-blue-600',    bg: 'bg-blue-500/10'    },
-    adjusted: { label: 'Ajuste',    icon: SlidersIcon,    color: 'text-amber-600',   bg: 'bg-amber-500/10'   },
+    granted:  { label: 'Compra',    icon: GiftIcon,       color: 'text-blue-600',    bg: 'bg-blue-500/10'    },
+    adjusted: { label: 'Ajuste',   icon: SlidersIcon,    color: 'text-amber-600',   bg: 'bg-amber-500/10'   },
 };
 
 export default function TokensClient({ balance, transactions }: Props) {
