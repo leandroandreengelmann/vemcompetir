@@ -172,10 +172,12 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                             <SelectValue placeholder="Buscar atleta...">
                                 {selectedAthlete && (
                                     <div className="flex items-center justify-between w-full">
-                                        <span className="flex items-center gap-1.5 text-panel-sm font-semibold">
+                                        <span className="flex items-center gap-2 text-panel-sm font-semibold">
                                             {selectedAthlete.full_name}
                                             {selectedAthlete.hasOwnAccount && (
-                                                <DeviceMobileIcon size={14} weight="duotone" className="text-emerald-500 shrink-0" />
+                                                <span className="shrink-0 bg-black text-white text-[11px] font-bold px-2 py-0.5 rounded-full leading-none">
+                                                    Tem conta própria
+                                                </span>
                                             )}
                                         </span>
                                         <div className="flex items-center gap-2 mr-2">
@@ -198,10 +200,12 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                     <SelectItem key={athlete.id} value={athlete.id} className="py-2.5 px-3 mb-1 rounded-lg focus:bg-muted/60 cursor-pointer">
                                         <div className="flex items-center justify-between w-full gap-3">
                                             <div className="flex flex-col min-w-0">
-                                                <span className="flex items-center gap-1.5 text-panel-sm font-semibold text-foreground truncate">
+                                                <span className="flex items-center gap-2 text-panel-sm font-semibold text-foreground truncate">
                                                     {athlete.full_name}
                                                     {athlete.hasOwnAccount && (
-                                                        <DeviceMobileIcon size={13} weight="duotone" className="text-emerald-500 shrink-0" />
+                                                        <span className="shrink-0 bg-black text-white text-[11px] font-bold px-2 py-0.5 rounded-full leading-none">
+                                                            Tem conta própria
+                                                        </span>
                                                     )}
                                                 </span>
                                                 <span className="text-panel-sm text-muted-foreground truncate font-medium mt-0.5">
