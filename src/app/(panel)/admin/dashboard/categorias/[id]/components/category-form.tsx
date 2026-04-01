@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { createCategoryRow, updateCategoryRow, CategoryRow } from '../../../../actions/categories';
-import { SpinnerGapIcon } from '@phosphor-icons/react';
+import { SpinnerGapIcon, WarningCircleIcon } from '@phosphor-icons/react';
 
 interface CategoryFormProps {
     tableId: string;
@@ -77,7 +77,12 @@ export function CategoryForm({ tableId, initialData, onCancelEdit, onSuccess }: 
         const { divisao_idade, idade, sexo, faixa, categoria_peso, uniforme } = formData;
 
         if (!divisao_idade || !idade || !sexo || !faixa || !categoria_peso || !uniforme) {
-            toast.warning('Preencha os campos obrigatórios para gerar o nome completo.');
+            toast.custom(() => (
+                <div className="flex items-center gap-3 w-[356px] bg-amber-500 rounded-xl px-5 py-4 shadow-xl shadow-amber-500/25 text-white">
+                    <WarningCircleIcon size={22} weight="duotone" className="shrink-0" />
+                    <p className="text-[13px] font-bold leading-snug">Preencha os campos obrigatórios para gerar o nome completo.</p>
+                </div>
+            ), { duration: 4000 });
             return;
         }
 

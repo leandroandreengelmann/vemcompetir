@@ -25,6 +25,7 @@ import {
     TagIcon,
     ArrowRightIcon,
     IdentificationCardIcon,
+    WarningCircleIcon,
 } from '@phosphor-icons/react';
 import { PassportModal } from '@/components/passport/PassportModal';
 import { getBeltStyle } from '@/lib/belt-theme';
@@ -236,10 +237,15 @@ export function CourtesyClient({ events, initialCourtesies }: Props) {
             ), { duration: 4000 });
 
             if (result.tokenWarning) {
-                toast.warning('Saldo de tokens negativo', {
-                    description: result.tokenWarning,
-                    duration: 8000,
-                });
+                toast.custom(() => (
+                    <div className="flex items-start gap-3 w-[356px] bg-amber-500 rounded-xl px-5 py-4 shadow-xl shadow-amber-500/25 text-white">
+                        <WarningCircleIcon size={22} weight="duotone" className="shrink-0 mt-0.5" />
+                        <div className="flex flex-col gap-0.5">
+                            <p className="text-[13px] font-bold leading-none">Saldo de tokens negativo</p>
+                            <p className="text-[12px] font-medium opacity-90 leading-snug mt-1">{result.tokenWarning}</p>
+                        </div>
+                    </div>
+                ), { duration: 8000 });
             }
 
             const updated = await getCourtesyRegistrationsAction(filterEventId === 'all' ? undefined : filterEventId);

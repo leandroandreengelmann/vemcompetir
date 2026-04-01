@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusIcon, SpinnerGapIcon } from '@phosphor-icons/react';
+import { PlusIcon, SpinnerGapIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -67,7 +67,15 @@ export function CreatePackageButton({ ownedEvents, allTenants }: CreatePackageBu
         setOpen(false);
         setLoading(false);
         if (result?.warning) {
-            toast.warning('Pacote criado com sucesso!', { description: result.warning, duration: 8000 });
+            toast.custom(() => (
+                <div className="flex items-start gap-3 w-[356px] bg-amber-500 rounded-xl px-5 py-4 shadow-xl shadow-amber-500/25 text-white">
+                    <WarningCircleIcon size={22} weight="duotone" className="shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-0.5">
+                        <p className="text-[13px] font-bold leading-none">Pacote criado com sucesso!</p>
+                        <p className="text-[12px] font-medium opacity-90 leading-snug mt-1">{result.warning}</p>
+                    </div>
+                </div>
+            ), { duration: 8000 });
         } else {
             toast.success('Pacote criado com sucesso!');
         }
