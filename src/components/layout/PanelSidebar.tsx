@@ -42,9 +42,10 @@ interface PanelSidebarProps {
     hasActiveCredits?: boolean;
     hasOwnedEvents?: boolean;
     hasTokenManagement?: boolean;
+    tokenBalance?: number;
 }
 
-export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCredits = false, hasOwnedEvents = false, hasTokenManagement = false }: PanelSidebarProps) {
+export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCredits = false, hasOwnedEvents = false, hasTokenManagement = false, tokenBalance = 0 }: PanelSidebarProps) {
     const pathname = usePathname();
     const [, setOpen] = useState(false);
     const { isCollapsed, toggleSidebar } = useSidebar();
@@ -140,6 +141,8 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             icon: CoinsIcon,
             href: "/academia-equipe/dashboard/tokens",
             roles: ['academia/equipe'] as string[],
+            tokenCount: tokenBalance,
+            tokenLow: tokenBalance <= 10,
         }] : []),
         {
             label: "Eventos Disponíveis",
@@ -283,8 +286,21 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
                             />
                             {(!isCollapsed || isMobile) && (
                                 <span className="flex flex-col flex-1 min-w-0">
-                                    <span className={cn(!isActive && (route as any).accent && "text-blue-600 font-medium")}>
+                                    <span className={cn(
+                                        "flex items-center gap-2",
+                                        !isActive && (route as any).accent && "text-blue-600 font-medium"
+                                    )}>
                                         {route.label}
+                                        {(route as any).tokenCount !== undefined && (
+                                            <span className={cn(
+                                                "text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none tabular-nums",
+                                                (route as any).tokenLow
+                                                    ? "bg-destructive/15 text-destructive"
+                                                    : "bg-blue-500/15 text-blue-600"
+                                            )}>
+                                                {(route as any).tokenCount}
+                                            </span>
+                                        )}
                                     </span>
                                     {((route as any).isNew || (route as any).isExclusive) && (
                                         <span className="flex items-center gap-1 mt-0.5">

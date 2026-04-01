@@ -17,6 +17,7 @@ export default async function PanelLayout({
     let hasActiveCredits = false;
     let hasOwnedEvents = false;
     let hasTokenManagement = false;
+    let tokenBalance = 0;
 
     if (profile.role === 'academia/equipe' && profile.tenant_id) {
         const supabase = await createClient();
@@ -26,7 +27,7 @@ export default async function PanelLayout({
         const [{ data: tenant }, { data: credits }, { data: ownedEvents }] = await Promise.all([
             supabase
                 .from('tenants')
-                .select('can_register_academies, token_management_enabled')
+                .select('can_register_academies, token_management_enabled, inscription_token_balance')
                 .eq('id', profile.tenant_id)
                 .single(),
             supabase
@@ -46,11 +47,12 @@ export default async function PanelLayout({
         hasActiveCredits = (credits ?? []).some((pkg: any) => pkg.used_credits < pkg.total_credits);
         hasOwnedEvents = (ownedEvents ?? []).length > 0;
         hasTokenManagement = tenant?.token_management_enabled ?? false;
+        tokenBalance = tenant?.inscription_token_balance ?? 0;
     }
 
     return (
         <PanelLayoutClient
-            sidebar={<PanelSidebar role={profile.role} canRegisterAcademies={canRegisterAcademies} hasActiveCredits={hasActiveCredits} hasOwnedEvents={hasOwnedEvents} hasTokenManagement={hasTokenManagement} />}
+            sidebar={<PanelSidebar role={profile.role} canRegisterAcademies={canRegisterAcademies} hasActiveCredits={hasActiveCredits} hasOwnedEvents={hasOwnedEvents} hasTokenManagement={hasTokenManagement} tokenBalance={tokenBalance} />}
             header={<PanelHeader user={{ ...profile, email: userEmail }} role={profile.role} />}
         >
             {children}
