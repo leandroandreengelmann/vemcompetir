@@ -294,6 +294,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                                         id="asaas_api_key"
                                         name="asaas_api_key"
                                         type="password"
+                                        autoComplete="new-password"
                                         placeholder={initialData.asaas_api_key_last4
                                             ? `Atual: ••••••••${initialData.asaas_api_key_last4} — deixe em branco para manter`
                                             : 'Cole a API Key da academia aqui'
@@ -337,6 +338,7 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                                         id="password"
                                         name="password"
                                         type="password"
+                                        autoComplete="new-password"
                                         placeholder="Deixe em branco para manter"
                                         className="bg-background"
                                         minLength={6}
