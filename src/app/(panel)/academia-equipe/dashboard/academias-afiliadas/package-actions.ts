@@ -41,6 +41,17 @@ export async function createInscriptionPackageAction(formData: FormData) {
 
     const adminClient = createAdminClient();
 
+    // Bloqueia criação de pacote se gerenciamento de tokens não estiver ativo
+    const { data: tenantCheck } = await adminClient
+        .from('tenants')
+        .select('token_management_enabled')
+        .eq('id', profile.tenant_id)
+        .single();
+
+    if (!tenantCheck?.token_management_enabled) {
+        return { error: 'Sua academia não tem o gerenciamento de tokens ativo. Entre em contato com o administrador.' };
+    }
+
     // Consome tokens upfront (tokens são gastos no ato de criar o pacote)
     const tokenResult = await consumeTokens(profile.tenant_id, total_credits, {
         eventId: event_id,
@@ -50,6 +61,7 @@ export async function createInscriptionPackageAction(formData: FormData) {
     if (!tokenResult.success && tokenResult.error) {
         return { error: tokenResult.error };
     }
+    const tokenWarning = tokenResult.warning;
 
     const { data: pkg, error } = await adminClient
         .from('inscription_packages')
@@ -91,7 +103,7 @@ export async function createInscriptionPackageAction(formData: FormData) {
 
     revalidatePath('/academia-equipe/dashboard/academias-afiliadas');
     revalidatePath('/academia-equipe/dashboard/pacotes-inscricoes');
-    return { success: true };
+    return { success: true, warning: tokenWarning };
 }
 
 export async function getOwnedEventsAction() {

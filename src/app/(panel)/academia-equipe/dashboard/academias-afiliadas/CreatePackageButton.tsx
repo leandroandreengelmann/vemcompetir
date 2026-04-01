@@ -66,7 +66,11 @@ export function CreatePackageButton({ ownedEvents, allTenants }: CreatePackageBu
 
         setOpen(false);
         setLoading(false);
-        toast.success('Pacote criado com sucesso!');
+        if (result?.warning) {
+            toast.warning('Pacote criado com sucesso!', { description: result.warning, duration: 8000 });
+        } else {
+            toast.success('Pacote criado com sucesso!');
+        }
         router.refresh();
     };
 

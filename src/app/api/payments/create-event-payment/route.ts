@@ -7,6 +7,7 @@ import { calculateAsaasSplit } from '@/lib/payment-utils';
 import { shouldPaymentBeNoSplit } from '@/lib/no-split-logic';
 import { rateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
+import { consumeTokens } from '@/lib/token-utils';
 
 async function getAsaasConfig() {
     const admin = createAdminClient();
@@ -380,6 +381,13 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Erro ao confirmar inscrições. Tente novamente.' }, { status: 500 });
                 }
 
+                // Consome tokens do organizador (1 por inscrição confirmada)
+                await consumeTokens(tenant_id_organizer, qtd_inscricoes, {
+                    eventId: event_id,
+                    notes: `${qtd_inscricoes} inscrição(ões) confirmada(s) - evento próprio`,
+                    createdBy: user.id,
+                });
+
                 auditLog('PAYMENT_OWN_EVENT_CONFIRMED', { user_id: user.id, event_id, payment_id: paymentId, qty: qtd_inscricoes });
 
                 return NextResponse.json({
@@ -442,6 +450,13 @@ export async function POST(request: NextRequest) {
                     await admin.from('payments').delete().eq('id', paymentId);
                     return NextResponse.json({ error: 'Erro ao confirmar inscrições. Tente novamente.' }, { status: 500 });
                 }
+
+                // Consome tokens do organizador (1 por inscrição confirmada)
+                await consumeTokens(tenant_id_organizer, qtd_inscricoes, {
+                    eventId: event_id,
+                    notes: `${qtd_inscricoes} inscrição(ões) gratuita(s) confirmada(s)`,
+                    createdBy: user.id,
+                });
 
                 auditLog('PAYMENT_FREE_CONFIRMED', { user_id: user.id, event_id, payment_id: paymentId, qty: qtd_inscricoes });
 

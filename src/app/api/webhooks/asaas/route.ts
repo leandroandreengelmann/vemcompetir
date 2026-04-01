@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decrypt, hashToken } from '@/lib/crypto';
 import { auditLog } from '@/lib/audit-log';
+import { consumeTokens, refundTokens } from '@/lib/token-utils';
 
 async function getAsaasConfig() {
     const admin = createAdminClient();
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
         // Find our payment record
         const { data: paymentRecord } = await admin
             .from('payments')
-            .select('id, status, tenant_id_organizer')
+            .select('id, status, tenant_id_organizer, qtd_inscricoes, event_id')
             .eq('asaas_payment_id', asaasPaymentId)
             .single();
 
@@ -224,6 +225,14 @@ export async function POST(request: NextRequest) {
                 .update({ status: 'pago' })
                 .eq('payment_id', paymentRecord.id);
 
+            // Consome tokens do organizador (1 token por inscrição confirmada)
+            if (paymentRecord.tenant_id_organizer && paymentRecord.qtd_inscricoes) {
+                await consumeTokens(paymentRecord.tenant_id_organizer, paymentRecord.qtd_inscricoes, {
+                    eventId: paymentRecord.event_id,
+                    notes: `${paymentRecord.qtd_inscricoes} inscrição(ões) confirmada(s) via PIX`,
+                });
+            }
+
             auditLog('WEBHOOK_PAYMENT_CONFIRMED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, value: confirmedValue, net_value: confirmedNetValue });;
         }
 
@@ -254,6 +263,14 @@ export async function POST(request: NextRequest) {
                 .from('event_registrations')
                 .update({ status: 'carrinho', payment_id: null })
                 .eq('payment_id', paymentRecord.id);
+
+            // Estorna tokens se o pagamento já havia sido confirmado (reembolso)
+            if (paymentRecord.status === 'PAID' && paymentRecord.tenant_id_organizer && paymentRecord.qtd_inscricoes) {
+                await refundTokens(paymentRecord.tenant_id_organizer, paymentRecord.qtd_inscricoes, {
+                    eventId: paymentRecord.event_id,
+                    notes: 'Estorno por cancelamento/reembolso de pagamento',
+                });
+            }
 
             auditLog(newStatus === 'CANCELLED' ? 'WEBHOOK_PAYMENT_CANCELLED' : 'WEBHOOK_PAYMENT_EXPIRED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, asaas_status: effectiveStatus });;
         }

@@ -21,7 +21,7 @@ export async function consumeTokens(
     tenantId: string,
     amount: number,
     context: TokenContext = {}
-): Promise<{ success: boolean; error?: string; newBalance?: number }> {
+): Promise<{ success: boolean; error?: string; warning?: string; newBalance?: number }> {
     const adminClient = createAdminClient();
 
     const { data: tenant } = await adminClient
@@ -70,7 +70,11 @@ export async function consumeTokens(
         triggerLowBalanceAlert(tenantId, newBalance).catch(console.error);
     }
 
-    return { success: true, newBalance };
+    const warning = newBalance < 0
+        ? `Seu saldo ficou negativo (${newBalance} tokens). Ao comprar um novo pacote de tokens, esse valor será descontado automaticamente.`
+        : undefined;
+
+    return { success: true, newBalance, warning };
 }
 
 /**
