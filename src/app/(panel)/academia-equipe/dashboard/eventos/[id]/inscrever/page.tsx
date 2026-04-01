@@ -44,7 +44,7 @@ export default async function SubscribePage(props: SubscribePageProps) {
     // Fetch my athletes
     const { data: athletes } = await supabase
         .from('profiles')
-        .select('id, full_name, sexo, belt_color, birth_date, weight')
+        .select('id, full_name, sexo, belt_color, birth_date, weight, email')
         .eq('tenant_id', profile.tenant_id)
         .eq('role', 'atleta')
         .eq('role', 'atleta')

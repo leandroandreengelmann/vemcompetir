@@ -10,7 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { CircleNotchIcon, CheckIcon, CheckCircleIcon } from "@phosphor-icons/react";
+import { CircleNotchIcon, CheckIcon, CheckCircleIcon, DeviceMobileIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { getEligibleCategoriesAction } from '../registrations-actions';
 import { useRegistrationCart } from '@/hooks/use-registration-cart';
@@ -49,6 +49,7 @@ interface Athlete {
     belt_color: string;
     birth_date: string;
     weight: number;
+    email?: string;
 }
 
 interface Event {
@@ -171,7 +172,12 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                             <SelectValue placeholder="Buscar atleta...">
                                 {selectedAthlete && (
                                     <div className="flex items-center justify-between w-full">
-                                        <span className="text-panel-sm font-semibold">{selectedAthlete.full_name}</span>
+                                        <span className="flex items-center gap-1.5 text-panel-sm font-semibold">
+                                            {selectedAthlete.full_name}
+                                            {!selectedAthlete.email?.includes('@dummy.competir.com') && (
+                                                <DeviceMobileIcon size={14} weight="duotone" className="text-emerald-500 shrink-0" />
+                                            )}
+                                        </span>
                                         <div className="flex items-center gap-2 mr-2">
                                             <Badge
                                                 variant="outline"
@@ -192,7 +198,12 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
                                     <SelectItem key={athlete.id} value={athlete.id} className="py-2.5 px-3 mb-1 rounded-lg focus:bg-muted/60 cursor-pointer">
                                         <div className="flex items-center justify-between w-full gap-3">
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-panel-sm font-semibold text-foreground truncate">{athlete.full_name}</span>
+                                                <span className="flex items-center gap-1.5 text-panel-sm font-semibold text-foreground truncate">
+                                                    {athlete.full_name}
+                                                    {!athlete.email?.includes('@dummy.competir.com') && (
+                                                        <DeviceMobileIcon size={13} weight="duotone" className="text-emerald-500 shrink-0" />
+                                                    )}
+                                                </span>
                                                 <span className="text-panel-sm text-muted-foreground truncate font-medium mt-0.5">
                                                     {athlete.weight}kg • {athlete.sexo} {age ? `• ${age} anos` : ''}
                                                 </span>
