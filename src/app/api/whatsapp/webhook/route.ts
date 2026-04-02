@@ -143,8 +143,28 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Fallback: Z-API sem campo type — detecta pelo conteúdo ──
-        // Loga o payload para debug nos logs da Vercel
-        console.log('[WhatsApp webhook] payload sem type reconhecido:', JSON.stringify(body));
+
+        // Echo "Ao enviar": fromMe=true, tem messageId (ID nativo WhatsApp) e texto
+        // Atualiza o zapi_message_id da mensagem enviada para o ID que o status callback usa
+        if (body?.fromMe === true && body?.messageId && body?.text?.message) {
+            const whatsappId = body.messageId as string;
+            const supabase = createAdminClient();
+            const { data: msg } = await supabase
+                .from('whatsapp_messages')
+                .select('id')
+                .eq('direction', 'outbound')
+                .eq('body', body.text.message)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (msg) {
+                await supabase
+                    .from('whatsapp_messages')
+                    .update({ zapi_message_id: whatsappId })
+                    .eq('id', msg.id);
+            }
+            return NextResponse.json({ ok: true });
+        }
 
         // Mensagem inbound: tem phone, fromMe=false e texto ou mídia
         const hasContent = body?.text?.message || body?.caption || body?.image || body?.video || body?.document || body?.audio;
