@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+function normalizePhone(phone: string): string {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('55') && digits.length >= 12) return digits;
+    return `55${digits}`;
+}
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
@@ -39,7 +45,7 @@ export async function POST(req: NextRequest) {
 
         // ── PresenceChatCallback: digitando / online ──
         if (type === 'PresenceChatCallback') {
-            const phone = body?.phone?.replace(/\D/g, '');
+            const phone = body?.phone ? normalizePhone(body.phone) : null;
             const presence = body?.status as string | undefined; // COMPOSING, PAUSED, AVAILABLE, UNAVAILABLE
             if (phone && presence) {
                 const supabase = createAdminClient();
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest) {
             if (body?.fromMe === true) return NextResponse.json({ ok: true }); // ignora echo
             if (body?.isGroup === true) return NextResponse.json({ ok: true }); // ignora grupos
 
-            const phone = body?.phone?.replace(/\D/g, '');
+            const phone = body?.phone ? normalizePhone(body.phone) : null;
             const message = body?.text?.message ?? body?.caption ?? null;
             const zaapId = body?.messageId ?? null;
             const mediaUrl = body?.image?.imageUrl ?? body?.video?.videoUrl ?? body?.document?.documentUrl ?? body?.audio?.audioUrl ?? null;
@@ -143,7 +149,7 @@ export async function POST(req: NextRequest) {
         // Mensagem inbound: tem phone, fromMe=false e texto ou mídia
         const hasContent = body?.text?.message || body?.caption || body?.image || body?.video || body?.document || body?.audio;
         if (body?.fromMe === false && body?.phone && hasContent) {
-            const phone = body?.phone?.replace(/\D/g, '');
+            const phone = body?.phone ? normalizePhone(body.phone) : null;
             const message = body?.text?.message ?? body?.caption ?? null;
             const zaapId = body?.messageId ?? null;
             const mediaUrl = body?.image?.imageUrl ?? body?.video?.videoUrl ?? body?.document?.documentUrl ?? body?.audio?.audioUrl ?? null;

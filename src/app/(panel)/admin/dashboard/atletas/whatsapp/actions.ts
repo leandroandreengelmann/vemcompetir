@@ -56,12 +56,15 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
     })));
 }
 
-function formatPhoneForZapi(phone: string): string {
+// Normaliza telefone sempre com código do país 55
+function normalizePhone(phone: string): string {
     const digits = phone.replace(/\D/g, '');
-    // Já tem código do país (55 + DDD + número = 12 ou 13 dígitos)
     if (digits.startsWith('55') && digits.length >= 12) return digits;
-    // Adiciona 55
     return `55${digits}`;
+}
+
+function formatPhoneForZapi(phone: string): string {
+    return normalizePhone(phone);
 }
 
 function zapiHeaders(config: any) {
@@ -194,7 +197,7 @@ export async function updateConversationStatus(conversationId: string, status: '
 
 export async function ensureConversation(phone: string, contactName?: string, athleteId?: string): Promise<string> {
     const supabase = await createClient();
-    const clean = phone.replace(/\D/g, '');
+    const clean = normalizePhone(phone);
 
     const { data: existing } = await supabase
         .from('whatsapp_conversations')
@@ -224,7 +227,7 @@ export async function sendMessageToPhone(phone: string, body: string) {
     const config = await getWhatsAppConfig();
     if (!config?.connected) throw new Error('WhatsApp desconectado');
 
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = normalizePhone(phone);
 
     // Garante que a conversa existe
     let { data: conv } = await supabase
