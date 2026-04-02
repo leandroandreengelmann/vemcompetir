@@ -591,7 +591,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                             <Label htmlFor="belt_color" className="text-panel-sm font-medium text-muted-foreground">Cor da faixa <span className="text-red-500 ml-1">*</span></Label>
                             <Select
                                 name="belt_color"
-                                defaultValue={profile?.belt_color?.toLowerCase() || undefined}
+                                defaultValue={belts.find(b => b.toLowerCase() === (profile?.belt_color || '').toLowerCase()) || undefined}
                                 onValueChange={(val) => setCurrentBelt(val.toLowerCase())}
                             >
                                 <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-2 focus:ring-primary focus:ring-offset-0 font-medium border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
@@ -599,7 +599,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl">
                                     {belts.map(belt => (
-                                        <SelectItem key={belt} value={belt.toLowerCase()} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">
+                                        <SelectItem key={belt} value={belt} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">
                                             {belt}
                                         </SelectItem>
                                     ))}

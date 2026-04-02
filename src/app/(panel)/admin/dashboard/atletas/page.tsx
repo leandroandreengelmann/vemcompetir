@@ -33,7 +33,7 @@ export default async function AdminAthletesPage() {
     // 4. Inscrições por atleta (status)
     const { data: registrations } = await adminClient
         .from('event_registrations')
-        .select('athlete_id, status, event_id, events(title), created_at, category_id, category_rows(categoria_completa), price');
+        .select('id, athlete_id, status, event_id, events(title), created_at, category_id, category_rows(categoria_completa), price');
 
     // Agrupa inscrições por atleta
     const regMap = new Map<string, any[]>();
@@ -63,6 +63,7 @@ export default async function AdminAthletesPage() {
             full_name: a.full_name ?? '',
             email: auth?.email ?? '',
             email_confirmed: auth?.confirmed ?? false,
+            has_own_account: !!auth?.email && !auth.email.includes('@dummy.competir.com'),
             phone: a.phone ?? null,
             cpf: a.cpf ?? null,
             belt_color: a.belt_color ?? null,

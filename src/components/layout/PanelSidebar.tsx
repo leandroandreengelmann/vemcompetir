@@ -82,7 +82,7 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             roles: ['admin_geral'],
         },
         {
-            label: "Atletas",
+            label: "Central V/S",
             icon: UsersIcon,
             href: "/admin/dashboard/atletas",
             roles: ['admin_geral'],

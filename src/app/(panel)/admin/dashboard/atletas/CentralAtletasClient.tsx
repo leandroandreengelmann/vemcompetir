@@ -6,8 +6,8 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -17,14 +17,13 @@ import {
 import {
     UsersIcon,
     WarningCircleIcon,
-    ShoppingCartIcon,
+    ShoppingCartSimpleIcon,
     ClockIcon,
     MagnifyingGlassIcon,
     CheckCircleIcon,
     XCircleIcon,
     CopyIcon,
-    UserIcon,
-    EnvelopeIcon,
+    EnvelopeSimpleIcon,
     PhoneIcon,
     IdentificationCardIcon,
     ScalesIcon,
@@ -33,8 +32,22 @@ import {
     BuildingsIcon,
     SealCheckIcon,
     FileTextIcon,
+    UserCircleIcon,
+    BabyIcon,
+    WhatsappLogoIcon,
+    ChatTeardropTextIcon,
+    PaperPlaneTiltIcon,
+    GearIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import { formatCategoryTitle } from '@/lib/category-utils';
+import { WhatsAppInbox } from './whatsapp/WhatsAppInbox';
+import { WhatsAppTemplates } from './whatsapp/WhatsAppTemplates';
+import { WhatsAppConfig } from './whatsapp/WhatsAppConfig';
+import { WhatsAppDisparos } from './whatsapp/WhatsAppDisparos';
+
+type MainTab = 'atletas' | 'whatsapp';
+type WhatsAppTab = 'inbox' | 'disparos' | 'templates' | 'config';
 
 interface Registration {
     id: string;
@@ -50,6 +63,7 @@ interface Athlete {
     full_name: string;
     email: string;
     email_confirmed: boolean;
+    has_own_account: boolean;
     phone: string | null;
     cpf: string | null;
     belt_color: string | null;
@@ -66,25 +80,60 @@ interface Athlete {
     counts: { total: number; pago: number; carrinho: number; aguardando: number };
 }
 
-type FilterTab = 'todos' | 'incompleto' | 'sem_termos' | 'carrinho' | 'aguardando' | 'sem_email';
+type FilterTab = 'todos' | 'incompleto' | 'carrinho' | 'aguardando' | 'menor';
+
+const PAGE_SIZE = 50;
 
 const TABS: { key: FilterTab; label: string }[] = [
-    { key: 'todos', label: 'Todos' },
-    { key: 'incompleto', label: 'Cadastro incompleto' },
-    { key: 'sem_termos', label: 'Sem termos' },
-    { key: 'carrinho', label: 'Carrinho abandonado' },
-    { key: 'aguardando', label: 'Aguardando pagamento' },
-    { key: 'sem_email', label: 'Email não confirmado' },
+    { key: 'todos',       label: 'Todos' },
+    { key: 'incompleto',  label: 'Cadastro incompleto' },
+    { key: 'carrinho',    label: 'Carrinho abandonado' },
+    { key: 'aguardando',  label: 'Aguardando pagamento' },
+    { key: 'menor',       label: 'Menores de idade' },
 ];
 
+const BELT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+    branca:   { bg: 'bg-white',        text: 'text-gray-800',   border: 'border-gray-300' },
+    branco:   { bg: 'bg-white',        text: 'text-gray-800',   border: 'border-gray-300' },
+    cinza:    { bg: 'bg-gray-400',     text: 'text-white',      border: 'border-gray-500' },
+    amarela:  { bg: 'bg-yellow-400',   text: 'text-yellow-900', border: 'border-yellow-500' },
+    amarelo:  { bg: 'bg-yellow-400',   text: 'text-yellow-900', border: 'border-yellow-500' },
+    laranja:  { bg: 'bg-orange-500',   text: 'text-white',      border: 'border-orange-600' },
+    verde:    { bg: 'bg-green-600',    text: 'text-white',      border: 'border-green-700' },
+    azul:     { bg: 'bg-blue-600',     text: 'text-white',      border: 'border-blue-700' },
+    roxa:     { bg: 'bg-purple-600',   text: 'text-white',      border: 'border-purple-700' },
+    roxo:     { bg: 'bg-purple-600',   text: 'text-white',      border: 'border-purple-700' },
+    marrom:   { bg: 'bg-amber-800',    text: 'text-white',      border: 'border-amber-900' },
+    preta:    { bg: 'bg-gray-900',     text: 'text-white',      border: 'border-black' },
+    preto:    { bg: 'bg-gray-900',     text: 'text-white',      border: 'border-black' },
+    coral:    { bg: 'bg-red-400',      text: 'text-white',      border: 'border-red-500' },
+    vermelha: { bg: 'bg-red-600',      text: 'text-white',      border: 'border-red-700' },
+    vermelho: { bg: 'bg-red-600',      text: 'text-white',      border: 'border-red-700' },
+};
+
+function getBeltStyle(belt: string | null) {
+    if (!belt) return null;
+    const key = belt.toLowerCase().trim();
+    return BELT_COLORS[key] ?? null;
+}
+
+function isMinor(birth_date: string | null): boolean {
+    if (!birth_date) return false;
+    const today = new Date();
+    const dob = new Date(birth_date);
+    const age = today.getFullYear() - dob.getFullYear() -
+        (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
+    return age < 18;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    pago:                 { label: 'Pago',           className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
-    confirmado:           { label: 'Confirmado',     className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
-    isento:               { label: 'Isento',         className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
-    aguardando_pagamento: { label: 'Aguard. pag.',   className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
-    pendente:             { label: 'Pendente',       className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
-    carrinho:             { label: 'Carrinho',       className: 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400' },
-    cancelado:            { label: 'Cancelado',      className: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' },
+    pago:                 { label: 'Pago',         className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
+    confirmado:           { label: 'Confirmado',   className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
+    isento:               { label: 'Isento',       className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
+    aguardando_pagamento: { label: 'Aguard. pag.', className: 'bg-amber-500/10 text-amber-700 dark:text-amber-400' },
+    pendente:             { label: 'Pendente',     className: 'bg-amber-500/10 text-amber-700 dark:text-amber-400' },
+    carrinho:             { label: 'Carrinho',     className: 'bg-sky-500/10 text-sky-700 dark:text-sky-400' },
+    cancelado:            { label: 'Cancelado',    className: 'bg-destructive/10 text-destructive' },
 };
 
 function formatCpf(cpf?: string | null) {
@@ -121,31 +170,65 @@ function copyToClipboard(value: string, label: string) {
     toast.success(`${label} copiado!`);
 }
 
-function CheckItem({ ok, label }: { ok: boolean; label: string }) {
-    return (
-        <div className={cn('flex items-center gap-2 py-1.5 px-3 rounded-lg text-sm', ok ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400' : 'text-destructive bg-destructive/5')}>
-            {ok
-                ? <CheckCircleIcon size={15} weight="duotone" className="shrink-0" />
-                : <XCircleIcon size={15} weight="duotone" className="shrink-0" />
-            }
-            {label}
-        </div>
-    );
-}
-
 export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
+    const [mainTab, setMainTab] = useState<MainTab>('atletas');
+    const [whatsappTab, setWhatsappTab] = useState<WhatsAppTab>('inbox');
+    const [whatsappPhone, setWhatsappPhone] = useState<string | undefined>();
+
     const [tab, setTab] = useState<FilterTab>('todos');
     const [search, setSearch] = useState('');
     const [selected, setSelected] = useState<Athlete | null>(null);
+    const [page, setPage] = useState(1);
+    const [beltFilter, setBeltFilter] = useState<string | null>(null);
+
+    function openWhatsApp(phone: string) {
+        setWhatsappPhone(phone);
+        setMainTab('whatsapp');
+        setWhatsappTab('inbox');
+    }
+
+    const availableBelts = useMemo(() => {
+        // key normalizada (lowercase) → { label original capitalizado, count }
+        const counts = new Map<string, { label: string; count: number }>();
+        for (const a of athletes) {
+            if (a.belt_color) {
+                const key = a.belt_color.trim().toLowerCase();
+                const label = a.belt_color.trim().charAt(0).toUpperCase() + a.belt_color.trim().slice(1).toLowerCase();
+                const prev = counts.get(key);
+                counts.set(key, { label: prev?.label ?? label, count: (prev?.count ?? 0) + 1 });
+            }
+        }
+        const order = ['branca', 'cinza', 'amarela', 'laranja', 'verde', 'azul', 'roxa', 'marrom', 'preta', 'coral', 'vermelha'];
+        return [...counts.entries()]
+            .sort(([a], [b]) => {
+                const ia = order.indexOf(a);
+                const ib = order.indexOf(b);
+                if (ia === -1 && ib === -1) return a.localeCompare(b);
+                if (ia === -1) return 1;
+                if (ib === -1) return -1;
+                return ia - ib;
+            })
+            .map(([key, { label, count }]) => ({ belt: key, label, count }));
+    }, [athletes]);
+
+    const tabCounts = useMemo(() => ({
+        incompleto: athletes.filter(a => !a.is_complete).length,
+        carrinho:   athletes.filter(a => a.counts.carrinho > 0).length,
+        aguardando: athletes.filter(a => a.counts.aguardando > 0).length,
+        menor:      athletes.filter(a => isMinor(a.birth_date)).length,
+    }), [athletes]);
 
     const filtered = useMemo(() => {
+        setPage(1);
         let list = athletes;
-
-        if (tab === 'incompleto') list = list.filter(a => !a.is_complete);
-        else if (tab === 'sem_termos') list = list.filter(a => !a.has_terms);
-        else if (tab === 'carrinho') list = list.filter(a => a.counts.carrinho > 0);
+        if (tab === 'incompleto')      list = list.filter(a => !a.is_complete);
+        else if (tab === 'carrinho')   list = list.filter(a => a.counts.carrinho > 0);
         else if (tab === 'aguardando') list = list.filter(a => a.counts.aguardando > 0);
-        else if (tab === 'sem_email') list = list.filter(a => !a.email_confirmed);
+        else if (tab === 'menor')      list = list.filter(a => isMinor(a.birth_date));
+
+        if (beltFilter) {
+            list = list.filter(a => (a.belt_color ?? '').toLowerCase().trim() === beltFilter);
+        }
 
         if (search.trim()) {
             const q = search.toLowerCase().trim();
@@ -156,117 +239,181 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                 (a.phone ?? '').includes(q.replace(/\D/g, ''))
             );
         }
-
         return list;
-    }, [athletes, tab, search]);
+    }, [athletes, tab, beltFilter, search]);
 
-    const kpis = useMemo(() => ({
-        total: athletes.length,
-        incompleto: athletes.filter(a => !a.is_complete).length,
-        carrinho: athletes.filter(a => a.counts.carrinho > 0).length,
-        aguardando: athletes.filter(a => a.counts.aguardando > 0).length,
-    }), [athletes]);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     return (
         <div className="space-y-6">
-            <SectionHeader
-                title="Central de Atletas"
-                description="Visão completa de cadastros, inscrições e pagamentos pendentes."
-            />
+            {/* Header + tabs principais */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h1 className="text-panel-lg font-black tracking-tight">Central V/S</h1>
+                    <p className="text-panel-sm text-muted-foreground mt-1">
+                        Visão completa de cadastros, inscrições e comunicação.
+                    </p>
+                </div>
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border w-fit">
+                    <button
+                        onClick={() => setMainTab('atletas')}
+                        className={cn(
+                            'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-panel-sm font-semibold transition-all',
+                            mainTab === 'atletas'
+                                ? 'bg-background text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                        )}
+                    >
+                        <UsersIcon size={16} weight="duotone" />
+                        Atletas
+                    </button>
+                    <button
+                        onClick={() => setMainTab('whatsapp')}
+                        className={cn(
+                            'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-panel-sm font-semibold transition-all',
+                            mainTab === 'whatsapp'
+                                ? 'bg-background text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                        )}
+                    >
+                        <WhatsappLogoIcon size={16} weight="duotone" />
+                        WhatsApp
+                    </button>
+                </div>
+            </div>
+
+            {/* ── ABA WHATSAPP ── */}
+            {mainTab === 'whatsapp' && (
+                <div className="space-y-4">
+                    {/* Sub-tabs */}
+                    <div className="flex gap-1 border-b">
+                        {([
+                            { key: 'inbox',     label: 'Inbox',      icon: ChatTeardropTextIcon },
+                            { key: 'disparos',  label: 'Disparos',   icon: PaperPlaneTiltIcon },
+                            { key: 'templates', label: 'Templates',  icon: FileTextIcon },
+                            { key: 'config',    label: 'Config',     icon: GearIcon },
+                        ] as { key: WhatsAppTab; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
+                            <button
+                                key={key}
+                                onClick={() => setWhatsappTab(key)}
+                                className={cn(
+                                    'inline-flex items-center gap-2 px-4 py-2.5 text-panel-sm font-semibold border-b-2 -mb-px transition-all',
+                                    whatsappTab === key
+                                        ? 'border-foreground text-foreground'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                )}
+                            >
+                                <Icon size={16} weight="duotone" />
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {whatsappTab === 'inbox' && <WhatsAppInbox initialPhone={whatsappPhone} />}
+                    {whatsappTab === 'disparos' && <WhatsAppDisparos />}
+                    {whatsappTab === 'templates' && <WhatsAppTemplates />}
+                    {whatsappTab === 'config' && <WhatsAppConfig />}
+                </div>
+            )}
+
+            {/* ── ABA ATLETAS ── */}
+            {mainTab === 'atletas' && (<>
 
             {/* KPIs */}
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-                <Card className="relative overflow-hidden border-none shadow-md cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setTab('todos')}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-600/5 pointer-events-none" />
-                    <CardContent className="pt-5 pb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
-                                <UsersIcon size={20} weight="duotone" className="text-blue-600" />
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                {[
+                    { key: 'todos' as FilterTab,     label: 'Total de atletas',      value: athletes.length,      icon: UsersIcon,              color: 'blue' },
+                    { key: 'incompleto' as FilterTab, label: 'Cadastro incompleto',   value: tabCounts.incompleto, icon: WarningCircleIcon,       color: 'amber' },
+                    { key: 'carrinho' as FilterTab,   label: 'Carrinho abandonado',   value: tabCounts.carrinho,   icon: ShoppingCartSimpleIcon,  color: 'purple' },
+                    { key: 'aguardando' as FilterTab, label: 'Aguardando pagamento',  value: tabCounts.aguardando, icon: ClockIcon,               color: 'orange' },
+                    { key: 'menor' as FilterTab,      label: 'Menores de idade',      value: tabCounts.menor,      icon: BabyIcon,                color: 'pink' },
+                ].map(({ key, label, value, icon: Icon, color }) => (
+                    <Card
+                        key={key}
+                        className="shadow-none cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => setTab(key)}
+                    >
+                        <CardContent className="pt-5 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl bg-${color}-500/10`}>
+                                    <Icon size={20} weight="duotone" className={`text-${color}-600`} />
+                                </div>
+                                <div>
+                                    <p className="text-panel-sm text-muted-foreground">{label}</p>
+                                    <p className="text-panel-lg font-black tabular-nums">{value}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground font-medium">Total atletas</p>
-                                <p className="text-2xl font-black tabular-nums">{kpis.total}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="relative overflow-hidden border-none shadow-md cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setTab('incompleto')}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-amber-600/5 pointer-events-none" />
-                    <CardContent className="pt-5 pb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                                <WarningCircleIcon size={20} weight="duotone" className="text-amber-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground font-medium">Cadastro incompleto</p>
-                                <p className="text-2xl font-black tabular-nums">{kpis.incompleto}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="relative overflow-hidden border-none shadow-md cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setTab('carrinho')}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-purple-600/5 pointer-events-none" />
-                    <CardContent className="pt-5 pb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
-                                <ShoppingCartIcon size={20} weight="duotone" className="text-purple-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground font-medium">Carrinho abandonado</p>
-                                <p className="text-2xl font-black tabular-nums">{kpis.carrinho}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="relative overflow-hidden border-none shadow-md cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setTab('aguardando')}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-orange-600/5 pointer-events-none" />
-                    <CardContent className="pt-5 pb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
-                                <ClockIcon size={20} weight="duotone" className="text-orange-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground font-medium">Aguardando pag.</p>
-                                <p className="text-2xl font-black tabular-nums">{kpis.aguardando}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
 
             {/* Filtros + busca */}
             <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
-                    {TABS.map(t => (
-                        <button
-                            key={t.key}
-                            onClick={() => setTab(t.key)}
-                            className={cn(
-                                'px-3 py-1.5 rounded-full text-xs font-semibold border transition-all',
-                                tab === t.key
-                                    ? 'bg-foreground text-background border-foreground'
-                                    : 'bg-muted/40 text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground'
-                            )}
-                        >
-                            {t.label}
-                            {t.key !== 'todos' && (
-                                <span className="ml-1.5 opacity-70">
-                                    {t.key === 'incompleto' && kpis.incompleto}
-                                    {t.key === 'carrinho' && kpis.carrinho}
-                                    {t.key === 'aguardando' && kpis.aguardando}
-                                    {t.key === 'sem_termos' && athletes.filter(a => !a.has_terms).length}
-                                    {t.key === 'sem_email' && athletes.filter(a => !a.email_confirmed).length}
-                                </span>
-                            )}
-                        </button>
-                    ))}
+                    {TABS.map(t => {
+                        const count = t.key !== 'todos' ? tabCounts[t.key as keyof typeof tabCounts] : null;
+                        return (
+                            <button
+                                key={t.key}
+                                onClick={() => setTab(t.key)}
+                                className={cn(
+                                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-panel-sm font-semibold border transition-all',
+                                    tab === t.key
+                                        ? 'bg-foreground text-background border-foreground'
+                                        : 'bg-muted/40 text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground'
+                                )}
+                            >
+                                {t.label}
+                                {count !== null && (
+                                    <span className={cn(
+                                        'text-panel-sm font-black px-2.5 py-0.5 rounded-full leading-none tabular-nums',
+                                        tab === t.key ? 'bg-background/20 text-background' : 'bg-muted text-muted-foreground'
+                                    )}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
 
+                {/* Filtro por faixa */}
+                {availableBelts.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {availableBelts.map(({ belt, label, count }) => {
+                            const style = getBeltStyle(belt);
+                            const isActive = beltFilter === belt;
+                            return (
+                                <button
+                                    key={belt}
+                                    onClick={() => setBeltFilter(isActive ? null : belt)}
+                                    className={cn(
+                                        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-panel-sm font-semibold border transition-all',
+                                        isActive
+                                            ? (style ? cn(style.bg, style.text, style.border) : 'bg-foreground text-background border-foreground')
+                                            : 'bg-muted/40 text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground'
+                                    )}
+                                >
+                                    {style && (
+                                        <span className={cn('size-3 rounded-full border shrink-0', style.bg, style.border)} />
+                                    )}
+                                    {label}
+                                    <span className={cn(
+                                        'text-panel-sm font-black px-2 py-0.5 rounded-full leading-none tabular-nums',
+                                        isActive ? 'bg-black/20 text-inherit' : 'bg-muted text-muted-foreground'
+                                    )}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
                 <div className="relative max-w-sm">
-                    <MagnifyingGlassIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <MagnifyingGlassIcon size={18} weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         placeholder="Buscar por nome, email, CPF ou telefone..."
                         value={search}
@@ -277,128 +424,138 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
             </div>
 
             {/* Tabela */}
-            <Card className="border-none shadow-md overflow-hidden">
-                <CardHeader className="border-b bg-muted/20 py-3 px-6">
-                    <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                            <UsersIcon size={16} weight="duotone" />
-                            {filtered.length} {filtered.length === 1 ? 'atleta' : 'atletas'}
-                        </span>
+            <Card className="shadow-none">
+                <CardHeader className="pb-3 border-b">
+                    <CardTitle className="text-panel-md font-semibold flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <UsersIcon size={20} weight="duotone" className="text-muted-foreground" />
+                            Atletas
+                        </div>
+                        <Badge variant="secondary" className="rounded-full">{filtered.length}</Badge>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent">
-                                <TableHead className="pl-6 w-10" />
-                                <TableHead>Atleta</TableHead>
-                                <TableHead>Contato</TableHead>
-                                <TableHead className="text-center">Cadastro</TableHead>
-                                <TableHead className="text-center">Termos</TableHead>
-                                <TableHead className="text-center">Inscrições</TableHead>
-                                <TableHead>Academia</TableHead>
-                                <TableHead className="text-right pr-6">Desde</TableHead>
+                                <TableHead className="pl-6 w-12" />
+                                <TableHead className="text-panel-sm font-semibold">Atleta</TableHead>
+                                <TableHead className="text-panel-sm font-semibold">Contato</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-center">Cadastro</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-center">Conta</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-center">Inscrições</TableHead>
+                                <TableHead className="text-panel-sm font-semibold">Academia</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-right pr-6">Desde</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filtered.length > 0 ? filtered.map(athlete => (
+                            {filtered.length > 0 ? paginated.map(athlete => (
                                 <TableRow
                                     key={athlete.id}
                                     className="hover:bg-muted/30 transition-colors cursor-pointer"
                                     onClick={() => setSelected(athlete)}
                                 >
                                     <TableCell className="pl-6">
-                                        <div className={cn('size-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm', getAvatarColor(athlete.id))}>
+                                        <div className={cn('size-9 rounded-full flex items-center justify-center text-white text-xs font-bold', getAvatarColor(athlete.id))}>
                                             {getInitials(athlete.full_name)}
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="flex flex-col gap-0.5">
-                                            <span className="font-semibold text-sm">{athlete.full_name}</span>
-                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                {athlete.email_confirmed
-                                                    ? <SealCheckIcon size={11} className="text-emerald-500" weight="duotone" />
-                                                    : <XCircleIcon size={11} className="text-destructive" weight="duotone" />
-                                                }
-                                                {athlete.email || <span className="italic">sem email</span>}
+                                            <span className="flex items-center gap-2">
+                                                <span className="text-panel-sm font-semibold">{athlete.full_name}</span>
+                                                {isMinor(athlete.birth_date) && (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-panel-sm font-bold bg-pink-500/10 text-pink-700 dark:text-pink-400">
+                                                        <BabyIcon size={16} weight="duotone" />
+                                                        Menor de idade
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="text-panel-sm text-muted-foreground flex items-center gap-1">
+                                                <span>{athlete.email || '—'}</span>
                                             </span>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
-                                        <div className="flex flex-col gap-0.5 text-xs">
-                                            {athlete.phone
-                                                ? <span className="font-medium">{formatPhone(athlete.phone)}</span>
-                                                : <span className="text-muted-foreground italic">Sem telefone</span>
-                                            }
-                                            {athlete.cpf
-                                                ? <span className="text-muted-foreground font-mono">{formatCpf(athlete.cpf)}</span>
-                                                : <span className="text-muted-foreground italic">Sem CPF</span>
-                                            }
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-panel-sm font-medium">
+                                                {formatPhone(athlete.phone) ?? <span className="text-muted-foreground italic">Sem telefone</span>}
+                                            </span>
+                                            <span className="text-panel-sm text-muted-foreground font-mono">
+                                                {formatCpf(athlete.cpf) ?? <span className="not-italic">—</span>}
+                                            </span>
                                         </div>
                                     </TableCell>
 
                                     <TableCell className="text-center">
                                         {athlete.is_complete ? (
-                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                                <CheckCircleIcon size={12} weight="duotone" /> Completo
-                                            </span>
+                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                                <CheckCircleIcon size={16} weight="duotone" />
+                                                Completo
+                                            </div>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                                <WarningCircleIcon size={12} weight="duotone" /> {athlete.missing_fields.length} campo{athlete.missing_fields.length > 1 ? 's' : ''}
-                                            </span>
+                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                                                <WarningCircleIcon size={16} weight="duotone" />
+                                                {athlete.missing_fields.length} campo{athlete.missing_fields.length > 1 ? 's' : ''}
+                                            </div>
                                         )}
                                     </TableCell>
 
                                     <TableCell className="text-center">
-                                        {athlete.has_terms ? (
-                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                                <CheckCircleIcon size={12} weight="duotone" /> Aceito
-                                            </span>
+                                        {athlete.has_own_account ? (
+                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                                                <UserCircleIcon size={16} weight="duotone" />
+                                                Própria
+                                            </div>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                                                <XCircleIcon size={12} weight="duotone" /> Nunca
-                                            </span>
+                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-muted text-muted-foreground">
+                                                <BuildingsIcon size={16} weight="duotone" />
+                                                Academia
+                                            </div>
                                         )}
                                     </TableCell>
 
                                     <TableCell className="text-center">
-                                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                        <div className="flex items-center justify-center gap-2 flex-wrap">
                                             {athlete.counts.pago > 0 && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700">
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 tabular-nums">
+                                                    <CheckCircleIcon size={16} weight="duotone" />
                                                     {athlete.counts.pago} pago
-                                                </span>
+                                                </div>
                                             )}
                                             {athlete.counts.carrinho > 0 && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700">
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-sky-500/10 text-sky-700 dark:text-sky-400 tabular-nums">
+                                                    <ShoppingCartSimpleIcon size={16} weight="duotone" />
                                                     {athlete.counts.carrinho} carrinho
-                                                </span>
+                                                </div>
                                             )}
                                             {athlete.counts.aguardando > 0 && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700">
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 tabular-nums">
+                                                    <ClockIcon size={16} weight="duotone" />
                                                     {athlete.counts.aguardando} aguard.
-                                                </span>
+                                                </div>
                                             )}
                                             {athlete.counts.total === 0 && (
-                                                <span className="text-xs text-muted-foreground">—</span>
+                                                <span className="text-panel-sm text-muted-foreground">—</span>
                                             )}
                                         </div>
                                     </TableCell>
 
-                                    <TableCell className="text-sm">
+                                    <TableCell className="text-panel-sm">
                                         {athlete.tenant_name ?? athlete.gym_name
                                             ? <span className="font-medium">{athlete.tenant_name ?? athlete.gym_name}</span>
-                                            : <span className="text-muted-foreground italic text-xs">Sem academia</span>
+                                            : <span className="text-muted-foreground italic">Sem academia</span>
                                         }
                                     </TableCell>
 
                                     <TableCell className="text-right pr-6">
                                         <div className="flex flex-col items-end gap-0.5">
-                                            <span className="text-sm font-medium">
+                                            <span className="text-panel-sm font-medium">
                                                 {format(new Date(athlete.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                                             </span>
-                                            <span className="text-xs text-muted-foreground">
+                                            <span className="text-panel-sm text-muted-foreground">
                                                 {format(new Date(athlete.created_at), 'HH:mm', { locale: ptBR })}
                                             </span>
                                         </div>
@@ -409,7 +566,7 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                                     <TableCell colSpan={8} className="h-40 text-center">
                                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                             <UsersIcon size={32} weight="duotone" className="opacity-30" />
-                                            <p className="text-sm italic">Nenhum atleta encontrado.</p>
+                                            <p className="text-panel-sm italic">Nenhum atleta encontrado.</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -419,132 +576,205 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                 </CardContent>
             </Card>
 
+            {/* Paginação */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                    <p className="text-panel-sm text-muted-foreground">
+                        Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} atletas
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="h-9 px-3 rounded-lg text-panel-sm font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40"
+                        >
+                            Anterior
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                                acc.push(p);
+                                return acc;
+                            }, [])
+                            .map((p, idx) =>
+                                p === '...'
+                                    ? <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground text-panel-sm">…</span>
+                                    : <button
+                                        key={p}
+                                        onClick={() => setPage(p as number)}
+                                        className={cn(
+                                            'size-9 rounded-lg text-panel-sm font-semibold border transition-all',
+                                            page === p
+                                                ? 'bg-foreground text-background border-foreground'
+                                                : 'hover:bg-muted/40 border-border'
+                                        )}
+                                    >
+                                        {p}
+                                    </button>
+                            )}
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="h-9 px-3 rounded-lg text-panel-sm font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40"
+                        >
+                            Próximo
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Drawer de detalhes */}
             <Sheet open={!!selected} onOpenChange={open => !open && setSelected(null)}>
-                <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto p-0">
+                <SheetContent className="w-full sm:max-w-[650px] overflow-y-auto p-0">
                     {selected && (
-                        <div className="flex flex-col h-full">
-                            {/* Header */}
-                            <div className="p-6 border-b bg-muted/20">
+                        <div className="flex flex-col">
+                            {/* Header do drawer */}
+                            <div className="p-6 border-b">
                                 <div className="flex items-center gap-4">
-                                    <div className={cn('size-14 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-md', getAvatarColor(selected.id))}>
+                                    <div className={cn('size-16 rounded-2xl flex items-center justify-center text-white font-black text-xl shrink-0', getAvatarColor(selected.id))}>
                                         {getInitials(selected.full_name)}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <SheetTitle className="text-base font-black truncate">{selected.full_name}</SheetTitle>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                            Cadastrado em {format(new Date(selected.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                        <SheetTitle className="text-panel-lg font-black truncate">{selected.full_name}</SheetTitle>
+                                        <p className="text-panel-sm text-muted-foreground mt-0.5">
+                                            Desde {format(new Date(selected.created_at), "dd/MM/yyyy", { locale: ptBR })}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                        <div className="flex items-center gap-2 mt-3 flex-wrap">
                                             {selected.is_complete
-                                                ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700"><CheckCircleIcon size={10} weight="duotone" /> Cadastro completo</span>
-                                                : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700"><WarningCircleIcon size={10} weight="duotone" /> Cadastro incompleto</span>
+                                                ? <div className="inline-flex items-center gap-1.5 text-panel-sm font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700"><CheckCircleIcon size={16} weight="duotone" /> Completo</div>
+                                                : <div className="inline-flex items-center gap-1.5 text-panel-sm font-semibold px-3 py-1 rounded-full bg-amber-500/10 text-amber-700"><WarningCircleIcon size={16} weight="duotone" /> Incompleto</div>
                                             }
-                                            {selected.has_terms
-                                                ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700"><FileTextIcon size={10} weight="duotone" /> Termos aceitos</span>
-                                                : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground"><FileTextIcon size={10} weight="duotone" /> Sem termos</span>
+                                            {selected.has_own_account
+                                                ? <div className="inline-flex items-center gap-1.5 text-panel-sm font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-700"><UserCircleIcon size={16} weight="duotone" /> Conta própria</div>
+                                                : <div className="inline-flex items-center gap-1.5 text-panel-sm font-semibold px-3 py-1 rounded-full bg-muted text-muted-foreground"><BuildingsIcon size={16} weight="duotone" /> Criada pela academia</div>
                                             }
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex-1 p-6 space-y-6">
+                            <div className="p-6 space-y-6">
                                 {/* Contato */}
-                                <div className="space-y-2">
-                                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contato</h3>
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/40">
-                                            <div className="flex items-center gap-2.5 min-w-0">
-                                                <EnvelopeIcon size={15} weight="duotone" className="text-muted-foreground shrink-0" />
-                                                <span className="text-sm truncate">{selected.email || <span className="italic text-muted-foreground">Sem email</span>}</span>
-                                                {selected.email_confirmed
-                                                    ? <SealCheckIcon size={13} className="text-emerald-500 shrink-0" weight="duotone" />
-                                                    : <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full shrink-0">Não confirmado</span>
-                                                }
+                                <div className="space-y-3">
+                                    <h2 className="text-panel-md font-semibold border-b pb-2">Contato</h2>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <EnvelopeSimpleIcon size={20} weight="duotone" className="text-muted-foreground shrink-0" />
+                                                <span className="text-panel-sm">{selected.email || <span className="italic text-muted-foreground">Sem email</span>}</span>
                                             </div>
                                             {selected.email && (
-                                                <button onClick={() => copyToClipboard(selected.email, 'Email')} className="text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-2">
-                                                    <CopyIcon size={14} />
+                                                <button onClick={() => copyToClipboard(selected.email, 'Email')} className="text-muted-foreground hover:text-foreground transition-colors ml-2 shrink-0">
+                                                    <CopyIcon size={18} weight="duotone" />
                                                 </button>
                                             )}
                                         </div>
 
-                                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/40">
-                                            <div className="flex items-center gap-2.5">
-                                                <PhoneIcon size={15} weight="duotone" className="text-muted-foreground shrink-0" />
-                                                <span className="text-sm">{formatPhone(selected.phone) ?? <span className="italic text-muted-foreground">Sem telefone</span>}</span>
+                                        <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                                            <div className="flex items-center gap-3">
+                                                <PhoneIcon size={20} weight="duotone" className="text-muted-foreground shrink-0" />
+                                                <span className="text-panel-sm">{formatPhone(selected.phone) ?? <span className="italic text-muted-foreground">Sem telefone</span>}</span>
                                             </div>
                                             {selected.phone && (
-                                                <button onClick={() => copyToClipboard(selected.phone!, 'Telefone')} className="text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-2">
-                                                    <CopyIcon size={14} />
-                                                </button>
+                                                <div className="flex items-center gap-1 ml-2 shrink-0">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelected(null);
+                                                            openWhatsApp(selected.phone!);
+                                                        }}
+                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors text-panel-sm font-semibold"
+                                                    >
+                                                        <WhatsappLogoIcon size={16} weight="duotone" />
+                                                        Conversar
+                                                    </button>
+                                                    <button onClick={() => copyToClipboard(selected.phone!, 'Telefone')} className="text-muted-foreground hover:text-foreground transition-colors">
+                                                        <CopyIcon size={18} weight="duotone" />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Dados pessoais */}
-                                <div className="space-y-2">
-                                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Dados Pessoais</h3>
-                                    <div className="grid grid-cols-2 gap-1.5">
+                                <div className="space-y-3">
+                                    <h2 className="text-panel-md font-semibold border-b pb-2">Dados Pessoais</h2>
+                                    <div className="grid grid-cols-2 gap-3">
                                         {[
-                                            { icon: IdentificationCardIcon, label: 'CPF', value: formatCpf(selected.cpf) },
-                                            { icon: GenderIntersexIcon, label: 'Sexo', value: selected.sexo },
-                                            { icon: CalendarBlankIcon, label: 'Nascimento', value: selected.birth_date ? format(new Date(selected.birth_date), 'dd/MM/yyyy') : null },
-                                            { icon: ScalesIcon, label: 'Peso', value: selected.weight ? `${selected.weight} kg` : null },
-                                            { icon: UserIcon, label: 'Faixa', value: selected.belt_color },
-                                            { icon: BuildingsIcon, label: 'Academia', value: selected.tenant_name ?? selected.gym_name },
+                                            { icon: IdentificationCardIcon, label: 'CPF',        value: formatCpf(selected.cpf) },
+                                            { icon: GenderIntersexIcon,     label: 'Sexo',       value: selected.sexo },
+                                            { icon: CalendarBlankIcon,      label: 'Nascimento', value: selected.birth_date ? format(new Date(selected.birth_date), 'dd/MM/yyyy') : null },
+                                            { icon: ScalesIcon,             label: 'Peso',       value: selected.weight ? `${selected.weight} kg` : null },
+                                            { icon: UserCircleIcon,         label: 'Faixa',      value: selected.belt_color },
+                                            { icon: BuildingsIcon,          label: 'Academia',   value: selected.tenant_name ?? selected.gym_name },
                                         ].map(({ icon: Icon, label, value }) => (
-                                            <div key={label} className="p-2.5 rounded-xl bg-muted/40">
-                                                <div className="flex items-center gap-1.5 mb-1">
-                                                    <Icon size={12} weight="duotone" className="text-muted-foreground" />
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+                                            <div key={label} className="p-4 rounded-xl border bg-muted/30">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Icon size={18} weight="duotone" className="text-muted-foreground" />
+                                                    <span className="text-panel-sm font-semibold text-muted-foreground">{label}</span>
                                                 </div>
-                                                <span className="text-sm font-medium">{value ?? <span className="text-muted-foreground italic text-xs">—</span>}</span>
+                                                {label === 'Faixa' && value ? (() => {
+                                                    const style = getBeltStyle(value as string);
+                                                    return style ? (
+                                                        <span className={cn(
+                                                            'inline-flex items-center px-3 py-1.5 rounded-full text-panel-sm font-bold border',
+                                                            style.bg, style.text, style.border
+                                                        )}>
+                                                            {value}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-panel-sm font-medium">{value}</span>
+                                                    );
+                                                })() : (
+                                                    <span className="text-panel-sm font-medium">
+                                                        {value ?? <span className="text-muted-foreground italic">—</span>}
+                                                    </span>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* Completude */}
+                                {/* Campos faltando */}
                                 {!selected.is_complete && (
-                                    <div className="space-y-2">
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Campos faltando</h3>
-                                        <div className="grid grid-cols-2 gap-1.5">
-                                            {selected.missing_fields.map(f => (
-                                                <CheckItem key={f} ok={false} label={f} />
-                                            ))}
+                                    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4">
+                                        <WarningCircleIcon size={20} weight="duotone" className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p className="text-ui font-medium text-amber-800 dark:text-amber-300">Cadastro incompleto</p>
+                                            <p className="text-caption text-amber-700 dark:text-amber-400">
+                                                Faltam: {selected.missing_fields.join(', ')}
+                                            </p>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Inscrições */}
-                                <div className="space-y-2">
-                                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                                <div className="space-y-3">
+                                    <h2 className="text-panel-md font-semibold border-b pb-2 flex items-center justify-between">
                                         Inscrições
-                                        <span className="normal-case font-semibold text-foreground">{selected.registrations.length}</span>
-                                    </h3>
+                                        <Badge variant="secondary" className="rounded-full">{selected.registrations.length}</Badge>
+                                    </h2>
                                     {selected.registrations.length > 0 ? (
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-2">
                                             {selected.registrations.map(reg => {
                                                 const cfg = STATUS_CONFIG[reg.status] ?? STATUS_CONFIG.pendente;
                                                 return (
-                                                    <div key={reg.id} className="p-3 rounded-xl border bg-background">
-                                                        <div className="flex items-start justify-between gap-2">
+                                                    <div key={reg.id} className="p-4 rounded-xl border bg-muted/30">
+                                                        <div className="flex items-start justify-between gap-3">
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold truncate">{reg.event_title}</p>
-                                                                <p className="text-xs text-muted-foreground truncate mt-0.5">{reg.category}</p>
+                                                                <p className="text-panel-sm font-semibold truncate">{reg.event_title}</p>
+                                                                <p className="text-panel-sm text-muted-foreground truncate mt-0.5">{formatCategoryTitle({ categoria_completa: reg.category })}</p>
                                                             </div>
-                                                            <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0', cfg.className)}>
+                                                            <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-panel-sm font-medium shrink-0', cfg.className)}>
                                                                 {cfg.label}
-                                                            </span>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center justify-between mt-2">
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {format(new Date(reg.created_at), 'dd/MM/yy HH:mm')}
+                                                        <div className="flex items-center justify-between mt-3">
+                                                            <span className="text-panel-sm text-muted-foreground">
+                                                                {format(new Date(reg.created_at), "dd/MM/yy 'às' HH:mm")}
                                                             </span>
-                                                            <span className="text-xs font-semibold">
+                                                            <span className="text-panel-sm font-semibold tabular-nums">
                                                                 {reg.price > 0 ? `R$ ${reg.price.toFixed(2).replace('.', ',')}` : 'Grátis'}
                                                             </span>
                                                         </div>
@@ -553,7 +783,9 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                                             })}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-muted-foreground italic text-center py-4">Nenhuma inscrição.</p>
+                                        <p className="text-panel-sm text-muted-foreground italic text-center py-6">
+                                            Nenhuma inscrição registrada.
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -561,6 +793,7 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                     )}
                 </SheetContent>
             </Sheet>
+            </>)}
         </div>
     );
 }
