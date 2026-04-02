@@ -55,6 +55,11 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const [isPendingStatus, startStatusTransition] = useTransition();
     const [typingPhones, setTypingPhones] = useState<Set<string>>(new Set());
     const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+    const selectedIdRef = useRef<string | null>(null);
+    const statusFilterRef = useRef<string>('aberta');
+
+    useEffect(() => { selectedIdRef.current = selected?.id ?? null; }, [selected?.id]);
+    useEffect(() => { statusFilterRef.current = statusFilter; }, [statusFilter]);
 
     useEffect(() => { loadConversations(); }, [statusFilter]);
 
@@ -69,53 +74,31 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Mensagens em tempo real — aparece na tela sem precisar clicar
+    // Realtime — canal único, montado uma vez, usa refs para evitar closure stale
     useEffect(() => {
         const supabase = createClient();
 
-        // Novas mensagens na conversa aberta
-        const msgChannel = supabase
-            .channel('whatsapp-messages-realtime')
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'whatsapp_messages',
-            }, (payload) => {
+        const channel = supabase
+            .channel('whatsapp-realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
                 const msg = payload.new as any;
-                if (selected && msg.conversation_id === selected.id) {
-                    setMessages(prev => {
-                        if (prev.find(m => m.id === msg.id)) return prev;
-                        return [...prev, msg];
-                    });
+                if (selectedIdRef.current && msg.conversation_id === selectedIdRef.current) {
+                    setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg]);
                 }
+                // Atualiza lista de conversas com o filtro atual
+                getConversations(statusFilterRef.current).then(setConversations);
             })
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'whatsapp_messages',
-            }, (payload) => {
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
                 const msg = payload.new as any;
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: msg.status } : m));
             })
-            .subscribe();
-
-        // Atualiza lista de conversas quando chegar mensagem nova
-        const convChannel = supabase
-            .channel('whatsapp-conversations-realtime')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'whatsapp_conversations',
-            }, () => {
-                loadConversations();
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_conversations' }, () => {
+                getConversations(statusFilterRef.current).then(setConversations);
             })
             .subscribe();
 
-        return () => {
-            supabase.removeChannel(msgChannel);
-            supabase.removeChannel(convChannel);
-        };
-    }, [selected?.id, statusFilter]);
+        return () => { supabase.removeChannel(channel); };
+    }, []);
 
     // Presença em tempo real via Supabase Realtime
     useEffect(() => {
