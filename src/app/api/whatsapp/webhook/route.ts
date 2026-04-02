@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Fallback: Z-API sem campo type — detecta pelo conteúdo ──
+        console.log('[FALLBACK payload]', JSON.stringify({ fromMe: body?.fromMe, messageId: body?.messageId, type: body?.type, keys: Object.keys(body ?? {}) }));
 
         // Echo "Ao enviar": fromMe=true, tem messageId (ID nativo WhatsApp)
         // Atualiza o zapi_message_id da mensagem enviada para o ID que o status callback usa
