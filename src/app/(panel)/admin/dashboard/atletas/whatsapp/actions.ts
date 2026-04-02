@@ -118,8 +118,9 @@ export async function sendMessage(conversationId: string, body: string) {
             body: JSON.stringify({ phone, message: body }),
         }
     );
-    if (!res.ok) throw new Error('Falha ao enviar mensagem');
     const json = await res.json();
+    console.log('[Z-API send response]', res.status, JSON.stringify(json));
+    if (!res.ok) throw new Error(`Falha ao enviar: ${JSON.stringify(json)}`);
 
     const { data: { user } } = await supabase.auth.getUser();
 
