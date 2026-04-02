@@ -38,6 +38,7 @@ import {
     ChatTeardropTextIcon,
     PaperPlaneTiltIcon,
     GearIcon,
+    SpinnerGapIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatCategoryTitle } from '@/lib/category-utils';
@@ -175,6 +176,7 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
     const [mainTab, setMainTab] = useState<MainTab>('atletas');
     const [whatsappTab, setWhatsappTab] = useState<WhatsAppTab>('inbox');
     const [whatsappConvId, setWhatsappConvId] = useState<string | undefined>();
+    const [openingChat, setOpeningChat] = useState(false);
 
     const [tab, setTab] = useState<FilterTab>('todos');
     const [search, setSearch] = useState('');
@@ -183,10 +185,18 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
     const [beltFilter, setBeltFilter] = useState<string | null>(null);
 
     async function openWhatsApp(phone: string, name: string, athleteId: string) {
-        const convId = await ensureConversation(phone, name, athleteId);
-        setWhatsappConvId(convId);
-        setMainTab('whatsapp');
-        setWhatsappTab('inbox');
+        setOpeningChat(true);
+        try {
+            const convId = await ensureConversation(phone, name, athleteId);
+            setWhatsappConvId(convId);
+            setMainTab('whatsapp');
+            setWhatsappTab('inbox');
+            setSelected(null);
+        } catch {
+            toast.error('Erro ao abrir conversa.');
+        } finally {
+            setOpeningChat(false);
+        }
     }
 
     const availableBelts = useMemo(() => {
@@ -681,13 +691,14 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                                             {selected.phone && (
                                                 <div className="flex items-center gap-1 ml-2 shrink-0">
                                                     <button
-                                                        onClick={() => {
-                                                            setSelected(null);
-                                                            openWhatsApp(selected.phone!, selected.full_name, selected.id);
-                                                        }}
-                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors text-panel-sm font-semibold"
+                                                        onClick={() => openWhatsApp(selected.phone!, selected.full_name, selected.id)}
+                                                        disabled={openingChat}
+                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors text-panel-sm font-semibold disabled:opacity-60"
                                                     >
-                                                        <WhatsappLogoIcon size={16} weight="duotone" />
+                                                        {openingChat
+                                                            ? <SpinnerGapIcon size={16} weight="bold" className="animate-spin" />
+                                                            : <WhatsappLogoIcon size={16} weight="duotone" />
+                                                        }
                                                         Conversar
                                                     </button>
                                                     <button onClick={() => copyToClipboard(selected.phone!, 'Telefone')} className="text-muted-foreground hover:text-foreground transition-colors">
