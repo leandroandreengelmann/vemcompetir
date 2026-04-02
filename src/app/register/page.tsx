@@ -383,7 +383,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Telefone</label>
+                                    <label className="text-sm font-medium">WhatsApp / Telefone</label>
                                     <Input
                                         placeholder="(00) 00000-0000"
                                         value={guardianPhoneValue}
