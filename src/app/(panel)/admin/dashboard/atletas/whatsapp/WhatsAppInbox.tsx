@@ -69,6 +69,54 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Mensagens em tempo real — aparece na tela sem precisar clicar
+    useEffect(() => {
+        const supabase = createClient();
+
+        // Novas mensagens na conversa aberta
+        const msgChannel = supabase
+            .channel('whatsapp-messages-realtime')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'whatsapp_messages',
+            }, (payload) => {
+                const msg = payload.new as any;
+                if (selected && msg.conversation_id === selected.id) {
+                    setMessages(prev => {
+                        if (prev.find(m => m.id === msg.id)) return prev;
+                        return [...prev, msg];
+                    });
+                }
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'whatsapp_messages',
+            }, (payload) => {
+                const msg = payload.new as any;
+                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: msg.status } : m));
+            })
+            .subscribe();
+
+        // Atualiza lista de conversas quando chegar mensagem nova
+        const convChannel = supabase
+            .channel('whatsapp-conversations-realtime')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'whatsapp_conversations',
+            }, () => {
+                loadConversations();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(msgChannel);
+            supabase.removeChannel(convChannel);
+        };
+    }, [selected?.id, statusFilter]);
+
     // Presença em tempo real via Supabase Realtime
     useEffect(() => {
         const supabase = createClient();

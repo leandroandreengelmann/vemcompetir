@@ -40,12 +40,10 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
         'Client-Token': clientToken,
     };
 
-    // Detecta a URL base do projeto via variável de ambiente
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : null;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+        ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null);
 
-    if (!appUrl) return; // não consegue registrar sem saber a URL
+    if (!appUrl) return;
 
     const webhookUrl = `${appUrl}/api/whatsapp/webhook`;
     const body = JSON.stringify({ value: webhookUrl });
