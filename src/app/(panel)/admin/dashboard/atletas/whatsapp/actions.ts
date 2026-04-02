@@ -30,6 +30,14 @@ export async function saveWhatsAppConfig(instanceId: string, token: string, clie
     }
 }
 
+function formatPhoneForZapi(phone: string): string {
+    const digits = phone.replace(/\D/g, '');
+    // Já tem código do país (55 + DDD + número = 12 ou 13 dígitos)
+    if (digits.startsWith('55') && digits.length >= 12) return digits;
+    // Adiciona 55
+    return `55${digits}`;
+}
+
 function zapiHeaders(config: any) {
     return {
         'Content-Type': 'application/json',
@@ -108,7 +116,7 @@ export async function sendMessage(conversationId: string, body: string) {
         .single();
     if (!conv) throw new Error('Conversa não encontrada');
 
-    const phone = conv.phone.replace(/\D/g, '');
+    const phone = formatPhoneForZapi(conv.phone);
 
     const res = await fetch(
         `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
@@ -380,7 +388,7 @@ export async function executeBroadcast(
                 {
                     method: 'POST',
                     headers: zapiHeaders(config),
-                    body: JSON.stringify({ phone: athlete.phone, message }),
+                    body: JSON.stringify({ phone: formatPhoneForZapi(athlete.phone), message }),
                 }
             );
 
