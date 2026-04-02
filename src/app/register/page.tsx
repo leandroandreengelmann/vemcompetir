@@ -64,6 +64,7 @@ export default function RegisterPage() {
     const [isMinor, setIsMinor] = useState(false);
     const [templateContent, setTemplateContent] = useState('');
     const [cpfValue, setCpfValue] = useState('');
+    const [phoneValue, setPhoneValue] = useState('');
     const [guardianCpfValue, setGuardianCpfValue] = useState('');
     const [guardianPhoneValue, setGuardianPhoneValue] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +73,7 @@ export default function RegisterPage() {
         nome: '',
         birth_date: '',
         cpf: '',
+        phone: '',
         guardian_name: '',
         guardian_phone: '',
         guardian_cpf: '',
@@ -133,6 +135,7 @@ export default function RegisterPage() {
             if (!formData.birth_date) return 'Informe sua data de nascimento.';
             if (!formData.cpf) return 'Informe seu CPF.';
             if (!validateCPF(formData.cpf)) return 'CPF inválido. Verifique os dígitos.';
+            if (!isMinor && normalizeNumeric(formData.phone).length < 10) return 'Informe um telefone válido.';
         }
         if (step === 3) {
             if (!formData.guardian_name.trim()) return 'Informe o nome completo do responsável.';
@@ -186,6 +189,7 @@ export default function RegisterPage() {
                         role: 'atleta',
                         birth_date: formData.birth_date,
                         cpf: normalizeNumeric(formData.cpf),
+                        phone: !isMinor ? normalizeNumeric(formData.phone) : null,
                         has_guardian: isMinor,
                         guardian_name: isMinor ? formData.guardian_name : null,
                         guardian_phone: isMinor ? normalizeNumeric(formData.guardian_phone) : null,
@@ -296,8 +300,29 @@ export default function RegisterPage() {
                                 />
                             </div>
 
+                            {/* Telefone — só para maiores de idade */}
+                            {formData.birth_date && !isMinor && (
+                                <div className="space-y-2">
+                                    <label htmlFor="phone" className="text-sm font-medium">WhatsApp / Telefone</label>
+                                    <Input
+                                        id="phone"
+                                        placeholder="(00) 00000-0000"
+                                        value={phoneValue}
+                                        onChange={(e) => {
+                                            const raw = normalizeNumeric(e.target.value).slice(0, 11);
+                                            const formatted = formatPhone(raw);
+                                            setPhoneValue(formatted);
+                                            setFormData(prev => ({ ...prev, phone: raw }));
+                                        }}
+                                        variant="lg"
+                                        disabled={loading}
+                                        inputMode="numeric"
+                                    />
+                                </div>
+                            )}
+
                             <div className="flex flex-col gap-3 pt-2">
-                                <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.birth_date || !formData.cpf}>
+                                <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.birth_date || !formData.cpf || (!isMinor && normalizeNumeric(formData.phone).length < 10)}>
                                     Próximo
                                 </Button>
                                 <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
