@@ -173,6 +173,8 @@ export async function sendMessage(conversationId: string, body: string) {
     await supabase.from('whatsapp_conversations').update({
         last_message: body,
         last_message_at: new Date().toISOString(),
+        last_message_direction: 'outbound',
+        last_message_status: 'sent',
         updated_at: new Date().toISOString(),
     }).eq('id', conversationId);
 

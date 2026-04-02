@@ -193,7 +193,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         <div className="flex h-[calc(100vh-220px)] min-h-[500px] rounded-xl border overflow-hidden">
 
             {/* Lista de conversas */}
-            <div className="w-[300px] shrink-0 flex flex-col border-r bg-muted/10">
+            <div className="w-[360px] shrink-0 flex flex-col border-r bg-muted/10">
                 {/* Busca */}
                 <div className="p-3 border-b">
                     <div className="relative">
@@ -208,7 +208,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                 </div>
 
                 {/* Filtros de status */}
-                <div className="flex gap-1 px-3 py-2 border-b overflow-x-auto">
+                <div className="flex gap-1 px-3 py-2 border-b">
                     {(['aberta', 'resolvida', 'arquivada', 'todas'] as const).map(s => (
                         <button
                             key={s}
@@ -257,7 +257,16 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between gap-1 mt-0.5">
-                                        <p className="text-panel-sm text-muted-foreground truncate">{conv.last_message ?? '—'}</p>
+                                        <div className="flex items-center gap-1 min-w-0">
+                                            {conv.last_message_direction === 'outbound' && (
+                                                conv.last_message_status === 'read'
+                                                    ? <ChecksIcon size={14} weight="bold" className="text-blue-500 shrink-0" />
+                                                    : conv.last_message_status === 'delivered'
+                                                    ? <ChecksIcon size={14} weight="bold" className="text-muted-foreground shrink-0" />
+                                                    : <CheckIcon size={14} weight="bold" className="text-muted-foreground shrink-0" />
+                                            )}
+                                            <p className="text-panel-sm text-muted-foreground truncate">{conv.last_message ?? '—'}</p>
+                                        </div>
                                         {conv.unread_count > 0 && (
                                             <span className="size-5 rounded-full bg-green-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                                                 {conv.unread_count}

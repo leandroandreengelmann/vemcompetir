@@ -40,8 +40,20 @@ export async function POST(req: NextRequest) {
                     .from('whatsapp_messages')
                     .update({ status: newStatus })
                     .in('zapi_message_id', ids)
-                    .select('id');
+                    .select('id, conversation_id');
                 const count = updated?.length ?? 0;
+
+                // Atualiza last_message_status nas conversas afetadas
+                if (count > 0 && updated) {
+                    const convIds = [...new Set(updated.map((m: any) => m.conversation_id))];
+                    for (const convId of convIds) {
+                        await supabase
+                            .from('whatsapp_conversations')
+                            .update({ last_message_status: newStatus, updated_at: new Date().toISOString() })
+                            .eq('id', convId)
+                            .eq('last_message_direction', 'outbound');
+                    }
+                }
 
                 // Se não achou pelo ID, busca pela conversa do telefone (fallback)
                 if (!count || count === 0) {
@@ -59,6 +71,11 @@ export async function POST(req: NextRequest) {
                                 .eq('conversation_id', conv.id)
                                 .eq('direction', 'outbound')
                                 .in('status', newStatus === 'read' ? ['sent', 'delivered'] : ['sent']);
+                            await supabase
+                                .from('whatsapp_conversations')
+                                .update({ last_message_status: newStatus, updated_at: new Date().toISOString() })
+                                .eq('id', conv.id)
+                                .eq('last_message_direction', 'outbound');
                         }
                     }
                 }
@@ -134,6 +151,8 @@ export async function POST(req: NextRequest) {
                         linked_id: profile?.id ?? null,
                         last_message: message,
                         last_message_at: new Date().toISOString(),
+                        last_message_direction: 'inbound',
+                        last_message_status: 'delivered',
                         unread_count: 1,
                         status: 'aberta',
                     })
@@ -146,6 +165,8 @@ export async function POST(req: NextRequest) {
                     .update({
                         last_message: message,
                         last_message_at: new Date().toISOString(),
+                        last_message_direction: 'inbound',
+                        last_message_status: 'delivered',
                         unread_count: (conv.unread_count ?? 0) + 1,
                         updated_at: new Date().toISOString(),
                     })
@@ -252,6 +273,8 @@ export async function POST(req: NextRequest) {
                         linked_id: profile?.id ?? null,
                         last_message: message,
                         last_message_at: new Date().toISOString(),
+                        last_message_direction: 'inbound',
+                        last_message_status: 'delivered',
                         unread_count: 1,
                         status: 'aberta',
                     })
@@ -264,6 +287,8 @@ export async function POST(req: NextRequest) {
                     .update({
                         last_message: message,
                         last_message_at: new Date().toISOString(),
+                        last_message_direction: 'inbound',
+                        last_message_status: 'delivered',
                         unread_count: (conv.unread_count ?? 0) + 1,
                         updated_at: new Date().toISOString(),
                     })
