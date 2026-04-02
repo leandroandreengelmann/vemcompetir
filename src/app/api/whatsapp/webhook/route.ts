@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
         if (type === 'MessageStatusCallback') {
             const ids: string[] = body?.ids ?? [];
             const statusRaw = body?.status as string | undefined;
-            console.log('[STATUS CALLBACK]', JSON.stringify({ type, ids, statusRaw, body }));
             const statusMap: Record<string, string> = {
                 RECEIVED: 'delivered',
                 READ: 'read',
@@ -35,10 +34,34 @@ export async function POST(req: NextRequest) {
             const newStatus = statusRaw ? statusMap[statusRaw] : null;
             if (newStatus && ids.length > 0) {
                 const supabase = createAdminClient();
-                await supabase
+
+                // Tenta atualizar pelo ID direto
+                const { data: updated } = await supabase
                     .from('whatsapp_messages')
                     .update({ status: newStatus })
-                    .in('zapi_message_id', ids);
+                    .in('zapi_message_id', ids)
+                    .select('id');
+                const count = updated?.length ?? 0;
+
+                // Se não achou pelo ID, busca pela conversa do telefone (fallback)
+                if (!count || count === 0) {
+                    const phone = body?.phone ? normalizePhone(body.phone) : null;
+                    if (phone) {
+                        const { data: conv } = await supabase
+                            .from('whatsapp_conversations')
+                            .select('id')
+                            .eq('phone', phone)
+                            .maybeSingle();
+                        if (conv) {
+                            await supabase
+                                .from('whatsapp_messages')
+                                .update({ status: newStatus })
+                                .eq('conversation_id', conv.id)
+                                .eq('direction', 'outbound')
+                                .in('status', newStatus === 'read' ? ['sent', 'delivered'] : ['sent']);
+                        }
+                    }
+                }
             }
             return NextResponse.json({ ok: true });
         }

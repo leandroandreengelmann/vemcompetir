@@ -163,7 +163,7 @@ export async function sendMessage(conversationId: string, body: string) {
 
     await supabase.from('whatsapp_messages').insert({
         conversation_id: conversationId,
-        zapi_message_id: json?.zaapId ?? null,
+        zapi_message_id: json?.messageId ?? json?.zaapId ?? null,
         direction: 'outbound',
         body,
         status: 'sent',
