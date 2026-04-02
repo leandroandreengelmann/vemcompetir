@@ -144,24 +144,37 @@ export async function POST(req: NextRequest) {
 
         // ── Fallback: Z-API sem campo type — detecta pelo conteúdo ──
 
-        // Echo "Ao enviar": fromMe=true, tem messageId (ID nativo WhatsApp) e texto
+        // Echo "Ao enviar": fromMe=true, tem messageId (ID nativo WhatsApp)
         // Atualiza o zapi_message_id da mensagem enviada para o ID que o status callback usa
-        if (body?.fromMe === true && body?.messageId && body?.text?.message) {
+        if (body?.fromMe === true && body?.messageId) {
+            console.log('[ECHO payload]', JSON.stringify(body));
             const whatsappId = body.messageId as string;
-            const supabase = createAdminClient();
-            const { data: msg } = await supabase
-                .from('whatsapp_messages')
-                .select('id')
-                .eq('direction', 'outbound')
-                .eq('body', body.text.message)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            if (msg) {
-                await supabase
-                    .from('whatsapp_messages')
-                    .update({ zapi_message_id: whatsappId })
-                    .eq('id', msg.id);
+            const phone = body?.phone ? normalizePhone(body.phone) : null;
+            if (phone) {
+                const supabase = createAdminClient();
+                // Busca a mensagem outbound mais recente para esse telefone com ID interno (019D...)
+                const { data: conv } = await supabase
+                    .from('whatsapp_conversations')
+                    .select('id')
+                    .eq('phone', phone)
+                    .maybeSingle();
+                if (conv) {
+                    const { data: msg } = await supabase
+                        .from('whatsapp_messages')
+                        .select('id')
+                        .eq('conversation_id', conv.id)
+                        .eq('direction', 'outbound')
+                        .not('zapi_message_id', 'like', '3EB%') // ainda com ID interno
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+                    if (msg) {
+                        await supabase
+                            .from('whatsapp_messages')
+                            .update({ zapi_message_id: whatsappId })
+                            .eq('id', msg.id);
+                    }
+                }
             }
             return NextResponse.json({ ok: true });
         }
