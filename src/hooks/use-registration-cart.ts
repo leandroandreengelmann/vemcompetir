@@ -92,7 +92,7 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
             if ((result as any).companionAdded) {
                 toast.success(`Categoria gratuita adicionada: ${(result as any).companionName}`);
             } else if ((result as any).companionWarning) {
-                toast.warning((result as any).companionWarning);
+                toast.warning((result as any).companionWarning, { duration: 6000 });
             }
         } catch (error) {
             toast.error('Erro ao adicionar');

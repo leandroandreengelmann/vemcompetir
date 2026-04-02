@@ -5,6 +5,78 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
+        // ── Ao conectar: Z-API notifica que o WhatsApp conectou ──
+        if (body?.connected === true || body?.status === 'CONNECTED') {
+            const supabase = createAdminClient();
+            await supabase
+                .from('whatsapp_config')
+                .update({ connected: true, connected_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // atualiza o único registro existente
+            return NextResponse.json({ ok: true });
+        }
+
+        // ── Presença do chat: contato está digitando ou ficou online ──
+        if (body?.presence !== undefined || (body?.isOnline !== undefined && !body?.text?.message)) {
+            const phone = body?.phone?.replace(/\D/g, '');
+            if (phone) {
+                const presence = body?.presence ?? (body?.isOnline ? 'available' : 'unavailable');
+                const supabase = createAdminClient();
+                const channel = supabase.channel('whatsapp-presence');
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'presence_update',
+                    payload: { phone, presence },
+                });
+            }
+            return NextResponse.json({ ok: true });
+        }
+
+        // ── Echo "Ao enviar": Z-API ecoa mensagens que nós enviamos ──
+        // Payload: { fromMe: true, text: { message }, zaapId, ... }
+        // Já salvamos a mensagem em sendMessage() — só atualiza zaapId se ausente
+        if (body?.fromMe === true && body?.text?.message) {
+            const zaapId = body?.zaapId ?? body?.messageId ?? null;
+            if (zaapId) {
+                const supabase = createAdminClient();
+                await supabase
+                    .from('whatsapp_messages')
+                    .update({ zapi_message_id: zaapId })
+                    .eq('direction', 'outbound')
+                    .is('zapi_message_id', null)
+                    .eq('body', body.text.message)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+            }
+            return NextResponse.json({ ok: true });
+        }
+
+        // ── Status callback: Z-API notifica que nossa mensagem foi recebida/lida ──
+        // Payload: { zaapId, phone, fromMe: true, status: "RECEIVED" | "READ", ... }
+        // Não tem campo text/message — só atualiza o status da mensagem salva
+        const statusRaw = body?.status as string | undefined;
+        if (body?.fromMe === true && statusRaw && !body?.text?.message) {
+            const zaapId = body?.zaapId ?? body?.messageId ?? null;
+            if (zaapId) {
+                const statusMap: Record<string, string> = {
+                    RECEIVED: 'delivered',
+                    received: 'delivered',
+                    READ: 'read',
+                    read: 'read',
+                    PLAYED: 'read',
+                    played: 'read',
+                };
+                const newStatus = statusMap[statusRaw];
+                if (newStatus) {
+                    const supabase = createAdminClient();
+                    await supabase
+                        .from('whatsapp_messages')
+                        .update({ status: newStatus })
+                        .eq('zapi_message_id', zaapId);
+                }
+            }
+            return NextResponse.json({ ok: true });
+        }
+
         // Z-API payload: { phone, text: { message }, isGroupMsg, ... }
         const phone = body?.phone?.replace(/\D/g, '');
         const message = body?.text?.message ?? body?.caption ?? null;

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,8 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isPendingStatus, startStatusTransition] = useTransition();
+    const [typingPhones, setTypingPhones] = useState<Set<string>>(new Set());
+    const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
     useEffect(() => { loadConversations(); }, [statusFilter]);
 
@@ -65,6 +68,40 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Presença em tempo real via Supabase Realtime
+    useEffect(() => {
+        const supabase = createClient();
+        const channel = supabase
+            .channel('whatsapp-presence')
+            .on('broadcast', { event: 'presence_update' }, ({ payload }) => {
+                const { phone, presence } = payload as { phone: string; presence: string };
+                const isTyping = presence === 'composing';
+
+                setTypingPhones(prev => {
+                    const next = new Set(prev);
+                    if (isTyping) next.add(phone); else next.delete(phone);
+                    return next;
+                });
+
+                // Auto-limpa "digitando..." após 5s sem atualização
+                if (isTyping) {
+                    const existing = typingTimers.current.get(phone);
+                    if (existing) clearTimeout(existing);
+                    const timer = setTimeout(() => {
+                        setTypingPhones(prev => { const next = new Set(prev); next.delete(phone); return next; });
+                        typingTimers.current.delete(phone);
+                    }, 5000);
+                    typingTimers.current.set(phone, timer);
+                } else {
+                    const existing = typingTimers.current.get(phone);
+                    if (existing) { clearTimeout(existing); typingTimers.current.delete(phone); }
+                }
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
 
     // Se vier initialConvId, abre a conversa diretamente
     useEffect(() => {
@@ -215,11 +252,17 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                             <div>
                                 <p className="text-panel-sm font-semibold">{selected.contact_name ?? selected.phone}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-panel-sm text-muted-foreground">{selected.phone}</span>
-                                    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold',
-                                        CONTACT_CONFIG[selected.contact_type as keyof typeof CONTACT_CONFIG]?.className)}>
-                                        {CONTACT_CONFIG[selected.contact_type as keyof typeof CONTACT_CONFIG]?.label}
-                                    </span>
+                                    {typingPhones.has(selected.phone.replace(/\D/g, '')) ? (
+                                        <span className="text-panel-sm text-green-600 font-medium animate-pulse">digitando...</span>
+                                    ) : (
+                                        <>
+                                            <span className="text-panel-sm text-muted-foreground">{selected.phone}</span>
+                                            <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold',
+                                                CONTACT_CONFIG[selected.contact_type as keyof typeof CONTACT_CONFIG]?.className)}>
+                                                {CONTACT_CONFIG[selected.contact_type as keyof typeof CONTACT_CONFIG]?.label}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -277,6 +320,8 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                             {isOut && (
                                                 msg.status === 'read'
                                                     ? <ChecksIcon size={12} className="text-blue-300" />
+                                                    : msg.status === 'delivered'
+                                                    ? <ChecksIcon size={12} className="text-green-200/70" />
                                                     : <CheckIcon size={12} className="text-green-200" />
                                             )}
                                         </div>
