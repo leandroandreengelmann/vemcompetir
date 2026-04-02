@@ -15,12 +15,13 @@ export function WhatsAppConfig() {
     const [instanceId, setInstanceId] = useState('');
     const [token, setToken] = useState('');
     const [clientToken, setClientToken] = useState('');
+    const [webhookUrl, setWebhookUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(false);
     const [config, setConfig] = useState<any>(null);
     const [status, setStatus] = useState<'connected' | 'disconnected' | 'unknown'>('unknown');
 
-    const webhookUrl = typeof window !== 'undefined'
+    const localWebhookUrl = typeof window !== 'undefined'
         ? `${window.location.origin}/api/whatsapp/webhook`
         : '/api/whatsapp/webhook';
 
@@ -35,6 +36,7 @@ export function WhatsAppConfig() {
             setInstanceId(data.instance_id);
             setToken(data.token);
             setClientToken(data.client_token ?? '');
+            setWebhookUrl(data.webhook_url ?? '');
             setStatus(data.connected ? 'connected' : 'disconnected');
         }
     }
@@ -46,8 +48,8 @@ export function WhatsAppConfig() {
         }
         setLoading(true);
         try {
-            await saveWhatsAppConfig(instanceId.trim(), token.trim(), clientToken.trim());
-            toast.success('Configurações salvas e webhooks registrados na Z-API!');
+            await saveWhatsAppConfig(instanceId.trim(), token.trim(), clientToken.trim(), webhookUrl.trim() || undefined);
+            toast.success(webhookUrl.trim() ? 'Configurações salvas e webhooks registrados na Z-API!' : 'Configurações salvas!');
             await loadConfig();
         } catch {
             toast.error('Erro ao salvar configurações.');
@@ -144,6 +146,18 @@ export function WhatsAppConfig() {
                                 onChange={e => setClientToken(e.target.value)}
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label className="text-panel-sm font-medium text-muted-foreground">URL do Webhook</Label>
+                            <Input
+                                variant="lg"
+                                placeholder="https://vemcompetir.com.br/api/whatsapp/webhook"
+                                value={webhookUrl}
+                                onChange={e => setWebhookUrl(e.target.value)}
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Ao salvar, esta URL será registrada automaticamente em todos os webhooks da Z-API.
+                            </p>
+                        </div>
                     </div>
 
                     <Button onClick={handleSave} disabled={loading} pill className="w-full h-12 font-semibold">
@@ -169,7 +183,7 @@ export function WhatsAppConfig() {
                         <Input
                             variant="lg"
                             readOnly
-                            value={webhookUrl}
+                            value={localWebhookUrl}
                             className="font-mono text-panel-sm bg-muted/30"
                         />
                         <Button
@@ -177,7 +191,7 @@ export function WhatsAppConfig() {
                             size="icon"
                             className="h-12 w-12 shrink-0 rounded-xl"
                             onClick={() => {
-                                navigator.clipboard.writeText(webhookUrl);
+                                navigator.clipboard.writeText(localWebhookUrl);
                                 toast.success('URL copiada!');
                             }}
                         >

@@ -15,37 +15,27 @@ export async function getWhatsAppConfig() {
     return data;
 }
 
-export async function saveWhatsAppConfig(instanceId: string, token: string, clientToken: string) {
+export async function saveWhatsAppConfig(instanceId: string, token: string, clientToken: string, webhookUrl?: string) {
     const supabase = await createClient();
     const existing = await getWhatsAppConfig();
+    const updateData: any = { instance_id: instanceId, token, client_token: clientToken, updated_at: new Date().toISOString() };
+    if (webhookUrl) updateData.webhook_url = webhookUrl;
+
     if (existing) {
-        await supabase
-            .from('whatsapp_config')
-            .update({ instance_id: instanceId, token, client_token: clientToken, updated_at: new Date().toISOString() })
-            .eq('id', existing.id);
+        await supabase.from('whatsapp_config').update(updateData).eq('id', existing.id);
     } else {
-        await supabase
-            .from('whatsapp_config')
-            .insert({ instance_id: instanceId, token, client_token: clientToken });
+        await supabase.from('whatsapp_config').insert(updateData);
     }
 
-    // Registra todos os webhooks na Z-API automaticamente
-    await registerZapiWebhooks(instanceId, token, clientToken);
+    const urlToRegister = webhookUrl ?? existing?.webhook_url ?? null;
+    if (urlToRegister) {
+        await registerZapiWebhooks(instanceId, token, clientToken, urlToRegister);
+    }
 }
 
-async function registerZapiWebhooks(instanceId: string, token: string, clientToken: string) {
+async function registerZapiWebhooks(instanceId: string, token: string, clientToken: string, webhookUrl: string) {
     const base = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
-    const headers = {
-        'Content-Type': 'application/json',
-        'Client-Token': clientToken,
-    };
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL
-        ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null);
-
-    if (!appUrl) return;
-
-    const webhookUrl = `${appUrl}/api/whatsapp/webhook`;
+    const headers = { 'Content-Type': 'application/json', 'Client-Token': clientToken };
     const body = JSON.stringify({ value: webhookUrl });
 
     const endpoints = [
@@ -56,11 +46,14 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
         'update-webhook-connected',
     ];
 
-    await Promise.allSettled(
-        endpoints.map(ep =>
-            fetch(`${base}/${ep}`, { method: 'PUT', headers, body })
-        )
+    const results = await Promise.allSettled(
+        endpoints.map(ep => fetch(`${base}/${ep}`, { method: 'PUT', headers, body }))
     );
+
+    console.log('[Z-API webhook registration]', results.map((r, i) => ({
+        endpoint: endpoints[i],
+        status: r.status,
+    })));
 }
 
 function formatPhoneForZapi(phone: string): string {
