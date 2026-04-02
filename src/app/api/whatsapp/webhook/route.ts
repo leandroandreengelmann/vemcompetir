@@ -38,14 +38,22 @@ export async function POST(req: NextRequest) {
             const zaapId = body?.zaapId ?? body?.messageId ?? null;
             if (zaapId) {
                 const supabase = createAdminClient();
-                await supabase
+                // Busca a mensagem outbound mais recente sem zaapId e com o mesmo texto
+                const { data: msg } = await supabase
                     .from('whatsapp_messages')
-                    .update({ zapi_message_id: zaapId })
+                    .select('id')
                     .eq('direction', 'outbound')
                     .is('zapi_message_id', null)
                     .eq('body', body.text.message)
                     .order('created_at', { ascending: false })
-                    .limit(1);
+                    .limit(1)
+                    .maybeSingle();
+                if (msg) {
+                    await supabase
+                        .from('whatsapp_messages')
+                        .update({ zapi_message_id: zaapId })
+                        .eq('id', msg.id);
+                }
             }
             return NextResponse.json({ ok: true });
         }
