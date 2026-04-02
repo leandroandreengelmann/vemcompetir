@@ -47,7 +47,7 @@ export function WhatsAppConfig() {
         setLoading(true);
         try {
             await saveWhatsAppConfig(instanceId.trim(), token.trim(), clientToken.trim());
-            toast.success('Configurações salvas!');
+            toast.success('Configurações salvas e webhooks registrados na Z-API!');
             await loadConfig();
         } catch {
             toast.error('Erro ao salvar configurações.');

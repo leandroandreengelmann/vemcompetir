@@ -28,6 +28,41 @@ export async function saveWhatsAppConfig(instanceId: string, token: string, clie
             .from('whatsapp_config')
             .insert({ instance_id: instanceId, token, client_token: clientToken });
     }
+
+    // Registra todos os webhooks na Z-API automaticamente
+    await registerZapiWebhooks(instanceId, token, clientToken);
+}
+
+async function registerZapiWebhooks(instanceId: string, token: string, clientToken: string) {
+    const base = `https://api.z-api.io/instances/${instanceId}/token/${token}`;
+    const headers = {
+        'Content-Type': 'application/json',
+        'Client-Token': clientToken,
+    };
+
+    // Detecta a URL base do projeto via variável de ambiente
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : null;
+
+    if (!appUrl) return; // não consegue registrar sem saber a URL
+
+    const webhookUrl = `${appUrl}/api/whatsapp/webhook`;
+    const body = JSON.stringify({ value: webhookUrl });
+
+    const endpoints = [
+        'update-webhook-received',
+        'update-webhook-received-delivery',
+        'update-webhook-message-status',
+        'update-webhook-chat-presence',
+        'update-webhook-connected',
+    ];
+
+    await Promise.allSettled(
+        endpoints.map(ep =>
+            fetch(`${base}/${ep}`, { method: 'PUT', headers, body })
+        )
+    );
 }
 
 function formatPhoneForZapi(phone: string): string {
