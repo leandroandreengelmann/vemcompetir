@@ -350,7 +350,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                             </span>
                                             {isOut && (
                                                 msg.status === 'read'
-                                                    ? <ChecksIcon size={32} weight="bold" className="text-blue-300" />
+                                                    ? <ChecksIcon size={32} weight="bold" className="text-blue-500" />
                                                     : msg.status === 'delivered'
                                                     ? <ChecksIcon size={32} weight="bold" className="text-green-200" />
                                                     : <CheckIcon size={32} weight="bold" className="text-green-200/60" />
