@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
         if (type === 'MessageStatusCallback') {
             const ids: string[] = body?.ids ?? [];
             const statusRaw = body?.status as string | undefined;
+            console.log('[STATUS CALLBACK]', JSON.stringify({ type, ids, statusRaw, body }));
             const statusMap: Record<string, string> = {
                 RECEIVED: 'delivered',
                 READ: 'read',
