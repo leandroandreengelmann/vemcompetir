@@ -42,6 +42,7 @@ import {
 import { toast } from 'sonner';
 import { formatCategoryTitle } from '@/lib/category-utils';
 import { WhatsAppInbox } from './whatsapp/WhatsAppInbox';
+import { ensureConversation } from './whatsapp/actions';
 import { WhatsAppTemplates } from './whatsapp/WhatsAppTemplates';
 import { WhatsAppConfig } from './whatsapp/WhatsAppConfig';
 import { WhatsAppDisparos } from './whatsapp/WhatsAppDisparos';
@@ -173,7 +174,7 @@ function copyToClipboard(value: string, label: string) {
 export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
     const [mainTab, setMainTab] = useState<MainTab>('atletas');
     const [whatsappTab, setWhatsappTab] = useState<WhatsAppTab>('inbox');
-    const [whatsappPhone, setWhatsappPhone] = useState<string | undefined>();
+    const [whatsappConvId, setWhatsappConvId] = useState<string | undefined>();
 
     const [tab, setTab] = useState<FilterTab>('todos');
     const [search, setSearch] = useState('');
@@ -181,8 +182,9 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
     const [page, setPage] = useState(1);
     const [beltFilter, setBeltFilter] = useState<string | null>(null);
 
-    function openWhatsApp(phone: string) {
-        setWhatsappPhone(phone);
+    async function openWhatsApp(phone: string, name: string, athleteId: string) {
+        const convId = await ensureConversation(phone, name, athleteId);
+        setWhatsappConvId(convId);
         setMainTab('whatsapp');
         setWhatsappTab('inbox');
     }
@@ -310,7 +312,7 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                         ))}
                     </div>
 
-                    {whatsappTab === 'inbox' && <WhatsAppInbox initialPhone={whatsappPhone} />}
+                    {whatsappTab === 'inbox' && <WhatsAppInbox initialConvId={whatsappConvId} />}
                     {whatsappTab === 'disparos' && <WhatsAppDisparos />}
                     {whatsappTab === 'templates' && <WhatsAppTemplates />}
                     {whatsappTab === 'config' && <WhatsAppConfig />}
@@ -681,7 +683,7 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                                                     <button
                                                         onClick={() => {
                                                             setSelected(null);
-                                                            openWhatsApp(selected.phone!);
+                                                            openWhatsApp(selected.phone!, selected.full_name, selected.id);
                                                         }}
                                                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors text-panel-sm font-semibold"
                                                     >

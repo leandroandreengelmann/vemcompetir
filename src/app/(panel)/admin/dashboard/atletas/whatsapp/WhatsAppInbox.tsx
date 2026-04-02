@@ -41,7 +41,7 @@ function getInitials(name: string | null, phone: string) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function WhatsAppInbox({ initialPhone }: { initialPhone?: string }) {
+export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const [conversations, setConversations] = useState<any[]>([]);
     const [messages, setMessages] = useState<any[]>([]);
     const [selected, setSelected] = useState<any | null>(null);
@@ -66,14 +66,18 @@ export function WhatsAppInbox({ initialPhone }: { initialPhone?: string }) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Se vier initialPhone, abre a conversa desse número automaticamente
+    // Se vier initialConvId, abre a conversa diretamente
     useEffect(() => {
-        if (initialPhone && conversations.length > 0) {
-            const clean = initialPhone.replace(/\D/g, '');
-            const conv = conversations.find(c => c.phone.replace(/\D/g, '') === clean);
-            if (conv) setSelected(conv);
+        if (initialConvId && conversations.length > 0) {
+            const conv = conversations.find(c => c.id === initialConvId);
+            if (conv) {
+                setSelected(conv);
+            } else {
+                // Conversa pode estar em outro status — carrega todas
+                setStatusFilter('todas');
+            }
         }
-    }, [initialPhone, conversations]);
+    }, [initialConvId, conversations]);
 
     async function loadConversations() {
         const data = await getConversations(statusFilter);

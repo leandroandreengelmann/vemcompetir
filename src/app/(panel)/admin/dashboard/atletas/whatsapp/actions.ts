@@ -157,6 +157,33 @@ export async function updateConversationStatus(conversationId: string, status: '
         .eq('id', conversationId);
 }
 
+export async function ensureConversation(phone: string, contactName?: string, athleteId?: string): Promise<string> {
+    const supabase = await createClient();
+    const clean = phone.replace(/\D/g, '');
+
+    const { data: existing } = await supabase
+        .from('whatsapp_conversations')
+        .select('id')
+        .eq('phone', clean)
+        .maybeSingle();
+
+    if (existing) return existing.id;
+
+    const { data: newConv } = await supabase
+        .from('whatsapp_conversations')
+        .insert({
+            phone: clean,
+            contact_name: contactName ?? null,
+            contact_type: athleteId ? 'atleta' : 'desconhecido',
+            linked_id: athleteId ?? null,
+            status: 'aberta',
+        })
+        .select('id')
+        .single();
+
+    return newConv!.id;
+}
+
 export async function sendMessageToPhone(phone: string, body: string) {
     const supabase = await createClient();
     const config = await getWhatsAppConfig();
