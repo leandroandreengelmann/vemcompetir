@@ -8,7 +8,13 @@ async function requireAdmin() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autorizado.');
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    // Use adminClient to bypass RLS when reading the role
+    const adminClient = createAdminClient();
+    const { data: profile } = await adminClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
     if (profile?.role !== 'admin_geral') throw new Error('Sem permissão.');
 }
 

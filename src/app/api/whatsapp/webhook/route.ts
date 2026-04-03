@@ -275,25 +275,16 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        // ── Validate Client-Token ──
-        const supabaseAdmin = createAdminClient();
-        const { data: webhookConfig } = await supabaseAdmin
-            .from('whatsapp_config')
-            .select('id, client_token')
-            .limit(1)
-            .maybeSingle();
-
-        if (webhookConfig?.client_token) {
-            const incomingToken = req.headers.get('Client-Token');
-            if (incomingToken !== webhookConfig.client_token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-        }
-
         const type = body?.type as string | undefined;
 
         // ── ConnectedCallback ──
         if (type === 'ConnectedCallback' || body?.connected === true) {
+            const supabaseAdmin = createAdminClient();
+            const { data: webhookConfig } = await supabaseAdmin
+                .from('whatsapp_config')
+                .select('id')
+                .limit(1)
+                .maybeSingle();
             if (webhookConfig) {
                 await supabaseAdmin
                     .from('whatsapp_config')
