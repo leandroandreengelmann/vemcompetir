@@ -505,8 +505,8 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                             <span className="flex items-center gap-2">
                                                 <span className="text-panel-sm font-semibold">{athlete.full_name}</span>
                                                 {convSet.has(athlete.id) && (
-                                                    <span title="Conversa WhatsApp ativa" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-700 dark:text-green-400">
-                                                        <WhatsappLogoIcon size={12} weight="fill" />
+                                                    <span title="Conversa WhatsApp ativa" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-panel-sm font-bold bg-green-500/10 text-green-700 dark:text-green-400">
+                                                        <WhatsappLogoIcon size={16} weight="fill" />
                                                     </span>
                                                 )}
                                                 {isMinor(athlete.birth_date) && (
