@@ -113,6 +113,59 @@ export async function registerSuggestedGym(formData: FormData) {
     return { success: true };
 }
 
+export async function getMastersForAcademyAction(tenantId: string) {
+    await requireRole('admin_geral');
+    const adminClient = createAdminClient();
+    const { data } = await adminClient
+        .from('profiles')
+        .select('id, full_name')
+        .eq('tenant_id', tenantId)
+        .eq('is_master', true);
+    return { data: data ?? [] };
+}
+
+export async function unifyGroupsAction(
+    groups: { gym_name: string | null; master_name: string | null }[],
+    targetTenantId: string,
+    targetMasterId: string,
+    targetMasterName: string,
+    targetGymName: string,
+) {
+    await requireRole('admin_geral');
+    const adminClient = createAdminClient();
+
+    for (const group of groups) {
+        let query = adminClient
+            .from('profiles')
+            .update({
+                tenant_id: targetTenantId,
+                master_id: targetMasterId,
+                master_name: targetMasterName,
+                gym_name: targetGymName,
+            })
+            .eq('role', 'atleta')
+            .is('tenant_id', null);
+
+        if (group.gym_name) {
+            query = query.eq('gym_name', group.gym_name);
+        } else {
+            query = query.is('gym_name', null);
+        }
+
+        if (group.master_name) {
+            query = query.eq('master_name', group.master_name);
+        } else {
+            query = query.is('master_name', null);
+        }
+
+        const { error } = await query;
+        if (error) return { error: error.message };
+    }
+
+    revalidatePath('/admin/dashboard/comunidade');
+    return { success: true };
+}
+
 export async function dismissSuggestionAction(gymName: string, masterName: string) {
     await requireRole('admin_geral');
 

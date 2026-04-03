@@ -24,7 +24,7 @@ export default async function CommunitySuggestionsPage() {
     if (adminProfile?.role !== 'admin_geral') redirect('/login');
 
     // Fetch official gym names and master names to match
-    const { data: tenants, error: tenantsError } = await supabase.from('tenants').select('name');
+    const { data: tenants, error: tenantsError } = await supabase.from('tenants').select('id, name');
     if (tenantsError) console.error("Error fetching tenants:", tenantsError);
     const registeredGyms = new Set(
         tenants?.map(t => t.name?.toLowerCase()).filter(Boolean)
@@ -118,7 +118,7 @@ export default async function CommunitySuggestionsPage() {
                 </CardContent>
             </Card>
 
-            <SuggestionsContent suggestions={displaySuggestions as any} />
+            <SuggestionsContent suggestions={displaySuggestions as any} tenants={tenants ?? []} />
         </div>
     );
 }
