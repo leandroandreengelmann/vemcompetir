@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         // 3. Resolve payer
         const { data: profile, error: profileError } = await admin
             .from('profiles')
-            .select('id, tenant_id, full_name, asaas_customer_id, cpf')
+            .select('id, tenant_id, full_name, asaas_customer_id, asaas_customer_id_platform, cpf')
             .eq('id', user.id)
             .single();
 
@@ -255,7 +255,11 @@ export async function POST(request: NextRequest) {
         }
 
         // 10. Get/create Asaas customer
-        let asaas_customer_id = profile.asaas_customer_id;
+        // Conta da plataforma (split) usa campo separado para evitar conflito com contas próprias
+        const customerIdField = config.isOwnAccount ? 'asaas_customer_id' : 'asaas_customer_id_platform';
+        let asaas_customer_id = config.isOwnAccount
+            ? profile.asaas_customer_id
+            : profile.asaas_customer_id_platform;
         let paymentRes: Response | null = null;
         let paymentData: any = null;
 
@@ -305,10 +309,10 @@ export async function POST(request: NextRequest) {
 
                 asaas_customer_id = customerData.id;
 
-                // Save to profiles
+                // Save to the correct field based on account type
                 await admin
                     .from('profiles')
-                    .update({ asaas_customer_id })
+                    .update({ [customerIdField]: asaas_customer_id })
                     .eq('id', user.id);
             }
 
@@ -477,10 +481,11 @@ export async function POST(request: NextRequest) {
                 e.description?.includes('não encontrado')
             );
 
-            if (isInvalidCustomer && attempt === 1 && profile.asaas_customer_id) {
+            const originalCustomerId = config.isOwnAccount ? profile.asaas_customer_id : profile.asaas_customer_id_platform;
+            if (isInvalidCustomer && attempt === 1 && originalCustomerId) {
                 console.log(`[Asaas] Invalid customer ${asaas_customer_id} detected. Clearing and retrying...`);
-                // Limpa no banco para o futuro
-                await admin.from('profiles').update({ asaas_customer_id: null }).eq('id', user.id);
+                // Limpa no banco para o futuro (campo correto por tipo de conta)
+                await admin.from('profiles').update({ [customerIdField]: null }).eq('id', user.id);
                 // Limpa localmente para a próxima tentativa do loop
                 asaas_customer_id = null;
                 continue;
