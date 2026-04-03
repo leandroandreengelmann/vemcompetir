@@ -177,7 +177,8 @@ function copyToClipboard(value: string, label: string) {
     toast.success(`${label} copiado!`);
 }
 
-export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
+export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [] }: { athletes: Athlete[]; athleteIdsWithConversations?: string[] }) {
+    const convSet = useMemo(() => new Set(athleteIdsWithConversations), [athleteIdsWithConversations]);
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -346,7 +347,7 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                         ))}
                     </div>
 
-                    {whatsappTab === 'inbox' && <WhatsAppInbox initialConvId={whatsappConvId} />}
+                    {whatsappTab === 'inbox' && <WhatsAppInbox key={whatsappConvId ?? 'default'} initialConvId={whatsappConvId} />}
                     {whatsappTab === 'notificacoes' && <WhatsAppNotificacoes />}
                     {whatsappTab === 'disparos' && <WhatsAppDisparos />}
                     {whatsappTab === 'templates' && <WhatsAppTemplates />}
@@ -503,6 +504,11 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                                         <div className="flex flex-col gap-0.5">
                                             <span className="flex items-center gap-2">
                                                 <span className="text-panel-sm font-semibold">{athlete.full_name}</span>
+                                                {convSet.has(athlete.id) && (
+                                                    <span title="Conversa WhatsApp ativa" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-700 dark:text-green-400">
+                                                        <WhatsappLogoIcon size={12} weight="fill" />
+                                                    </span>
+                                                )}
                                                 {isMinor(athlete.birth_date) && (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-panel-sm font-bold bg-pink-500/10 text-pink-700 dark:text-pink-400">
                                                         <BabyIcon size={16} weight="duotone" />

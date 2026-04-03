@@ -31,7 +31,15 @@ export default async function AdminAthletesPage() {
         .select('athlete_id');
     const athletesWithTerms = new Set((termAcceptances ?? []).map((t: any) => t.athlete_id));
 
-    // 4. Inscrições por atleta (status)
+    // 4. Atletas com conversa WhatsApp ativa
+    const { data: whatsappConvs } = await adminClient
+        .from('whatsapp_conversations')
+        .select('linked_id')
+        .eq('contact_type', 'atleta')
+        .not('linked_id', 'is', null);
+    const athleteIdsWithConversations = (whatsappConvs ?? []).map((c: any) => c.linked_id as string);
+
+    // 5. Inscrições por atleta (status)
     const { data: registrations } = await adminClient
         .from('event_registrations')
         .select('id, athlete_id, status, event_id, events(title), created_at, category_id, category_rows(categoria_completa), price');
@@ -96,7 +104,7 @@ export default async function AdminAthletesPage() {
 
     return (
         <Suspense>
-            <CentralAtletasClient athletes={athletes} />
+            <CentralAtletasClient athletes={athletes} athleteIdsWithConversations={athleteIdsWithConversations} />
         </Suspense>
     );
 }
