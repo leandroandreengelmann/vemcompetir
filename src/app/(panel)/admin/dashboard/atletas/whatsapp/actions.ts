@@ -704,8 +704,8 @@ export async function sendRegistrationNotification(registrationId: string, athle
 
     // ── Envia para o atleta ──
     await zapiSendText(config, athletePhone, athleteMessage);
-    const convId = await upsertConversation(supabase, athletePhone, profile.full_name, reg!.athlete_id, 'atleta', athleteMessage);
-    if (convId) await supabase.from('whatsapp_messages').insert({ conversation_id: convId, direction: 'outbound', body: athleteMessage, status: 'sent' });
+    const convId = await upsertConversation(adminClient, athletePhone, profile.full_name, reg!.athlete_id, 'atleta', athleteMessage);
+    if (convId) await adminClient.from('whatsapp_messages').insert({ conversation_id: convId, direction: 'outbound', body: athleteMessage, status: 'sent' });
 
     // ── Envia para o organizador (se tiver mensagem e telefone) ──
     if (organizerMessage) {
@@ -715,8 +715,8 @@ export async function sendRegistrationNotification(registrationId: string, athle
             if (organizer?.phone) {
                 const orgPhone = normalizePhone(organizer.phone);
                 await zapiSendText(config, orgPhone, organizerMessage);
-                const orgConvId = await upsertConversation(supabase, orgPhone, organizer.full_name, organizer.id, 'academia', organizerMessage);
-                if (orgConvId) await supabase.from('whatsapp_messages').insert({ conversation_id: orgConvId, direction: 'outbound', body: organizerMessage, status: 'sent' });
+                const orgConvId = await upsertConversation(adminClient, orgPhone, organizer.full_name, organizer.id, 'academia', organizerMessage);
+                if (orgConvId) await adminClient.from('whatsapp_messages').insert({ conversation_id: orgConvId, direction: 'outbound', body: organizerMessage, status: 'sent' });
             }
         }
     }
