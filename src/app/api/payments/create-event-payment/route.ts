@@ -301,6 +301,21 @@ export async function POST(request: NextRequest) {
 
                 if (!customerRes.ok || !customerData.id) {
                     console.error('Failed to create Asaas customer:', customerData);
+                    try {
+                        await admin.from('payments').insert({
+                            event_id, payer_type, payer_ref, tenant_id_organizer,
+                            qtd_inscricoes,
+                            total_inscricoes_snapshot: total_inscricoes,
+                            fee_unit_snapshot: fee,
+                            fee_saas_gross_snapshot: fee_saas_bruta,
+                            fee_source,
+                            payment_method: 'PIX',
+                            status: 'FAILED',
+                            is_authorized_free: false,
+                            error_type: 'customer_creation',
+                            error_details: customerData,
+                        });
+                    } catch { /* silent — não afeta o fluxo */ }
                     return NextResponse.json(
                         { error: 'Erro ao criar cliente no Asaas.' },
                         { status: 500 }
@@ -497,6 +512,21 @@ export async function POST(request: NextRequest) {
 
         if (!paymentRes?.ok || !paymentData?.id) {
             console.error('Failed to create Asaas payment:', JSON.stringify(paymentData, null, 2));
+            try {
+                await admin.from('payments').insert({
+                    event_id, payer_type, payer_ref, tenant_id_organizer,
+                    qtd_inscricoes,
+                    total_inscricoes_snapshot: total_inscricoes,
+                    fee_unit_snapshot: fee,
+                    fee_saas_gross_snapshot: fee_saas_bruta,
+                    fee_source,
+                    payment_method: 'PIX',
+                    status: 'FAILED',
+                    is_authorized_free: false,
+                    error_type: 'payment_creation',
+                    error_details: paymentData,
+                });
+            } catch { /* silent — não afeta o fluxo */ }
             return NextResponse.json(
                 { error: 'Erro ao criar cobrança no Asaas.', details: paymentData },
                 { status: 500 }

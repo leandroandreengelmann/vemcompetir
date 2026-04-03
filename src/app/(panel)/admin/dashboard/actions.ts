@@ -11,6 +11,16 @@ export type AcademyRankingItem = {
     status: 'ok' | 'low' | 'negative';
 };
 
+export type PaymentFailureItem = {
+    id: string;
+    error_type: string | null;
+    error_details: any;
+    created_at: string;
+    total_inscricoes_snapshot: number;
+    athlete_name: string;
+    event_title: string;
+};
+
 export type DashboardData = {
     tokens: {
         grantedThisMonth: number;
@@ -28,6 +38,10 @@ export type DashboardData = {
     operational: {
         pendingEvents: number;
         pendingSuggestions: number;
+    };
+    paymentFailures: {
+        last24h: number;
+        items: PaymentFailureItem[];
     };
 };
 
@@ -149,6 +163,39 @@ export async function getDashboardData(): Promise<DashboardData> {
         .is('tenant_id', null)
         .not('gym_name', 'is', null);
 
+    // ── Falhas de pagamento (últimas 24h) ────────────────────────────────────
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: rawFailures } = await adminClient
+        .from('payments')
+        .select('id, payer_ref, total_inscricoes_snapshot, error_type, error_details, created_at, event:events(title)')
+        .eq('status', 'FAILED')
+        .gte('created_at', since24h)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+    // Busca nomes dos atletas pelos payer_ref
+    const payerRefs = [...new Set((rawFailures ?? []).map(f => f.payer_ref).filter(Boolean))];
+    const payerMap = new Map<string, string>();
+    if (payerRefs.length > 0) {
+        const { data: payerProfiles } = await adminClient
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', payerRefs);
+        for (const p of payerProfiles ?? []) {
+            payerMap.set(p.id, p.full_name ?? '(sem nome)');
+        }
+    }
+
+    const failedPayments: PaymentFailureItem[] = (rawFailures ?? []).map(f => ({
+        id: f.id,
+        error_type: f.error_type,
+        error_details: f.error_details,
+        created_at: f.created_at,
+        total_inscricoes_snapshot: Number(f.total_inscricoes_snapshot ?? 0),
+        athlete_name: payerMap.get(f.payer_ref) ?? '(desconhecido)',
+        event_title: (f.event as any)?.title ?? '(evento desconhecido)',
+    }));
+
     return {
         tokens: {
             grantedThisMonth,
@@ -166,6 +213,10 @@ export async function getDashboardData(): Promise<DashboardData> {
         operational: {
             pendingEvents: pendingEvents ?? 0,
             pendingSuggestions: pendingSuggestions ?? 0,
+        },
+        paymentFailures: {
+            last24h: failedPayments?.length ?? 0,
+            items: failedPayments ?? [],
         },
     };
 }

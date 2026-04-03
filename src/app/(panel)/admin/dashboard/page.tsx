@@ -166,7 +166,77 @@ export default async function AdminDashboard() {
                 </div>
             </section>
 
-            {/* ── Bloco 3: Consumo por academia ───────────────────────────── */}
+            {/* ── Bloco 3: Falhas de pagamento ────────────────────────────── */}
+            <section className="space-y-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    Falhas de Pagamento — últimas 24h
+                </h2>
+                {/* Legenda dos tipos de erro */}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-xs text-muted-foreground">
+                    <div className="rounded-md border px-3 py-2 space-y-0.5">
+                        <p className="font-semibold text-foreground">Cliente Asaas</p>
+                        <p>Falhou ao criar ou encontrar o cliente no Asaas. Causas comuns: chave de API inválida ou CPF ausente no perfil do atleta.</p>
+                    </div>
+                    <div className="rounded-md border px-3 py-2 space-y-0.5">
+                        <p className="font-semibold text-foreground">Cobrança Asaas</p>
+                        <p>O Asaas recusou a criação da cobrança. Causas comuns: cliente de outra conta (ID inválido), subconta do organizador inativa ou valor incorreto.</p>
+                    </div>
+                </div>
+
+                <Card className={data.paymentFailures.last24h > 0 ? "border-red-500" : "border-blue-400"}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className={`text-sm font-medium ${data.paymentFailures.last24h > 0 ? "text-red-600" : "text-blue-600"}`}>
+                            {data.paymentFailures.last24h === 0
+                                ? "Nenhuma falha registrada"
+                                : `${data.paymentFailures.last24h} falha${data.paymentFailures.last24h !== 1 ? "s" : ""} registrada${data.paymentFailures.last24h !== 1 ? "s" : ""}`}
+                        </CardTitle>
+                        <XCircleIcon
+                            className={`h-5 w-5 ${data.paymentFailures.last24h > 0 ? "text-red-500" : "text-blue-500"}`}
+                            weight="fill"
+                        />
+                    </CardHeader>
+                    {data.paymentFailures.last24h > 0 && (
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Horário</TableHead>
+                                        <TableHead>Atleta</TableHead>
+                                        <TableHead>Evento</TableHead>
+                                        <TableHead className="text-right">Valor</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Detalhe do erro</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.paymentFailures.items.map(f => (
+                                        <TableRow key={f.id}>
+                                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                                {new Date(f.created_at).toLocaleString('pt-BR')}
+                                            </TableCell>
+                                            <TableCell className="text-xs font-medium">{f.athlete_name}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate">{f.event_title}</TableCell>
+                                            <TableCell className="text-xs text-right font-mono whitespace-nowrap">
+                                                {f.total_inscricoes_snapshot.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className="bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs whitespace-nowrap">
+                                                    {f.error_type === 'customer_creation' ? 'Cliente Asaas' : f.error_type === 'payment_creation' ? 'Cobrança Asaas' : f.error_type ?? 'Desconhecido'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
+                                                {f.error_details?.errors?.[0]?.description ?? f.error_details?.message ?? JSON.stringify(f.error_details)}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    )}
+                </Card>
+            </section>
+
+            {/* ── Bloco 4: Consumo por academia ───────────────────────────── */}
             <section className="space-y-3">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -242,7 +312,7 @@ export default async function AdminDashboard() {
                 </Card>
             </section>
 
-            {/* ── Bloco 4: Atalhos + Alertas ──────────────────────────────── */}
+            {/* ── Bloco 5: Atalhos + Alertas ──────────────────────────────── */}
             <section className="space-y-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     Atalhos Rápidos
