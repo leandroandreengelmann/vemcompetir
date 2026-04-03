@@ -50,6 +50,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const [selected, setSelected] = useState<any | null>(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todas' | 'aberta' | 'resolvida' | 'arquivada'>('aberta');
+    const [typeFilter, setTypeFilter] = useState<'todos' | 'atleta' | 'academia'>('todos');
     const [text, setText] = useState('');
     const [sending, setSending] = useState(false);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
@@ -287,6 +288,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     }
 
     const filtered = conversations.filter(c => {
+        if (typeFilter !== 'todos' && c.contact_type !== typeFilter) return false;
         if (!search.trim()) return true;
         const q = search.toLowerCase();
         return (c.contact_name ?? '').toLowerCase().includes(q) || c.phone.includes(q);
@@ -330,6 +332,34 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                     ))}
                 </div>
 
+                {/* Filtro por tipo de contato */}
+                <div className="flex gap-1 px-3 py-2 border-b">
+                    {([
+                        { key: 'todos', label: 'Todos' },
+                        { key: 'atleta', label: 'Atleta' },
+                        { key: 'academia', label: 'Academia' },
+                    ] as const).map(({ key, label }) => (
+                        <button
+                            key={key}
+                            onClick={() => setTypeFilter(key)}
+                            className={cn(
+                                'flex items-center gap-1 px-2.5 py-1 rounded-full text-panel-sm font-semibold whitespace-nowrap transition-all',
+                                typeFilter === key
+                                    ? key === 'atleta'
+                                        ? 'bg-blue-600 text-white'
+                                        : key === 'academia'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'bg-foreground text-background'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            )}
+                        >
+                            {key === 'atleta' && <UserCircleIcon size={12} weight="bold" />}
+                            {key === 'academia' && <BuildingsIcon size={12} weight="bold" />}
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
                 {/* Lista */}
                 <div className="flex-1 overflow-y-auto">
                     {filtered.length === 0 ? (
@@ -359,8 +389,8 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                                 {conv.contact_name ?? conv.phone}
                                             </span>
                                             {conv.handler_mode === 'ai'
-                                                ? <RobotIcon size={28} weight="bold" className="text-purple-500 shrink-0" />
-                                                : <UserCirclePlusIcon size={12} weight="bold" className="text-orange-500 shrink-0" />
+                                                ? <RobotIcon size={14} weight="bold" className="text-purple-500 shrink-0" />
+                                                : <UserCirclePlusIcon size={14} weight="bold" className="text-orange-500 shrink-0" />
                                             }
                                             {conv.tag === 'boas-vindas' && (
                                                 <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-700 text-[10px] font-bold shrink-0">
@@ -426,11 +456,11 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                             {/* Badge e botão IA/Humano */}
                             {selected.handler_mode === 'ai' ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-700 text-[11px] font-bold">
-                                    <RobotIcon size={28} weight="bold" /> IA
+                                    <RobotIcon size={14} weight="bold" /> IA
                                 </span>
                             ) : (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-700 text-[11px] font-bold">
-                                    <UserCirclePlusIcon size={12} weight="bold" /> Humano
+                                    <UserCirclePlusIcon size={14} weight="bold" /> Humano
                                 </span>
                             )}
                             {selected.handler_mode === 'human' ? (
