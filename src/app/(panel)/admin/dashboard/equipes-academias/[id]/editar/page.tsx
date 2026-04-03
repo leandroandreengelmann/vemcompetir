@@ -26,10 +26,10 @@ export default async function EditAcademiaEquipePage(props: PageProps) {
         notFound();
     }
 
-    // Buscar dados do tenant para configuração Asaas
+    // Buscar dados do profile (phone) e tenant para configuração Asaas
     const { data: profile } = await adminClient
         .from('profiles')
-        .select('tenant_id')
+        .select('tenant_id, phone')
         .eq('id', id)
         .single();
 
@@ -51,6 +51,7 @@ export default async function EditAcademiaEquipePage(props: PageProps) {
         address_city: organizer.user_metadata?.address_city || '',
         address_state: organizer.user_metadata?.address_state || '',
         address_zip_code: organizer.user_metadata?.address_zip_code || '',
+        phone: profile?.phone || '',
         use_own_asaas_api: tenant?.use_own_asaas_api ?? false,
         asaas_api_key_last4: tenant?.asaas_api_key_last4 ?? null,
         can_register_academies: tenant?.can_register_academies ?? false,

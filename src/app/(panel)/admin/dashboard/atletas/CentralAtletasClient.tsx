@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,8 @@ import {
     PaperPlaneTiltIcon,
     GearIcon,
     SpinnerGapIcon,
+    RobotIcon,
+    BellIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatCategoryTitle } from '@/lib/category-utils';
@@ -47,9 +50,11 @@ import { ensureConversation } from './whatsapp/actions';
 import { WhatsAppTemplates } from './whatsapp/WhatsAppTemplates';
 import { WhatsAppConfig } from './whatsapp/WhatsAppConfig';
 import { WhatsAppDisparos } from './whatsapp/WhatsAppDisparos';
+import { WhatsAppAIConfig } from './whatsapp/WhatsAppAIConfig';
+import { WhatsAppNotificacoes } from './whatsapp/WhatsAppNotificacoes';
 
 type MainTab = 'atletas' | 'whatsapp';
-type WhatsAppTab = 'inbox' | 'disparos' | 'templates' | 'config';
+type WhatsAppTab = 'inbox' | 'notificacoes' | 'disparos' | 'templates' | 'ia' | 'config';
 
 interface Registration {
     id: string;
@@ -173,8 +178,25 @@ function copyToClipboard(value: string, label: string) {
 }
 
 export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
-    const [mainTab, setMainTab] = useState<MainTab>('atletas');
-    const [whatsappTab, setWhatsappTab] = useState<WhatsAppTab>('inbox');
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const mainTab = (searchParams.get('tab') as MainTab) ?? 'atletas';
+    const whatsappTab = (searchParams.get('wtab') as WhatsAppTab) ?? 'inbox';
+
+    function setMainTab(tab: MainTab) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', tab);
+        if (tab !== 'whatsapp') params.delete('wtab');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+
+    function setWhatsappTab(tab: WhatsAppTab) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('wtab', tab);
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
     const [whatsappConvId, setWhatsappConvId] = useState<string | undefined>();
     const [openingChat, setOpeningChat] = useState(false);
 
@@ -301,10 +323,12 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                     {/* Sub-tabs */}
                     <div className="flex gap-1 border-b">
                         {([
-                            { key: 'inbox',     label: 'Inbox',      icon: ChatTeardropTextIcon },
-                            { key: 'disparos',  label: 'Disparos',   icon: PaperPlaneTiltIcon },
-                            { key: 'templates', label: 'Templates',  icon: FileTextIcon },
-                            { key: 'config',    label: 'Config',     icon: GearIcon },
+                            { key: 'inbox',         label: 'Inbox',          icon: ChatTeardropTextIcon },
+                            { key: 'notificacoes',  label: 'Notificações',   icon: BellIcon },
+                            { key: 'disparos',      label: 'Disparos',       icon: PaperPlaneTiltIcon },
+                            { key: 'templates',     label: 'Templates',      icon: FileTextIcon },
+                            { key: 'ia',            label: 'IA',             icon: RobotIcon },
+                            { key: 'config',        label: 'Config',         icon: GearIcon },
                         ] as { key: WhatsAppTab; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
                             <button
                                 key={key}
@@ -323,8 +347,10 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                     </div>
 
                     {whatsappTab === 'inbox' && <WhatsAppInbox initialConvId={whatsappConvId} />}
+                    {whatsappTab === 'notificacoes' && <WhatsAppNotificacoes />}
                     {whatsappTab === 'disparos' && <WhatsAppDisparos />}
                     {whatsappTab === 'templates' && <WhatsAppTemplates />}
+                    {whatsappTab === 'ia' && <WhatsAppAIConfig />}
                     {whatsappTab === 'config' && <WhatsAppConfig />}
                 </div>
             )}

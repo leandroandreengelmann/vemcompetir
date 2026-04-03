@@ -35,6 +35,7 @@ export async function registerAffiliatedAcademyAction(formData: FormData) {
     const email = (formData.get('email') as string)?.trim();
     const password = formData.get('password') as string;
     const document = (formData.get('document') as string)?.trim();
+    const phone = (formData.get('phone') as string)?.trim();
 
     if (!full_name || !email || !password) {
         return { error: 'Nome, e-mail e senha são obrigatórios.' };
@@ -100,6 +101,7 @@ export async function registerAffiliatedAcademyAction(formData: FormData) {
         full_name,
         tenant_id: tenant?.id,
         document,
+        phone: phone || null,
     });
 
     revalidatePath('/academia-equipe/dashboard/academias-afiliadas');

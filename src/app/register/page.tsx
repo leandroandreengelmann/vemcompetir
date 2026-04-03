@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getAuthErrorMessage } from '@/lib/auth-errors';
 import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
 import { getGuardianTemplateContentAction } from './actions';
+import { sendWelcomeWhatsApp } from '@/app/(panel)/admin/dashboard/atletas/whatsapp/actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -204,6 +205,11 @@ export default function RegisterPage() {
 
             if (data.user) {
                 setSuccess('Conta criada com sucesso! Verifique seu e-mail para confirmar a conta.');
+                // Envia boas-vindas via WhatsApp após 5 segundos
+                const phone = !isMinor ? normalizeNumeric(formData.phone) : normalizeNumeric(formData.guardian_phone);
+                if (phone) {
+                    setTimeout(() => sendWelcomeWhatsApp(phone, formData.nome).catch(() => {}), 5000);
+                }
                 setTimeout(() => router.push('/login'), 4000);
             }
         } catch (err) {

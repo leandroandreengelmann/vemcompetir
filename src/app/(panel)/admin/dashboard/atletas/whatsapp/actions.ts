@@ -2,6 +2,39 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { encrypt, decrypt } from '@/lib/crypto';
+
+async function requireAdmin() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autorizado.');
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin_geral') throw new Error('Sem permissão.');
+}
+
+function encryptApiKey(key: string): string {
+    try {
+        const { encrypted, iv } = encrypt(key);
+        return `${iv}:${encrypted}`;
+    } catch {
+        // ASAAS_ENCRYPTION_KEY not configured — store plain text
+        return key;
+    }
+}
+
+function decryptApiKey(stored: string): string {
+    if (!stored) return stored;
+    const parts = stored.split(':');
+    // Encrypted format: iv:encryptedData:authTag (3 colon-separated parts)
+    if (parts.length === 3) {
+        try {
+            return decrypt(`${parts[1]}:${parts[2]}`, parts[0]);
+        } catch {
+            // Fall through to return as-is (plain text legacy key)
+        }
+    }
+    return stored;
+}
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -15,11 +48,14 @@ export async function getWhatsAppConfig() {
     return data;
 }
 
-export async function saveWhatsAppConfig(instanceId: string, token: string, clientToken: string, webhookUrl?: string) {
+export async function saveWhatsAppConfig(instanceId: string, token: string, clientToken: string, webhookUrl?: string, supportPhone?: string, welcomeMessage?: string) {
+    await requireAdmin();
     const supabase = await createClient();
     const existing = await getWhatsAppConfig();
     const updateData: any = { instance_id: instanceId, token, client_token: clientToken, updated_at: new Date().toISOString() };
     if (webhookUrl) updateData.webhook_url = webhookUrl;
+    if (supportPhone !== undefined) updateData.support_phone = supportPhone;
+    if (welcomeMessage !== undefined) updateData.welcome_message = welcomeMessage;
 
     if (existing) {
         await supabase.from('whatsapp_config').update(updateData).eq('id', existing.id);
@@ -105,7 +141,7 @@ export async function checkConnectionStatus() {
         .update({ connected, phone_number: phone, connected_at: connected ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
         .eq('id', config.id);
 
-    return { connected, phone, _raw: json };
+    return { connected, phone };
 }
 
 // ─── Conversas ───────────────────────────────────────────────────────────────
@@ -134,6 +170,7 @@ export async function getMessages(conversationId: string) {
 }
 
 export async function sendMessage(conversationId: string, body: string) {
+    await requireAdmin();
     const supabase = await createClient();
     const config = await getWhatsAppConfig();
     if (!config?.connected) throw new Error('WhatsApp desconectado');
@@ -190,6 +227,7 @@ export async function markAsRead(conversationId: string) {
 }
 
 export async function updateConversationStatus(conversationId: string, status: 'aberta' | 'resolvida' | 'arquivada') {
+    await requireAdmin();
     const supabase = await createClient();
     await supabase
         .from('whatsapp_conversations')
@@ -263,6 +301,7 @@ export async function getTemplates() {
 }
 
 export async function saveTemplate(id: string | null, name: string, category: string, body: string) {
+    await requireAdmin();
     const supabase = await createClient();
     if (id) {
         await supabase.from('whatsapp_templates').update({ name, category, body, updated_at: new Date().toISOString() }).eq('id', id);
@@ -272,6 +311,7 @@ export async function saveTemplate(id: string | null, name: string, category: st
 }
 
 export async function deleteTemplate(id: string) {
+    await requireAdmin();
     const supabase = await createClient();
     await supabase.from('whatsapp_templates').delete().eq('id', id);
 }
@@ -380,6 +420,7 @@ export async function executeBroadcast(
     filters: BroadcastFilters,
     athletes: { id: string; full_name: string; phone: string; event_title?: string; category?: string; price?: number }[]
 ): Promise<{ sent: number; failed: number; broadcastId: string }> {
+    await requireAdmin();
     const supabase = await createClient();
     const config = await getWhatsAppConfig();
     if (!config?.connected) throw new Error('WhatsApp desconectado');
@@ -413,13 +454,14 @@ export async function executeBroadcast(
             link: 'https://competir.com',
         });
 
+        const normalizedPhone = formatPhoneForZapi(athlete.phone);
         try {
             const res = await fetch(
                 `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
                 {
                     method: 'POST',
                     headers: zapiHeaders(config),
-                    body: JSON.stringify({ phone: formatPhoneForZapi(athlete.phone), message }),
+                    body: JSON.stringify({ phone: normalizedPhone, message }),
                 }
             );
 
@@ -429,13 +471,13 @@ export async function executeBroadcast(
                 let { data: conv } = await supabase
                     .from('whatsapp_conversations')
                     .select('id')
-                    .eq('phone', athlete.phone)
+                    .eq('phone', normalizedPhone)
                     .maybeSingle();
 
                 if (!conv) {
                     const { data: newConv } = await supabase
                         .from('whatsapp_conversations')
-                        .insert({ phone: athlete.phone, contact_name: athlete.full_name, contact_type: 'atleta', linked_id: athlete.id, status: 'aberta', last_message: message, last_message_at: new Date().toISOString() })
+                        .insert({ phone: normalizedPhone, contact_name: athlete.full_name, contact_type: 'atleta', linked_id: athlete.id, status: 'aberta', last_message: message, last_message_at: new Date().toISOString() })
                         .select('id').single();
                     conv = newConv;
                 } else {
@@ -470,4 +512,295 @@ export async function executeBroadcast(
     }).eq('id', broadcast!.id);
 
     return { sent, failed, broadcastId: broadcast!.id };
+}
+
+// ─── IA Config ───────────────────────────────────────────────────────────────
+
+export async function getAIConfig() {
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from('ai_config')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+    return data;
+}
+
+export async function saveAIConfig(
+    openaiApiKey: string,
+    adminPhone: string,
+    model: string,
+    enabled: boolean,
+    systemPrompt: string,
+) {
+    await requireAdmin();
+    const supabase = await createClient();
+    const existing = await getAIConfig();
+    const payload: any = { admin_phone: adminPhone, model, enabled, system_prompt: systemPrompt, updated_at: new Date().toISOString() };
+    // '__keep__' significa que o usuário não alterou a chave — mantém a existente
+    if (openaiApiKey !== '__keep__') payload.openai_api_key = encryptApiKey(openaiApiKey);
+    if (existing) {
+        await supabase.from('ai_config').update(payload).eq('id', existing.id);
+    } else {
+        payload.openai_api_key = openaiApiKey !== '__keep__' ? encryptApiKey(openaiApiKey) : '';
+        await supabase.from('ai_config').insert(payload);
+    }
+}
+
+export async function sendMediaMessage(conversationId: string, fileBase64: string, fileName: string, mimeType: string) {
+    await requireAdmin();
+    const supabase = await createClient();
+    const adminSupabase = createAdminClient();
+    const config = await getWhatsAppConfig();
+    if (!config?.connected) throw new Error('WhatsApp desconectado');
+
+    const { data: conv } = await supabase
+        .from('whatsapp_conversations')
+        .select('phone')
+        .eq('id', conversationId)
+        .single();
+    if (!conv) throw new Error('Conversa não encontrada');
+
+    const phone = conv.phone.replace(/\D/g, '');
+    if (!phone.startsWith('55')) throw new Error('Telefone inválido');
+
+    // Upload para Supabase Storage
+    const ext = fileName.split('.').pop() ?? 'bin';
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const buffer = Buffer.from(fileBase64, 'base64');
+    const { error: uploadError } = await adminSupabase.storage
+        .from('whatsapp-media')
+        .upload(path, buffer, { contentType: mimeType, upsert: false });
+    if (uploadError) throw new Error('Erro no upload: ' + uploadError.message);
+
+    const { data: urlData } = adminSupabase.storage.from('whatsapp-media').getPublicUrl(path);
+    const publicUrl = urlData.publicUrl;
+
+    const headers = { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) };
+    const base = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}`;
+
+    let endpoint = 'send-document/url';
+    let body: any = { phone, url: publicUrl, fileName };
+
+    if (mimeType.startsWith('image/')) {
+        endpoint = 'send-image';
+        body = { phone, image: publicUrl, caption: fileName };
+    } else if (mimeType.startsWith('audio/') || mimeType === 'application/ogg') {
+        endpoint = 'send-audio';
+        body = { phone, audio: publicUrl };
+    } else if (mimeType.startsWith('video/')) {
+        endpoint = 'send-video';
+        body = { phone, video: publicUrl, caption: fileName };
+    }
+
+    const res = await fetch(`${base}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(`Falha ao enviar mídia: ${JSON.stringify(json)}`);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const mediaType = mimeType.startsWith('image/') ? 'image' : mimeType.startsWith('audio/') ? 'audio' : mimeType.startsWith('video/') ? 'video' : 'document';
+
+    await supabase.from('whatsapp_messages').insert({
+        conversation_id: conversationId,
+        zapi_message_id: json?.messageId ?? json?.zaapId ?? null,
+        direction: 'outbound',
+        body: mediaType === 'image' || mediaType === 'video' ? fileName : null,
+        media_url: publicUrl,
+        media_type: mediaType,
+        status: 'sent',
+        sent_by: user?.id ?? null,
+    });
+
+    await supabase.from('whatsapp_conversations').update({
+        last_message: `📎 ${fileName}`,
+        last_message_at: new Date().toISOString(),
+        last_message_direction: 'outbound',
+        last_message_status: 'sent',
+        updated_at: new Date().toISOString(),
+    }).eq('id', conversationId);
+
+    return { success: true };
+}
+
+// ─── Notificações de inscrição ───────────────────────────────────────────────
+
+export async function getPendingRegistrationNotifications() {
+    const adminClient = createAdminClient();
+    const { data } = await adminClient
+        .from('event_registrations')
+        .select('id, athlete_id, status, price, created_at, whatsapp_notified_at, events(id, title, tenant_id), category_rows(categoria_completa), profiles!athlete_id(full_name, phone)')
+        .in('status', ['pago', 'confirmado', 'isento'])
+        .is('whatsapp_notified_at', null)
+        .order('created_at', { ascending: false });
+
+    if (!data?.length) return [];
+
+    // Busca telefone dos organizadores por tenant_id
+    const tenantIds = [...new Set(data.map((r: any) => r.events?.tenant_id).filter(Boolean))];
+    const { data: organizers } = await adminClient
+        .from('profiles')
+        .select('tenant_id, full_name, phone')
+        .in('tenant_id', tenantIds)
+        .eq('role', 'academia/equipe');
+
+    const organizerMap = new Map((organizers ?? []).map((o: any) => [o.tenant_id, o]));
+
+    return data
+        .map((r: any) => {
+            const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+            return { ...r, profiles: profile, organizer: organizerMap.get(r.events?.tenant_id) ?? null };
+        })
+        .filter((r: any) => r.profiles?.phone);
+}
+
+async function zapiSendText(config: any, phone: string, message: string) {
+    const headers = { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) };
+    const res = await fetch(`https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`, { method: 'POST', headers, body: JSON.stringify({ phone, message }) });
+    if (!res.ok) { const json = await res.json(); throw new Error(`Falha ao enviar: ${JSON.stringify(json)}`); }
+}
+
+async function upsertConversation(supabase: any, phone: string, name: string | null, linkedId: string | null, contactType: string, message: string) {
+    const { data: existing } = await supabase.from('whatsapp_conversations').select('id').eq('phone', phone).maybeSingle();
+    if (existing) {
+        await supabase.from('whatsapp_conversations').update({ last_message: message, last_message_at: new Date().toISOString(), last_message_direction: 'outbound', last_message_status: 'sent', updated_at: new Date().toISOString() }).eq('id', existing.id);
+        return existing.id;
+    }
+    const { data: newConv } = await supabase.from('whatsapp_conversations').insert({ phone, contact_name: name, contact_type: contactType, linked_id: linkedId, status: 'aberta', last_message: message, last_message_at: new Date().toISOString(), last_message_direction: 'outbound', last_message_status: 'sent' }).select('id').single();
+    return newConv?.id;
+}
+
+export async function sendRegistrationNotification(registrationId: string, athleteMessage: string, organizerMessage?: string) {
+    await requireAdmin();
+    const supabase = await createClient();
+    const adminClient = createAdminClient();
+    const config = await getWhatsAppConfig();
+    if (!config?.connected) throw new Error('WhatsApp desconectado');
+
+    // Atomic mark to prevent duplicate sends from concurrent calls
+    const { data: claimed } = await adminClient
+        .from('event_registrations')
+        .update({ whatsapp_notified_at: new Date().toISOString() })
+        .eq('id', registrationId)
+        .is('whatsapp_notified_at', null)
+        .select('id')
+        .maybeSingle();
+    if (!claimed) return { success: true }; // already notified
+
+    const { data: reg } = await adminClient
+        .from('event_registrations')
+        .select('id, athlete_id, profiles(full_name, phone), events(id, title, tenant_id), category_rows(categoria_completa)')
+        .eq('id', registrationId)
+        .single();
+    const profile = Array.isArray(reg?.profiles) ? reg.profiles[0] : reg?.profiles as any;
+    if (!profile?.phone) throw new Error('Atleta sem telefone cadastrado');
+
+    const athletePhone = normalizePhone(profile.phone);
+
+    // ── Envia para o atleta ──
+    await zapiSendText(config, athletePhone, athleteMessage);
+    const convId = await upsertConversation(supabase, athletePhone, profile.full_name, reg!.athlete_id, 'atleta', athleteMessage);
+    if (convId) await supabase.from('whatsapp_messages').insert({ conversation_id: convId, direction: 'outbound', body: athleteMessage, status: 'sent' });
+
+    // ── Envia para o organizador (se tiver mensagem e telefone) ──
+    if (organizerMessage) {
+        const tenantId = (reg!.events as any)?.tenant_id;
+        if (tenantId) {
+            const { data: organizer } = await adminClient.from('profiles').select('full_name, phone, id').eq('tenant_id', tenantId).eq('role', 'academia/equipe').maybeSingle();
+            if (organizer?.phone) {
+                const orgPhone = normalizePhone(organizer.phone);
+                await zapiSendText(config, orgPhone, organizerMessage);
+                const orgConvId = await upsertConversation(supabase, orgPhone, organizer.full_name, organizer.id, 'academia', organizerMessage);
+                if (orgConvId) await supabase.from('whatsapp_messages').insert({ conversation_id: orgConvId, direction: 'outbound', body: organizerMessage, status: 'sent' });
+            }
+        }
+    }
+
+    return { success: true };
+}
+
+// ─── Boas-vindas ─────────────────────────────────────────────────────────────
+
+export async function sendWelcomeWhatsApp(phone: string, name: string): Promise<void> {
+    const adminClient = createAdminClient();
+
+    const [{ data: config }, { data: aiConfig }] = await Promise.all([
+        adminClient.from('whatsapp_config').select('*').limit(1).maybeSingle(),
+        adminClient.from('ai_config').select('welcome_message').limit(1).maybeSingle(),
+    ]);
+
+    const welcomeMsg = (config as any)?.welcome_message;
+    if (!config?.connected || !welcomeMsg) return;
+
+    const cleanPhone = normalizePhone(phone);
+    const message = welcomeMsg.replace(/\{nome\}/g, name.split(' ')[0]);
+
+    const headers = { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) };
+    const res = await fetch(
+        `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
+        { method: 'POST', headers, body: JSON.stringify({ phone: cleanPhone, message }) }
+    );
+    if (!res.ok) return;
+
+    // Cria conversa com tag boas-vindas
+    const { data: existing } = await adminClient.from('whatsapp_conversations').select('id').eq('phone', cleanPhone).maybeSingle();
+    if (existing) {
+        await adminClient.from('whatsapp_conversations').update({
+            tag: 'boas-vindas',
+            last_message: message,
+            last_message_at: new Date().toISOString(),
+            last_message_direction: 'outbound',
+            last_message_status: 'sent',
+            updated_at: new Date().toISOString(),
+        }).eq('id', existing.id);
+        await adminClient.from('whatsapp_messages').insert({ conversation_id: existing.id, direction: 'outbound', body: message, status: 'sent' });
+    } else {
+        const { data: newConv } = await adminClient.from('whatsapp_conversations').insert({
+            phone: cleanPhone,
+            contact_name: name,
+            contact_type: 'atleta',
+            tag: 'boas-vindas',
+            status: 'aberta',
+            handler_mode: 'ai',
+            last_message: message,
+            last_message_at: new Date().toISOString(),
+            last_message_direction: 'outbound',
+            last_message_status: 'sent',
+        }).select('id').single();
+        if (newConv) await adminClient.from('whatsapp_messages').insert({ conversation_id: newConv.id, direction: 'outbound', body: message, status: 'sent' });
+    }
+}
+
+export async function improveMessage(text: string): Promise<string> {
+    await requireAdmin();
+    const aiConfig = await getAIConfig();
+    if (!aiConfig?.openai_api_key) throw new Error('IA não configurada.');
+
+    const apiKey = decryptApiKey(aiConfig.openai_api_key);
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+            model: aiConfig.model ?? 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'Você é um assistente de escrita. Reescreva a mensagem corrigindo erros de português, melhorando clareza e tom profissional mas amigável. Mantenha o mesmo sentido original. Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.',
+                },
+                { role: 'user', content: text },
+            ],
+            max_tokens: 400,
+            temperature: 0.4,
+        }),
+    });
+
+    const json = await res.json();
+    const improved = json?.choices?.[0]?.message?.content?.trim();
+    if (!improved) throw new Error('IA não retornou resposta.');
+    return improved;
+}
+
+export async function setConversationHandlerMode(conversationId: string, mode: 'ai' | 'human') {
+    await requireAdmin();
+    const supabase = await createClient();
+    await supabase.from('whatsapp_conversations').update({ handler_mode: mode, updated_at: new Date().toISOString() }).eq('id', conversationId);
 }

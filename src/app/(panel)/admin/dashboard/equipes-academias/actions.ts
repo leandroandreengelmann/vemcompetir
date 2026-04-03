@@ -114,6 +114,7 @@ export async function createOrganizerAction(formData: FormData) {
     const address_city = formData.get('address_city') as string;
     const address_state = formData.get('address_state') as string;
     const address_zip_code = formData.get('address_zip_code') as string;
+    const phone = formData.get('phone') as string;
 
     if (!email || !password || !full_name) return { error: 'Preencha todos os campos obrigatórios.' };
 
@@ -182,13 +183,14 @@ export async function createOrganizerAction(formData: FormData) {
                 id: user.id,
                 role: 'academia/equipe',
                 full_name,
-                tenant_id: tenant?.id, // Link profile to the new tenant
+                tenant_id: tenant?.id,
                 document,
                 address_street,
                 address_number,
                 address_city,
                 address_state,
                 address_zip_code,
+                phone: phone || null,
             });
     }
 
@@ -222,6 +224,7 @@ export async function updateOrganizerAction(formData: FormData) {
     const address_city = formData.get('address_city') as string;
     const address_state = formData.get('address_state') as string;
     const address_zip_code = formData.get('address_zip_code') as string;
+    const phone = formData.get('phone') as string;
 
     if (!id || !full_name) return { error: 'ID e Nome são obrigatórios.' };
 
@@ -270,14 +273,11 @@ export async function updateOrganizerAction(formData: FormData) {
             address_city,
             address_state,
             address_zip_code,
+            phone: phone || null,
         })
         .eq('id', id);
 
     if (profileError) {
-        // Log error but don't fail if profile doesn't exist? update should be safe.
-        // Se profile não existir, update não faz nada. 
-        // Talvez upsert? Mas upsert sem role pode quebrar. Melhor manter update se já existe, ou upsert com role.
-        // Vamos usar upsert para garantir que o profile exista e tenha role correto.
         await adminClient
             .from('profiles')
             .upsert({
@@ -290,6 +290,7 @@ export async function updateOrganizerAction(formData: FormData) {
                 address_city,
                 address_state,
                 address_zip_code,
+                phone: phone || null,
             });
     }
 

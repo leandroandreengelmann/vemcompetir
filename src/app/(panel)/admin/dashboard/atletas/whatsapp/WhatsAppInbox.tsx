@@ -11,11 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import {
     MagnifyingGlassIcon, PaperPlaneTiltIcon, CheckCircleIcon, ArchiveIcon,
     SpinnerGapIcon, UsersIcon, BuildingsIcon, UserCircleIcon, CheckIcon,
-    ChecksIcon, ClockIcon,
+    ChecksIcon, ClockIcon, RobotIcon, UserCirclePlusIcon, PaperclipIcon,
+    FileIcon, MicrophoneIcon, FilmStripIcon, ImageIcon, ListBulletsIcon, XIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn as clsx } from '@/lib/utils';
-import { getConversations, getMessages, sendMessage, markAsRead, updateConversationStatus } from './actions';
+import { getConversations, getMessages, sendMessage, markAsRead, updateConversationStatus, setConversationHandlerMode, sendMediaMessage, improveMessage, getTemplates } from './actions';
+import { useRef as useFileRef } from 'react';
 
 const CONTACT_CONFIG = {
     atleta:      { label: 'Atleta',      icon: UserCircleIcon,  className: 'bg-blue-500/10 text-blue-700' },
@@ -49,13 +51,23 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todas' | 'aberta' | 'resolvida' | 'arquivada'>('aberta');
     const [text, setText] = useState('');
-    const [sending, isPending, startTransition] = useState(false) as any;
+    const [sending, setSending] = useState(false);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isPendingStatus, startStatusTransition] = useTransition();
     const [typingPhones, setTypingPhones] = useState<Set<string>>(new Set());
     const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
     const selectedIdRef = useRef<string | null>(null);
+    const fileInputRef = useFileRef<HTMLInputElement>(null);
+    const [sendingMedia, setSendingMedia] = useState(false);
+    const [improving, setImproving] = useState(false);
+    const [showTemplates, setShowTemplates] = useState(false);
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [recording, setRecording] = useState(false);
+    const [recordingSeconds, setRecordingSeconds] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const statusFilterRef = useRef<string>('aberta');
 
     useEffect(() => { selectedIdRef.current = selected?.id ?? null; }, [selected?.id]);
@@ -152,6 +164,10 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         setConversations(data);
     }
 
+    useEffect(() => {
+        getTemplates().then(setTemplates);
+    }, []);
+
     async function loadMessages(conversationId: string) {
         setLoadingMsgs(true);
         const data = await getMessages(conversationId);
@@ -170,6 +186,95 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         } catch (e: any) {
             toast.error(e.message ?? 'Erro ao enviar mensagem.');
         }
+    }
+
+    async function handleImprove() {
+        if (!text.trim()) return;
+        setImproving(true);
+        try {
+            const improved = await improveMessage(text.trim());
+            setText(improved);
+        } catch (err: any) {
+            toast.error(err.message ?? 'Erro ao melhorar mensagem.');
+        } finally {
+            setImproving(false);
+        }
+    }
+
+    async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file || !selected) return;
+        if (file.size > 16 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 16MB.'); return; }
+        setSendingMedia(true);
+        try {
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            await sendMediaMessage(selected.id, base64, file.name, file.type);
+            await loadMessages(selected.id);
+            await loadConversations();
+        } catch (err: any) {
+            toast.error(err.message ?? 'Erro ao enviar arquivo.');
+        } finally {
+            setSendingMedia(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    }
+
+    async function startRecording() {
+        if (!selected) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+            const recorder = new MediaRecorder(stream, { mimeType });
+            audioChunksRef.current = [];
+            recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+            recorder.start(100);
+            mediaRecorderRef.current = recorder;
+            setRecording(true);
+            setRecordingSeconds(0);
+            recordingTimerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
+        } catch {
+            toast.error('Permissão de microfone negada.');
+        }
+    }
+
+    async function stopRecording() {
+        const recorder = mediaRecorderRef.current;
+        if (!recorder || !selected) return;
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecording(false);
+        setRecordingSeconds(0);
+
+        // onstop must be set BEFORE calling stop() to avoid race condition
+        recorder.onstop = async () => {
+            recorder.stream.getTracks().forEach(t => t.stop());
+            const mimeType = recorder.mimeType;
+            const blob = new Blob(audioChunksRef.current, { type: mimeType });
+            if (blob.size < 1000) return; // gravação muito curta
+            setSendingMedia(true);
+            try {
+                const base64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                const ext = mimeType.includes('webm') ? 'webm' : 'ogg';
+                await sendMediaMessage(selected.id, base64, `audio-${Date.now()}.${ext}`, mimeType);
+                await loadMessages(selected.id);
+                await loadConversations();
+            } catch (err: any) {
+                toast.error(err.message ?? 'Erro ao enviar áudio.');
+            } finally {
+                setSendingMedia(false);
+            }
+        };
+
+        recorder.stop();
     }
 
     async function handleStatusChange(status: 'aberta' | 'resolvida' | 'arquivada') {
@@ -249,9 +354,20 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-1">
-                                        <span className="text-panel-sm font-semibold truncate">
-                                            {conv.contact_name ?? conv.phone}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="text-panel-sm font-semibold truncate">
+                                                {conv.contact_name ?? conv.phone}
+                                            </span>
+                                            {conv.handler_mode === 'ai'
+                                                ? <RobotIcon size={28} weight="bold" className="text-purple-500 shrink-0" />
+                                                : <UserCirclePlusIcon size={12} weight="bold" className="text-orange-500 shrink-0" />
+                                            }
+                                            {conv.tag === 'boas-vindas' && (
+                                                <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-700 text-[10px] font-bold shrink-0">
+                                                    Boas-vindas
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-[10px] text-muted-foreground shrink-0">
                                             {conv.last_message_at ? formatMsgTime(conv.last_message_at) : ''}
                                         </span>
@@ -260,10 +376,10 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                         <div className="flex items-center gap-1 min-w-0">
                                             {conv.last_message_direction === 'outbound' && (
                                                 conv.last_message_status === 'read'
-                                                    ? <ChecksIcon size={14} weight="bold" className="text-blue-500 shrink-0" />
+                                                    ? <ChecksIcon size={28} weight="bold" className="text-blue-500 shrink-0" />
                                                     : conv.last_message_status === 'delivered'
-                                                    ? <ChecksIcon size={14} weight="bold" className="text-muted-foreground shrink-0" />
-                                                    : <CheckIcon size={14} weight="bold" className="text-muted-foreground shrink-0" />
+                                                    ? <ChecksIcon size={28} weight="bold" className="text-muted-foreground shrink-0" />
+                                                    : <CheckIcon size={28} weight="bold" className="text-muted-foreground shrink-0" />
                                             )}
                                             <p className="text-panel-sm text-muted-foreground truncate">{conv.last_message ?? '—'}</p>
                                         </div>
@@ -307,6 +423,35 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
+                            {/* Badge e botão IA/Humano */}
+                            {selected.handler_mode === 'ai' ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-700 text-[11px] font-bold">
+                                    <RobotIcon size={28} weight="bold" /> IA
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-700 text-[11px] font-bold">
+                                    <UserCirclePlusIcon size={12} weight="bold" /> Humano
+                                </span>
+                            )}
+                            {selected.handler_mode === 'human' ? (
+                                <Button variant="outline" size="sm" pill onClick={async () => {
+                                    await setConversationHandlerMode(selected.id, 'ai');
+                                    setSelected((p: any) => ({ ...p, handler_mode: 'ai' }));
+                                    await loadConversations();
+                                }}>
+                                    <RobotIcon size={28} weight="duotone" className="mr-1.5" />
+                                    Devolver à IA
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" pill onClick={async () => {
+                                    await setConversationHandlerMode(selected.id, 'human');
+                                    setSelected((p: any) => ({ ...p, handler_mode: 'human' }));
+                                    await loadConversations();
+                                }}>
+                                    <UserCirclePlusIcon size={14} weight="duotone" className="mr-1.5" />
+                                    Assumir
+                                </Button>
+                            )}
                             {selected.status !== 'resolvida' && (
                                 <Button variant="outline" size="sm" pill onClick={() => handleStatusChange('resolvida')} disabled={isPendingStatus}>
                                     <CheckCircleIcon size={16} weight="duotone" className="mr-1.5" />
@@ -347,12 +492,25 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                             ? 'bg-green-600 text-white rounded-br-sm'
                                             : 'bg-card border rounded-bl-sm'
                                     )}>
-                                        {msg.body && <p className="leading-relaxed">{msg.body}</p>}
-                                        {msg.media_url && (
-                                            <a href={msg.media_url} target="_blank" className="underline text-panel-sm">
-                                                {msg.media_type === 'image' ? '🖼 Imagem' : '📎 Arquivo'}
+                                        {msg.media_url && msg.media_type === 'image' && (
+                                            <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+                                                <img src={msg.media_url} alt="imagem" className="max-w-[240px] rounded-xl mb-1 cursor-pointer hover:opacity-90 transition-opacity" />
                                             </a>
                                         )}
+                                        {msg.media_url && msg.media_type === 'audio' && (
+                                            <audio controls src={msg.media_url} className="max-w-[240px] mb-1" />
+                                        )}
+                                        {msg.media_url && msg.media_type === 'video' && (
+                                            <video controls src={msg.media_url} className="max-w-[240px] rounded-xl mb-1" />
+                                        )}
+                                        {msg.media_url && msg.media_type === 'document' && (
+                                            <a href={msg.media_url} target="_blank" rel="noopener noreferrer"
+                                                className={cn('flex items-center gap-2 px-3 py-2 rounded-xl mb-1 text-panel-sm font-medium', isOut ? 'bg-green-700/40 hover:bg-green-700/60' : 'bg-muted hover:bg-muted/80')}>
+                                                <FileIcon size={18} weight="duotone" />
+                                                {msg.body ?? 'Documento'}
+                                            </a>
+                                        )}
+                                        {msg.body && msg.media_type !== 'document' && <p className="leading-relaxed">{msg.body}</p>}
                                         <div className={cn('flex items-center gap-1 mt-1', isOut ? 'justify-end' : 'justify-start')}>
                                             <span className={cn('text-[10px]', isOut ? 'text-green-100' : 'text-muted-foreground')}>
                                                 {format(new Date(msg.created_at), 'HH:mm')}
@@ -372,25 +530,142 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                         <div ref={messagesEndRef} />
                     </div>
 
+                    {/* Popover de templates */}
+                    {showTemplates && templates.length > 0 && (
+                        <div className="mx-4 mb-1 rounded-xl border bg-card shadow-lg overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 border-b">
+                                <span className="text-panel-sm font-semibold">Templates</span>
+                                <button onClick={() => setShowTemplates(false)}>
+                                    <XIcon size={16} weight="bold" className="text-muted-foreground hover:text-foreground" />
+                                </button>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto">
+                                {Object.entries(
+                                    templates.reduce((acc: any, t: any) => {
+                                        acc[t.category] = acc[t.category] ?? [];
+                                        acc[t.category].push(t);
+                                        return acc;
+                                    }, {})
+                                ).map(([category, items]: any) => (
+                                    <div key={category}>
+                                        <p className="px-3 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wide bg-muted/30">{category}</p>
+                                        {items.map((t: any) => (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => {
+    const firstName = (selected?.contact_name ?? '').split(' ')[0];
+    const body = t.body.replace(/\{nome\}/g, firstName || '{nome}');
+    setText(body);
+    setShowTemplates(false);
+}}
+                                                className="w-full text-left px-3 py-2 text-panel-sm hover:bg-muted/40 transition-colors border-b last:border-0"
+                                            >
+                                                <p className="font-medium">{t.name}</p>
+                                                <p className="text-muted-foreground truncate text-[11px]">{t.body}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Input de envio */}
                     <div className="px-4 py-3 border-t bg-card shrink-0">
-                        <div className="flex items-center gap-2">
-                            <Input
-                                placeholder="Digite uma mensagem..."
-                                value={text}
-                                onChange={e => setText(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                                className="h-11 rounded-xl"
-                            />
-                            <Button
-                                size="icon"
-                                onClick={handleSend}
-                                disabled={!text.trim()}
-                                className="h-11 w-11 rounded-xl shrink-0"
-                            >
-                                <PaperPlaneTiltIcon size={18} weight="duotone" />
-                            </Button>
-                        </div>
+                        {recording ? (
+                            <div className="flex items-center gap-3 h-11">
+                                <span className="size-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                                <span className="text-panel-sm font-semibold text-red-500">Gravando... {recordingSeconds}s</span>
+                                <div className="flex-1" />
+                                <Button size="sm" variant="outline" pill onClick={stopRecording} className="text-red-600 border-red-300">
+                                    Enviar áudio
+                                </Button>
+                                <Button size="sm" variant="ghost" pill onClick={() => {
+                                    const recorder = mediaRecorderRef.current;
+                                    if (recorder) {
+                                        recorder.onstop = null; // prevent audio send on cancel
+                                        recorder.stop();
+                                        recorder.stream.getTracks().forEach(t => t.stop());
+                                    }
+                                    audioChunksRef.current = [];
+                                    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+                                    setRecording(false); setRecordingSeconds(0);
+                                }}>
+                                    Cancelar
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                                    className="hidden"
+                                    onChange={handleFileSelect}
+                                />
+                                <Button
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={sendingMedia}
+                                    className="h-11 w-11 rounded-xl shrink-0"
+                                >
+                                    {sendingMedia
+                                        ? <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+                                        : <PaperclipIcon size={18} weight="duotone" />
+                                    }
+                                </Button>
+                                {templates.length > 0 && (
+                                    <Button
+                                        size="icon"
+                                        variant={showTemplates ? 'default' : 'outline'}
+                                        onClick={() => setShowTemplates(v => !v)}
+                                        className="h-11 w-11 rounded-xl shrink-0"
+                                        title="Templates"
+                                    >
+                                        <ListBulletsIcon size={18} weight="duotone" />
+                                    </Button>
+                                )}
+                                <Input
+                                    placeholder="Digite uma mensagem..."
+                                    value={text}
+                                    onChange={e => setText(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                                    className="h-11 rounded-xl"
+                                />
+                                {text.trim() && (
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        onClick={handleImprove}
+                                        disabled={improving}
+                                        className="h-11 w-11 rounded-xl shrink-0 text-purple-600 border-purple-200 hover:bg-purple-50"
+                                        title="Melhorar com IA"
+                                    >
+                                        {improving
+                                            ? <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+                                            : <span className="text-base">✨</span>
+                                        }
+                                    </Button>
+                                )}
+                                {text.trim() ? (
+                                    <Button size="icon" onClick={handleSend} className="h-11 w-11 rounded-xl shrink-0">
+                                        <PaperPlaneTiltIcon size={18} weight="duotone" />
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        onMouseDown={startRecording}
+                                        disabled={sendingMedia}
+                                        className="h-11 w-11 rounded-xl shrink-0"
+                                        title="Segurar para gravar áudio"
+                                    >
+                                        <MicrophoneIcon size={18} weight="duotone" />
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/CookieBanner";
+import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
 
 export default function RootLayout({
   children,
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${bangers.variable} antialiased font-sans`} suppressHydrationWarning>
         {children}
         <CookieBanner />
+        <WhatsAppFloatingButton />
         <Toaster position="top-right" />
       </body>
     </html>

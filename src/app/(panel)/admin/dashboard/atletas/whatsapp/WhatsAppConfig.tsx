@@ -16,6 +16,8 @@ export function WhatsAppConfig() {
     const [token, setToken] = useState('');
     const [clientToken, setClientToken] = useState('');
     const [webhookUrl, setWebhookUrl] = useState('');
+    const [supportPhone, setSupportPhone] = useState('');
+    const [welcomeMessage, setWelcomeMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(false);
     const [config, setConfig] = useState<any>(null);
@@ -37,6 +39,8 @@ export function WhatsAppConfig() {
             setToken(data.token);
             setClientToken(data.client_token ?? '');
             setWebhookUrl(data.webhook_url ?? '');
+            setSupportPhone(data.support_phone ?? '');
+            setWelcomeMessage(data.welcome_message ?? '');
             setStatus(data.connected ? 'connected' : 'disconnected');
         }
     }
@@ -48,7 +52,7 @@ export function WhatsAppConfig() {
         }
         setLoading(true);
         try {
-            await saveWhatsAppConfig(instanceId.trim(), token.trim(), clientToken.trim(), webhookUrl.trim() || undefined);
+            await saveWhatsAppConfig(instanceId.trim(), token.trim(), clientToken.trim(), webhookUrl.trim() || undefined, supportPhone.trim() || undefined, welcomeMessage.trim() || undefined);
             toast.success(webhookUrl.trim() ? 'Configurações salvas e webhooks registrados na Z-API!' : 'Configurações salvas!');
             await loadConfig();
         } catch {
@@ -147,6 +151,18 @@ export function WhatsAppConfig() {
                             />
                         </div>
                         <div className="space-y-2">
+                            <Label className="text-panel-sm font-medium text-muted-foreground">Telefone de Suporte (com 55 + DDD)</Label>
+                            <Input
+                                variant="lg"
+                                placeholder="556696407075"
+                                value={supportPhone}
+                                onChange={e => setSupportPhone(e.target.value)}
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Número que aparece no botão flutuante de WhatsApp em todas as páginas do site.
+                            </p>
+                        </div>
+                        <div className="space-y-2">
                             <Label className="text-panel-sm font-medium text-muted-foreground">URL do Webhook</Label>
                             <Input
                                 variant="lg"
@@ -159,6 +175,20 @@ export function WhatsAppConfig() {
                             </p>
                         </div>
                     </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-panel-sm font-medium text-muted-foreground">Mensagem de Boas-vindas</Label>
+                            <textarea
+                                value={welcomeMessage}
+                                onChange={e => setWelcomeMessage(e.target.value)}
+                                rows={4}
+                                placeholder="Olá, {nome}! Seja bem-vindo ao Vem Competir! 🏆"
+                                className="w-full rounded-xl border bg-background px-4 py-3 text-panel-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Enviada automaticamente 5 segundos após o cadastro. Use <code className="bg-muted px-1 rounded">{'{nome}'}</code> para o primeiro nome. Deixe vazio para não enviar.
+                            </p>
+                        </div>
 
                     <Button onClick={handleSave} disabled={loading} pill className="w-full h-12 font-semibold">
                         {loading && <SpinnerGapIcon size={16} weight="bold" className="animate-spin mr-2" />}

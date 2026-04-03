@@ -87,6 +87,20 @@ export function RegisterAcademyButton() {
                     </div>
 
                     <div className="space-y-2">
+                        <label htmlFor="phone" className="text-panel-sm font-semibold text-muted-foreground">
+                            WhatsApp / Telefone
+                        </label>
+                        <Input
+                            variant="lg"
+                            id="phone"
+                            name="phone"
+                            placeholder="66999999999"
+                            className="bg-background"
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
                         <label htmlFor="email" className="text-panel-sm font-semibold text-muted-foreground">
                             E-mail de Acesso<span className="text-destructive ml-0.5">*</span>
                         </label>

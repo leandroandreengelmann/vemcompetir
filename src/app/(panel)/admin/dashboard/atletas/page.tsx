@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { CentralAtletasClient } from './CentralAtletasClient';
 
 export default async function AdminAthletesPage() {
@@ -93,5 +94,9 @@ export default async function AdminAthletesPage() {
         };
     });
 
-    return <CentralAtletasClient athletes={athletes} />;
+    return (
+        <Suspense>
+            <CentralAtletasClient athletes={athletes} />
+        </Suspense>
+    );
 }
