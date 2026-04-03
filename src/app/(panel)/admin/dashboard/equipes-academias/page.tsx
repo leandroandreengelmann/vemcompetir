@@ -35,7 +35,7 @@ export default async function EquipesAcademiasPage() {
     if (adminProfile?.role !== 'admin_geral') redirect('/login');
 
     const adminClient = createAdminClient();
-    const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers();
+    const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
 
     const authEntidades = authUsers.filter(u => u.user_metadata?.role === 'academia/equipe');
 
