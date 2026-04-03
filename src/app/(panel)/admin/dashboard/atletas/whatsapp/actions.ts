@@ -694,7 +694,7 @@ export async function sendRegistrationNotification(registrationId: string, athle
 
     const { data: reg } = await adminClient
         .from('event_registrations')
-        .select('id, athlete_id, profiles(full_name, phone), events(id, title, tenant_id), category_rows(categoria_completa)')
+        .select('id, athlete_id, profiles!athlete_id(full_name, phone), events(id, title, tenant_id), category_rows(categoria_completa)')
         .eq('id', registrationId)
         .single();
     const profile = Array.isArray(reg?.profiles) ? reg.profiles[0] : reg?.profiles as any;
