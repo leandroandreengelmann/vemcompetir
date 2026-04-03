@@ -4,7 +4,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { decrypt } from '@/lib/crypto';
 import { getEventFee } from '@/lib/fee-calculator';
 import { calculateAsaasSplit } from '@/lib/payment-utils';
-import { shouldPaymentBeNoSplit } from '@/lib/no-split-logic';
 import { rateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
 import { consumeTokens } from '@/lib/token-utils';
@@ -255,39 +254,6 @@ export async function POST(request: NextRequest) {
             organizerWalletId = subaccount.wallet_id;
         }
 
-        // 9.5. Check no-split rule for this event
-        let isNoSplit = false;
-        if (!isOwnEvent && organizerWalletId) {
-            const { data: noSplitRule } = await admin
-                .from('event_no_split_rules')
-                .select('is_enabled, start_after_paid, offsets')
-                .eq('event_id', event_id)
-                .eq('is_enabled', true)
-                .maybeSingle();
-
-            if (noSplitRule) {
-                // Count paid inscriptions for this event (excluding own-event payments)
-                const { count: paidCount } = await admin
-                    .from('event_registrations')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('event_id', event_id)
-                    .eq('status', 'pago');
-
-                const currentPaidCount = paidCount || 0;
-
-                if (shouldPaymentBeNoSplit(
-                    currentPaidCount,
-                    qtd_inscricoes,
-                    noSplitRule.start_after_paid,
-                    noSplitRule.offsets
-                )) {
-                    isNoSplit = true;
-                    organizerWalletId = null; // Suppress split
-                    console.log(`[NoSplit] Event ${event_id}: position ${currentPaidCount + 1} is no-split. Full amount goes to platform.`);
-                }
-            }
-        }
-
         // 10. Get/create Asaas customer
         let asaas_customer_id = profile.asaas_customer_id;
         let paymentRes: Response | null = null;
@@ -365,7 +331,6 @@ export async function POST(request: NextRequest) {
                     asaas_customer_id: asaas_customer_id ?? null,
                     payment_method: 'PIX',
                     status: 'PAID',
-                    is_no_split: false,
                     is_authorized_free: true,
                 });
 
@@ -435,7 +400,6 @@ export async function POST(request: NextRequest) {
                     asaas_customer_id,
                     payment_method: 'PIX',
                     status: 'PAID',
-                    is_no_split: isNoSplit,
                     is_authorized_free: true,
                 });
 
@@ -570,7 +534,6 @@ export async function POST(request: NextRequest) {
                 pix_payload,
                 pix_expiration,
                 status: 'PENDING',
-                is_no_split: isNoSplit,
             })
             .select('id')
             .single();
@@ -617,7 +580,6 @@ export async function POST(request: NextRequest) {
             total: total_inscricoes,
             fee: fee_saas_bruta,
             qty: qtd_inscricoes,
-            is_no_split: isNoSplit,
         });
 
         // Forçar expiração visual de 30 minutos (sobrescrevendo o padrão de 1 ano do Asaas)

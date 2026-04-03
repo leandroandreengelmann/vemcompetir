@@ -24,8 +24,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
         .select(`
             *,
             athlete:profiles!athlete_id(full_name, cpf, belt_color, gym_name),
-            category:category_rows!category_id(categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg),
-            payment:payments!payment_id(is_no_split)
+            category:category_rows!category_id(categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg)
         `, { count: 'exact' })
         .eq('event_id', eventId);
 
@@ -176,13 +175,12 @@ export async function getEventReportFinanceiro(eventId: string) {
         adminSupabase
             .from('event_registrations')
             .select(`
-                status, 
-                price, 
+                status,
+                price,
                 created_at,
                 payment_id,
                 athlete:profiles!athlete_id(full_name),
-                category:category_rows!category_id(categoria_completa),
-                payment:payments!payment_id(is_no_split)
+                category:category_rows!category_id(categoria_completa)
             `)
             .eq('event_id', eventId)
     ]);
@@ -190,8 +188,6 @@ export async function getEventReportFinanceiro(eventId: string) {
     const fee = eventFeeRes.fee;
 
     const processedData = (data || [])
-        // Filter out no-split inscriptions from organizer view
-        .filter((item: any) => item.payment?.is_no_split !== true)
         .map((item: any) => {
             let cat = item.category?.categoria_completa || 'Sem categoria';
 

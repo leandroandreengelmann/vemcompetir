@@ -1,135 +1,171 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function getDashboardKPIs() {
-    const supabase = await createClient();
+export type AcademyRankingItem = {
+    id: string;
+    name: string;
+    currentBalance: number;
+    consumedThisMonth: number;
+    grantedThisMonth: number;
+    status: 'ok' | 'low' | 'negative';
+};
+
+export type DashboardData = {
+    tokens: {
+        grantedThisMonth: number;
+        consumedThisMonth: number;
+        academiesLowBalance: number;
+        academiesNegative: number;
+    };
+    academyRanking: AcademyRankingItem[];
+    whatsapp: {
+        openConversations: number;
+        unreadConversations: number;
+        humanMode: number;
+        aiMode: number;
+    };
+    operational: {
+        pendingEvents: number;
+        pendingSuggestions: number;
+    };
+};
+
+function getStartOfMonth(): string {
+    return new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+}
+
+function resolveStatus(balance: number): 'ok' | 'low' | 'negative' {
+    if (balance < 0) return 'negative';
+    if (balance <= 20) return 'low';
+    return 'ok';
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
     const adminClient = createAdminClient();
+    const startOfMonth = getStartOfMonth();
 
-    // 1. Total de atletas
-    const { count: totalAtletas } = await adminClient
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'atleta');
+    // ── Tokens este mês ──────────────────────────────────────────────────────
+    const { data: txThisMonth } = await adminClient
+        .from('token_transactions')
+        .select('type, amount')
+        .gte('created_at', startOfMonth);
 
-    // 2. Entidades cadastradas
-    const { count: totalEntidades } = await adminClient
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .in('role', ['academia', 'academia/equipe', 'equipe']);
+    let grantedThisMonth = 0;
+    let consumedThisMonth = 0;
 
-    // 3. Total de eventos e Pendentes
-    const { data: eventosData } = await adminClient
+    for (const tx of txThisMonth ?? []) {
+        if (tx.type === 'granted') {
+            grantedThisMonth += tx.amount ?? 0;
+        } else if (tx.type === 'consumed') {
+            consumedThisMonth += Math.abs(tx.amount ?? 0);
+        }
+    }
+
+    // ── Academias com saldo baixo / negativo ─────────────────────────────────
+    const { data: allManagedTenants } = await adminClient
+        .from('tenants')
+        .select('id, name, inscription_token_balance')
+        .eq('token_management_enabled', true);
+
+    const managedTenants = allManagedTenants ?? [];
+
+    const academiesLowBalance = managedTenants.filter(
+        t => t.inscription_token_balance >= 0 && t.inscription_token_balance <= 20
+    ).length;
+
+    const academiesNegative = managedTenants.filter(
+        t => t.inscription_token_balance < 0
+    ).length;
+
+    // ── Ranking de academias (consumo do mês) ────────────────────────────────
+    const { data: txByTenant } = await adminClient
+        .from('token_transactions')
+        .select('tenant_id, type, amount')
+        .gte('created_at', startOfMonth)
+        .in('type', ['granted', 'consumed']);
+
+    // Agrupa por tenant_id
+    const tenantTxMap = new Map<string, { consumed: number; granted: number }>();
+    for (const tx of txByTenant ?? []) {
+        if (!tx.tenant_id) continue;
+        const entry = tenantTxMap.get(tx.tenant_id) ?? { consumed: 0, granted: 0 };
+        if (tx.type === 'consumed') {
+            entry.consumed += Math.abs(tx.amount ?? 0);
+        } else if (tx.type === 'granted') {
+            entry.granted += tx.amount ?? 0;
+        }
+        tenantTxMap.set(tx.tenant_id, entry);
+    }
+
+    const academyRanking: AcademyRankingItem[] = managedTenants
+        .map(tenant => {
+            const txData = tenantTxMap.get(tenant.id) ?? { consumed: 0, granted: 0 };
+            const balance = tenant.inscription_token_balance ?? 0;
+            return {
+                id: tenant.id,
+                name: tenant.name ?? '(sem nome)',
+                currentBalance: balance,
+                consumedThisMonth: txData.consumed,
+                grantedThisMonth: txData.granted,
+                status: resolveStatus(balance),
+            };
+        })
+        .sort((a, b) => b.consumedThisMonth - a.consumedThisMonth)
+        .slice(0, 20);
+
+    // ── WhatsApp ─────────────────────────────────────────────────────────────
+    let openConversations = 0;
+    let unreadConversations = 0;
+    let humanMode = 0;
+    let aiMode = 0;
+
+    try {
+        const { data: convData } = await adminClient
+            .from('whatsapp_conversations')
+            .select('status, unread_count, handler_mode');
+
+        for (const conv of convData ?? []) {
+            if (conv.status === 'aberta') openConversations++;
+            if ((conv.unread_count ?? 0) > 0) unreadConversations++;
+            if (conv.handler_mode === 'human') humanMode++;
+            if (conv.handler_mode === 'ai') aiMode++;
+        }
+    } catch {
+        // tabela pode não existir em todos os ambientes
+    }
+
+    // ── Operacional ──────────────────────────────────────────────────────────
+    const { count: pendingEvents } = await adminClient
         .from('events')
-        .select('id, status');
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pendente');
 
-    const totalEventos = eventosData?.length || 0;
-    const eventosPendentes = eventosData?.filter(e => e.status === 'pendente').length || 0;
-
-    // 4. Receita — buscar todas as inscrições válidas com status
-    const { data: validRegistrations } = await adminClient
-        .from('event_registrations')
-        .select('price, status')
-        .neq('status', 'carrinho');
-
-    const receitaTotalBruta = validRegistrations?.reduce((acc, r) => acc + Number(r.price || 0), 0) || 0;
-
-    const receitaConfirmada = validRegistrations
-        ?.filter(r => r.status === 'pago' || r.status === 'confirmado')
-        .reduce((acc, r) => acc + Number(r.price || 0), 0) || 0;
-
-    const receitaPendente = validRegistrations
-        ?.filter(r => r.status === 'pendente' || r.status === 'aguardando_pagamento')
-        .reduce((acc, r) => acc + Number(r.price || 0), 0) || 0;
+    // Sugestões pendentes = atletas com gym_name preenchido mas sem tenant_id (comunidade)
+    const { count: pendingSuggestions } = await adminClient
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'atleta')
+        .is('tenant_id', null)
+        .not('gym_name', 'is', null);
 
     return {
-        totalAtletas: totalAtletas || 0,
-        totalEntidades: totalEntidades || 0,
-        totalEventos,
-        eventosPendentes,
-        receitaTotalBruta,
-        receitaConfirmada,
-        receitaPendente
+        tokens: {
+            grantedThisMonth,
+            consumedThisMonth,
+            academiesLowBalance,
+            academiesNegative,
+        },
+        academyRanking,
+        whatsapp: {
+            openConversations,
+            unreadConversations,
+            humanMode,
+            aiMode,
+        },
+        operational: {
+            pendingEvents: pendingEvents ?? 0,
+            pendingSuggestions: pendingSuggestions ?? 0,
+        },
     };
-}
-
-
-export async function getRevenueByEvent() {
-    const adminClient = createAdminClient();
-
-    // Buscar todos os eventos aprovados/publicados
-    const { data: events } = await adminClient
-        .from('events')
-        .select('id, title, event_date, status')
-        .in('status', ['aprovado', 'publicado'])
-        .order('event_date', { ascending: false });
-
-    if (!events) return [];
-
-    // Buscar as inscrições ativas
-    const { data: registrations } = await adminClient
-        .from('event_registrations')
-        .select('event_id, price')
-        .neq('status', 'carrinho');
-
-    const ranking = events.map(event => {
-        const eventRegs = registrations?.filter(r => r.event_id === event.id) || [];
-        const receita = eventRegs.reduce((sum, r) => sum + Number(r.price || 0), 0);
-        return {
-            id: event.id,
-            title: event.title,
-            date: event.event_date,
-            inscritos: eventRegs.length,
-            receita: receita
-        };
-    });
-
-    // Ordenar do maior faturamento para o menor
-    return ranking.sort((a, b) => b.receita - a.receita);
-}
-
-export async function getRevenueOverTime() {
-    const adminClient = createAdminClient();
-
-    // Fetch valid registrations with their creation date (or update date if payment date is missing)
-    const { data: registrations } = await adminClient
-        .from('event_registrations')
-        .select('created_at, price')
-        .neq('status', 'carrinho');
-
-    if (!registrations) return [];
-
-    // Grouping logic by month (e.g. "Jan 2026", "Fev 2026")
-    const monthsMap = new Map<string, { faturamento: number, inscricoes: number, rawDate: Date }>();
-
-    registrations.forEach(reg => {
-        const d = new Date(reg.created_at);
-        // Ex: "fev", "mar" (Utilizando o locale pt-BR)
-        const monthYear = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-
-        // Map as key
-        const existing = monthsMap.get(monthYear) || { faturamento: 0, inscricoes: 0, rawDate: new Date(d.getFullYear(), d.getMonth(), 1) };
-
-        monthsMap.set(monthYear, {
-            faturamento: existing.faturamento + Number(reg.price || 0),
-            inscricoes: existing.inscricoes + 1,
-            rawDate: existing.rawDate
-        });
-    });
-
-    // Converter para array e ordenar cronologicamente
-    const chartData = Array.from(monthsMap.entries()).map(([month, data]) => ({
-        month,
-        faturamento: data.faturamento,
-        inscricoes: data.inscricoes,
-        rawDate: data.rawDate
-    })).sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
-
-    // Retorna apenas os meses (os nomes) e os valores p/ o chart
-    return chartData.map(d => ({
-        month: d.month.replace('.', '').toUpperCase(), // FEV 2026
-        faturamento: d.faturamento,
-        inscricoes: d.inscricoes
-    }));
 }

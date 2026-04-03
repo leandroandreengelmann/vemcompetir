@@ -63,7 +63,7 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
             getEventFee(event.id),
             adminSupabase
                 .from('event_registrations')
-                .select('status, price, category_id, payment:payments!payment_id(is_no_split)')
+                .select('status, price, category_id')
                 .eq('event_id', event.id)
         ]);
 
@@ -73,8 +73,6 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
         const pending = statsData?.filter(r => r.status === 'pendente' || r.status === 'aguardando_pagamento') || [];
         const uniqueCategoriesActive = new Set(paid.map(r => r.category_id)).size;
 
-        const paidFinancial = paid.filter((r: any) => r.payment?.is_no_split !== true);
-
         return {
             id: event.id,
             title: event.title,
@@ -83,9 +81,9 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
             stats: {
                 athletes_total: paid.length,
                 categories_active: uniqueCategoriesActive,
-                paid_count: paidFinancial.length,
+                paid_count: paid.length,
                 pending_count: pending.length,
-                paid_amount: paidFinancial.reduce((acc: any, current: any) => {
+                paid_amount: paid.reduce((acc: any, current: any) => {
                     const price = Number(current.price || 0);
                     const net = price > 0 ? Math.max(0, price - fee) : 0;
                     return acc + net;
