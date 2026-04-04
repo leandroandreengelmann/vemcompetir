@@ -99,10 +99,16 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
 }
 
 // Normaliza telefone sempre com código do país 55
+// Remove o 9º dígito extra de números móveis brasileiros (13→12 dígitos)
+// pois o Z-API roteia usando o formato de 12 dígitos
 function normalizePhone(phone: string): string {
     const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('55') && digits.length >= 12) return digits;
-    return `55${digits}`;
+    let normalized = digits.startsWith('55') ? digits : `55${digits}`;
+    // 55 + DDD(2) + 9 + número(8) = 13 dígitos → remove o 9 após o DDD
+    if (normalized.length === 13) {
+        normalized = normalized.slice(0, 4) + normalized.slice(5);
+    }
+    return normalized;
 }
 
 function formatPhoneForZapi(phone: string): string {
@@ -816,8 +822,9 @@ export async function setConversationHandlerMode(conversationId: string, mode: '
 export async function deleteMessage(messageId: string) {
     await requireAdmin();
     const supabase = await createClient();
+    const adminClient = createAdminClient();
 
-    const { data: msg } = await supabase
+    const { data: msg } = await adminClient
         .from('whatsapp_messages')
         .select('id, zapi_message_id, direction, conversation_id')
         .eq('id', messageId)
@@ -851,11 +858,12 @@ export async function deleteMessage(messageId: string) {
         }
     }
 
-    // Deleta do banco
-    await supabase.from('whatsapp_messages').delete().eq('id', messageId);
+    // Deleta do banco (adminClient para bypassar RLS)
+    const { error: deleteError } = await adminClient.from('whatsapp_messages').delete().eq('id', messageId);
+    if (deleteError) throw new Error('Erro ao deletar mensagem.');
 
     // Atualiza last_message da conversa com a mensagem anterior
-    const { data: lastMsg } = await supabase
+    const { data: lastMsg } = await adminClient
         .from('whatsapp_messages')
         .select('body, created_at, direction, media_type')
         .eq('conversation_id', msg.conversation_id)
@@ -863,7 +871,7 @@ export async function deleteMessage(messageId: string) {
         .limit(1)
         .maybeSingle();
 
-    await supabase.from('whatsapp_conversations').update({
+    await adminClient.from('whatsapp_conversations').update({
         last_message: lastMsg?.body ?? null,
         last_message_at: lastMsg?.created_at ?? null,
         last_message_direction: lastMsg?.direction ?? null,

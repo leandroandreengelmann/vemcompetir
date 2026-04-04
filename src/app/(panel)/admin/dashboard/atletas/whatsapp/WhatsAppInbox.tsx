@@ -712,6 +712,25 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                     value={text}
                                     onChange={e => setText(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                                    onPaste={async (e) => {
+                                        const items = Array.from(e.clipboardData.items);
+                                        const imageItem = items.find(i => i.type.startsWith('image/'));
+                                        if (!imageItem || !selected) return;
+                                        e.preventDefault();
+                                        const file = imageItem.getAsFile();
+                                        if (!file) return;
+                                        if (file.size > 16 * 1024 * 1024) { toast.error('Imagem muito grande. Máximo 16MB.'); return; }
+                                        setSendingMedia(true);
+                                        try {
+                                            await sendMediaMessage(selected.id, file, file.type);
+                                            await loadMessages(selected.id);
+                                            await loadConversations();
+                                        } catch (err: any) {
+                                            toast.error(err.message ?? 'Erro ao enviar imagem.');
+                                        } finally {
+                                            setSendingMedia(false);
+                                        }
+                                    }}
                                     className="h-11 rounded-xl"
                                 />
                                 {text.trim() && (
