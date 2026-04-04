@@ -810,3 +810,65 @@ export async function setConversationHandlerMode(conversationId: string, mode: '
     const supabase = await createClient();
     await supabase.from('whatsapp_conversations').update({ handler_mode: mode, updated_at: new Date().toISOString() }).eq('id', conversationId);
 }
+
+// ─── Deletar mensagem ─────────────────────────────────────────────────────────
+
+export async function deleteMessage(messageId: string) {
+    await requireAdmin();
+    const supabase = await createClient();
+
+    const { data: msg } = await supabase
+        .from('whatsapp_messages')
+        .select('id, zapi_message_id, direction, conversation_id')
+        .eq('id', messageId)
+        .single();
+    if (!msg) throw new Error('Mensagem não encontrada');
+
+    // Tenta deletar no WhatsApp via Z-API (apenas mensagens outbound com ID)
+    if (msg.direction === 'outbound' && msg.zapi_message_id) {
+        const config = await getWhatsAppConfig();
+        if (config?.connected) {
+            const { data: conv } = await supabase
+                .from('whatsapp_conversations')
+                .select('phone')
+                .eq('id', msg.conversation_id)
+                .single();
+            if (conv) {
+                const phone = formatPhoneForZapi(conv.phone);
+                try {
+                    const params = new URLSearchParams({ messageId: msg.zapi_message_id, phone, owner: 'true' });
+                    const delRes = await fetch(
+                        `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/messages?${params}`,
+                        { method: 'DELETE', headers: zapiHeaders(config) }
+                    );
+                    const delJson = await delRes.json().catch(() => null);
+                    console.log('[Z-API delete message]', delRes.status, JSON.stringify(delJson));
+                } catch (err) {
+                    console.error('[Z-API delete message error]', err);
+                    // Falha silenciosa — prossegue com a exclusão local
+                }
+            }
+        }
+    }
+
+    // Deleta do banco
+    await supabase.from('whatsapp_messages').delete().eq('id', messageId);
+
+    // Atualiza last_message da conversa com a mensagem anterior
+    const { data: lastMsg } = await supabase
+        .from('whatsapp_messages')
+        .select('body, created_at, direction, media_type')
+        .eq('conversation_id', msg.conversation_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    await supabase.from('whatsapp_conversations').update({
+        last_message: lastMsg?.body ?? null,
+        last_message_at: lastMsg?.created_at ?? null,
+        last_message_direction: lastMsg?.direction ?? null,
+        updated_at: new Date().toISOString(),
+    }).eq('id', msg.conversation_id);
+
+    return { success: true };
+}

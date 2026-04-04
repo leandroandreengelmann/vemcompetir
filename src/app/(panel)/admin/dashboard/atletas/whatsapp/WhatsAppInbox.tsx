@@ -13,10 +13,11 @@ import {
     SpinnerGapIcon, UsersIcon, BuildingsIcon, UserCircleIcon, CheckIcon,
     ChecksIcon, ClockIcon, RobotIcon, UserCirclePlusIcon, PaperclipIcon,
     FileIcon, MicrophoneIcon, FilmStripIcon, ImageIcon, ListBulletsIcon, XIcon,
+    TrashIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn as clsx } from '@/lib/utils';
-import { getConversations, getMessages, sendMessage, markAsRead, updateConversationStatus, setConversationHandlerMode, sendMediaMessage, improveMessage, getTemplates } from './actions';
+import { getConversations, getMessages, sendMessage, markAsRead, updateConversationStatus, setConversationHandlerMode, sendMediaMessage, improveMessage, getTemplates, deleteMessage } from './actions';
 import { useRef as useFileRef } from 'react';
 
 const CONTACT_CONFIG = {
@@ -71,6 +72,9 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const audioChunksRef = useRef<Blob[]>([]);
     const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const statusFilterRef = useRef<string>('aberta');
+    const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => { selectedIdRef.current = selected?.id ?? null; }, [selected?.id]);
     useEffect(() => { statusFilterRef.current = statusFilter; }, [statusFilter]);
@@ -277,6 +281,21 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         };
 
         recorder.stop();
+    }
+
+    async function handleDeleteMessage(msgId: string) {
+        setDeletingId(msgId);
+        try {
+            await deleteMessage(msgId);
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+            await loadConversations();
+        } catch (e: any) {
+            toast.error(e.message ?? 'Erro ao deletar mensagem.');
+        } finally {
+            setDeletingId(null);
+            setConfirmDeleteId(null);
+            setHoveredMsgId(null);
+        }
     }
 
     async function handleStatusChange(status: 'aberta' | 'resolvida' | 'arquivada') {
@@ -508,8 +527,46 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                             </div>
                         ) : messages.map(msg => {
                             const isOut = msg.direction === 'outbound';
+                            const isHovered = hoveredMsgId === msg.id;
+                            const isConfirming = confirmDeleteId === msg.id;
+                            const isDeleting = deletingId === msg.id;
                             return (
-                                <div key={msg.id} className={cn('flex', isOut ? 'justify-end' : 'justify-start')}>
+                                <div
+                                    key={msg.id}
+                                    className={cn('flex items-end gap-1.5', isOut ? 'justify-end' : 'justify-start')}
+                                    onMouseEnter={() => { setHoveredMsgId(msg.id); if (confirmDeleteId && confirmDeleteId !== msg.id) setConfirmDeleteId(null); }}
+                                    onMouseLeave={() => { setHoveredMsgId(null); }}
+                                >
+                                    {/* Botão deletar — aparece no hover, à esquerda p/ outbound */}
+                                    {isOut && (
+                                        <div className={cn('flex items-center transition-opacity', isHovered || isConfirming ? 'opacity-100' : 'opacity-0')}>
+                                            {isConfirming ? (
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => handleDeleteMessage(msg.id)}
+                                                        disabled={isDeleting}
+                                                        className="px-3 py-1.5 rounded-lg text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                    >
+                                                        {isDeleting ? '...' : 'Sim'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmDeleteId(null)}
+                                                        className="px-3 py-1.5 rounded-lg text-sm font-bold bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                                                    >
+                                                        Não
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setConfirmDeleteId(msg.id)}
+                                                    className="p-2 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                    title="Deletar mensagem"
+                                                >
+                                                    <TrashIcon size={22} weight="duotone" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className={cn(
                                         'max-w-[75%] px-4 py-2.5 rounded-2xl text-panel-sm',
                                         isOut
