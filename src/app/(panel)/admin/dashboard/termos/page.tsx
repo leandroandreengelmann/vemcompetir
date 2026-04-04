@@ -1,16 +1,14 @@
 import { getActiveTermAction, getAllTermsAction, getTermAcceptancesAction, getActiveGuardianTemplateAction, getAllGuardianTemplatesAction, getGuardianDeclarationsAction, getManagementAuthorizationsAction } from './actions';
-import { getPendingSignedTermsAction } from '@/app/register/actions';
 import { TermsEditor } from './TermsEditor';
 import { TermAcceptancesList } from './TermAcceptancesList';
 import { GuardianTermEditor } from './GuardianTermEditor';
 import { GuardianDeclarationsList } from './GuardianDeclarationsList';
-import { SignedTermsList } from './SignedTermsList';
 import { ManagementAuthorizationsList } from './ManagementAuthorizationsList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileTextIcon } from '@phosphor-icons/react/dist/ssr';
 
 export default async function TermosPage() {
-    const [activeTerm, allTerms, acceptances, activeGuardianTemplate, allGuardianTemplates, activeSelfRegisterTemplate, allSelfRegisterTemplates, activeMinorEventTemplate, allMinorEventTemplates, activeManagementTemplate, allManagementTemplates, guardianDeclarations, pendingSignedTerms, managementAuthorizations] = await Promise.all([
+    const [activeTerm, allTerms, acceptances, activeGuardianTemplate, allGuardianTemplates, activeSelfRegisterTemplate, allSelfRegisterTemplates, activeMinorEventTemplate, allMinorEventTemplates, activeManagementTemplate, allManagementTemplates, guardianDeclarations, managementAuthorizations] = await Promise.all([
         getActiveTermAction(),
         getAllTermsAction(),
         getTermAcceptancesAction(1, ''),
@@ -23,7 +21,6 @@ export default async function TermosPage() {
         getActiveGuardianTemplateAction('academy_management'),
         getAllGuardianTemplatesAction('academy_management'),
         getGuardianDeclarationsAction(1, ''),
-        getPendingSignedTermsAction(),
         getManagementAuthorizationsAction(1, ''),
     ]);
 
@@ -71,14 +68,6 @@ export default async function TermosPage() {
                             {guardianDeclarations.total > 0 && (
                                 <span className="ml-2 bg-primary/10 text-primary text-xs font-bold px-1.5 py-0.5 rounded-full">
                                     {guardianDeclarations.total}
-                                </span>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="termos-assinados">
-                            Termos Assinados
-                            {pendingSignedTerms.total > 0 && (
-                                <span className="ml-2 bg-amber-100 text-amber-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                                    {pendingSignedTerms.total}
                                 </span>
                             )}
                         </TabsTrigger>
@@ -158,15 +147,6 @@ export default async function TermosPage() {
                         <GuardianDeclarationsList
                             initialData={guardianDeclarations.data}
                             initialTotal={guardianDeclarations.total}
-                        />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="termos-assinados" className="mt-4">
-                    <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                        <SignedTermsList
-                            initialData={pendingSignedTerms.data}
-                            initialTotal={pendingSignedTerms.total}
                         />
                     </div>
                 </TabsContent>

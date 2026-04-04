@@ -158,20 +158,6 @@ export default function RegisterPage() {
         goNext();
     };
 
-    const handlePrintTerm = () => {
-        const filled = fillTemplate(templateContent, formData);
-        const win = window.open('', '_blank');
-        if (!win) return;
-        win.document.write(`
-            <html><head><title>Termo de Responsabilidade</title>
-            <style>body{font-family:Arial,sans-serif;font-size:13px;line-height:1.7;margin:40px;color:#111;}pre{white-space:pre-wrap;font-family:inherit;}</style>
-            </head><body><pre>${filled}</pre></body></html>
-        `);
-        win.document.close();
-        win.focus();
-        win.print();
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const validationError = validateStep();
@@ -431,18 +417,6 @@ export default function RegisterPage() {
                                     {filledTerm || 'Carregando termo...'}
                                 </pre>
                             </ScrollArea>
-
-                            <Alert className="border-rose-300 bg-rose-50 text-rose-900 [&>svg]:text-rose-600">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle className="font-bold text-sm">Termo com validade jurídica</AlertTitle>
-                                <AlertDescription className="text-xs leading-relaxed">
-                                    <strong>Baixe, imprima, assine e envie</strong> o termo pelo painel do atleta após criar a conta. Contas sem o documento assinado enviado poderão ser <strong>banidas</strong>.
-                                </AlertDescription>
-                            </Alert>
-
-                            <Button type="button" variant="outline" onClick={handlePrintTerm} pill className="w-full h-10 text-sm font-semibold gap-2">
-                                Baixar / Imprimir Termo
-                            </Button>
 
                             <div className="flex items-start gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
                                 <Checkbox
