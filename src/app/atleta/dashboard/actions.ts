@@ -126,11 +126,16 @@ export async function confirmPhoneVerificationAction(phone: string, code: string
     if (new Date(record.expires_at) < new Date()) return { error: 'Código expirado. Solicite um novo.' };
     if (record.code !== code.trim()) return { error: 'Código incorreto.' };
 
-    // Marca como usado e verifica o telefone no perfil
+    // Marca como usado
     await adminClient.from('phone_verifications').update({ used: true }).eq('id', record.id);
+
+    // Salva o telefone no perfil (update separado do phone_verified para não acionar o trigger de reset)
+    await adminClient.from('profiles').update({ phone }).eq('id', user.id);
+    // Segundo update: marca verificado (trigger não reseta pois phone não mudou neste update)
     await adminClient.from('profiles').update({ phone_verified: true }).eq('id', user.id);
 
     revalidatePath('/atleta/dashboard');
+    revalidatePath('/atleta/dashboard/perfil');
     return { success: true };
 }
 
