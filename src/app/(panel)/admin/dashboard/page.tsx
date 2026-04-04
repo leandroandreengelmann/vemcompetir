@@ -68,7 +68,7 @@ export default async function AdminDashboard() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Tokens vendidos</CardTitle>
-                            <CoinsIcon className="h-4 w-4 text-muted-foreground" weight="duotone" />
+                            <CoinsIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
                         </CardHeader>
                         <CardContent>
                             <p className="text-2xl font-bold">{fmt(data.tokens.grantedThisMonth)}</p>
@@ -78,7 +78,7 @@ export default async function AdminDashboard() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Tokens consumidos</CardTitle>
-                            <ArrowDownIcon className="h-4 w-4 text-muted-foreground" weight="duotone" />
+                            <ArrowDownIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
                         </CardHeader>
                         <CardContent>
                             <p className="text-2xl font-bold">{fmt(data.tokens.consumedThisMonth)}</p>
@@ -89,7 +89,7 @@ export default async function AdminDashboard() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Saldo baixo</CardTitle>
                             <WarningIcon
-                                className={`h-4 w-4 ${data.tokens.academiesLowBalance > 0 ? "text-yellow-500" : "text-muted-foreground"}`}
+                                className={`h-6 w-6 ${data.tokens.academiesLowBalance > 0 ? "text-yellow-500" : "text-muted-foreground"}`}
                                 weight="duotone"
                             />
                         </CardHeader>
@@ -103,7 +103,7 @@ export default async function AdminDashboard() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Saldo negativo</CardTitle>
                             <XCircleIcon
-                                className={`h-4 w-4 ${data.tokens.academiesNegative > 0 ? "text-red-500" : "text-muted-foreground"}`}
+                                className={`h-6 w-6 ${data.tokens.academiesNegative > 0 ? "text-red-500" : "text-muted-foreground"}`}
                                 weight="duotone"
                             />
                         </CardHeader>
@@ -124,7 +124,7 @@ export default async function AdminDashboard() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Conversas abertas</CardTitle>
-                            <ChatCircleTextIcon className="h-4 w-4 text-muted-foreground" weight="duotone" />
+                            <ChatCircleTextIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
                         </CardHeader>
                         <CardContent>
                             <p className="text-2xl font-bold">{fmt(data.whatsapp.openConversations)}</p>
@@ -135,7 +135,7 @@ export default async function AdminDashboard() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Não lidas</CardTitle>
                             <BellIcon
-                                className={`h-4 w-4 ${data.whatsapp.unreadConversations > 0 ? "text-orange-500" : "text-muted-foreground"}`}
+                                className={`h-6 w-6 ${data.whatsapp.unreadConversations > 0 ? "text-orange-500" : "text-muted-foreground"}`}
                                 weight="duotone"
                             />
                         </CardHeader>
@@ -147,7 +147,7 @@ export default async function AdminDashboard() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Modo humano</CardTitle>
-                            <UserIcon className="h-4 w-4 text-muted-foreground" weight="duotone" />
+                            <UserIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
                         </CardHeader>
                         <CardContent>
                             <p className="text-2xl font-bold">{fmt(data.whatsapp.humanMode)}</p>
@@ -157,7 +157,7 @@ export default async function AdminDashboard() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Modo IA</CardTitle>
-                            <RobotIcon className="h-4 w-4 text-muted-foreground" weight="duotone" />
+                            <RobotIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
                         </CardHeader>
                         <CardContent>
                             <p className="text-2xl font-bold">{fmt(data.whatsapp.aiMode)}</p>
@@ -191,7 +191,7 @@ export default async function AdminDashboard() {
                                 : `${data.paymentFailures.last24h} falha${data.paymentFailures.last24h !== 1 ? "s" : ""} registrada${data.paymentFailures.last24h !== 1 ? "s" : ""}`}
                         </CardTitle>
                         <XCircleIcon
-                            className={`h-5 w-5 ${data.paymentFailures.last24h > 0 ? "text-red-500" : "text-blue-500"}`}
+                            className={`h-6 w-6 ${data.paymentFailures.last24h > 0 ? "text-red-500" : "text-blue-500"}`}
                             weight="fill"
                         />
                     </CardHeader>
@@ -246,7 +246,7 @@ export default async function AdminDashboard() {
                         href="/admin/dashboard/pacotes-tokens"
                         className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                     >
-                        <TicketIcon className="h-3.5 w-3.5" weight="duotone" />
+                        <TicketIcon className="h-6 w-6" weight="duotone" />
                         Gerenciar Tokens
                     </Link>
                 </div>
@@ -326,7 +326,7 @@ export default async function AdminDashboard() {
                                 href="/admin/dashboard/eventos"
                                 className="flex items-center gap-2 rounded-lg border border-yellow-400 bg-yellow-50 px-4 py-2 text-sm font-medium text-yellow-800 hover:bg-yellow-100 transition-colors dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-600"
                             >
-                                <WarningIcon className="h-4 w-4" weight="fill" />
+                                <WarningIcon className="h-6 w-6" weight="fill" />
                                 {data.operational.pendingEvents} evento{data.operational.pendingEvents !== 1 ? "s" : ""} pendente{data.operational.pendingEvents !== 1 ? "s" : ""}
                             </Link>
                         )}
@@ -335,7 +335,7 @@ export default async function AdminDashboard() {
                                 href="/admin/dashboard/comunidade"
                                 className="flex items-center gap-2 rounded-lg border border-blue-400 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-800 hover:bg-blue-100 transition-colors dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-600"
                             >
-                                <UsersIcon className="h-4 w-4" weight="fill" />
+                                <UsersIcon className="h-6 w-6" weight="fill" />
                                 {data.operational.pendingSuggestions} sugestão{data.operational.pendingSuggestions !== 1 ? "ões" : ""} de academia na fila
                             </Link>
                         )}

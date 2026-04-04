@@ -7,11 +7,13 @@ import { ArrowLeftIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createOrganizerAction } from '../actions';
+import { formatPhone } from '@/lib/validation';
 
 export default function NovoAcademiaEquipePage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [phoneValue, setPhoneValue] = useState('');
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -70,7 +72,8 @@ export default function NovoAcademiaEquipePage() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-panel-sm font-semibold text-muted-foreground">WhatsApp / Telefone</label>
-                            <Input variant="lg" name="phone" placeholder="66999999999" className="bg-background" disabled={loading} />
+                            <Input variant="lg" name="phone" type="tel" value={phoneValue} onChange={e => setPhoneValue(formatPhone(e.target.value))} placeholder="(66) 99999-9999" className="bg-background" disabled={loading} />
+                            <p className="text-xs text-muted-foreground">Formato: (DDD) 99999-9999</p>
                         </div>
                     </div>
 

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { updateOrganizerAction } from '../actions';
 import { toast } from 'sonner';
+import { formatPhone } from '@/lib/validation';
 
 interface EditAcademiaEquipeFormProps {
     initialData: {
@@ -33,6 +34,7 @@ interface EditAcademiaEquipeFormProps {
 export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEquipeFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [phoneValue, setPhoneValue] = useState(initialData.phone ? formatPhone(initialData.phone) : '');
     const [useOwnAsaas, setUseOwnAsaas] = useState(initialData.use_own_asaas_api ?? false);
     const [canRegisterAcademies, setCanRegisterAcademies] = useState(initialData.can_register_academies ?? false);
     const [tokenManagementEnabled, setTokenManagementEnabled] = useState(initialData.token_management_enabled ?? false);
@@ -89,7 +91,8 @@ export default function EditAcademiaEquipeForm({ initialData }: EditAcademiaEqui
                         </div>
                         <div className="space-y-2">
                             <label className="text-panel-sm font-semibold text-muted-foreground">WhatsApp / Telefone</label>
-                            <Input variant="lg" name="phone" defaultValue={initialData.phone} placeholder="66999999999" className="bg-background" disabled={loading} />
+                            <Input variant="lg" name="phone" type="tel" value={phoneValue} onChange={e => setPhoneValue(formatPhone(e.target.value))} placeholder="(66) 99999-9999" className="bg-background" disabled={loading} />
+                            <p className="text-xs text-muted-foreground">Formato: (DDD) 99999-9999</p>
                         </div>
                     </div>
 

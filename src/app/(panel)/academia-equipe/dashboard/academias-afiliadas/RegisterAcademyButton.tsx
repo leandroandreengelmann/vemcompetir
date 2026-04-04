@@ -15,12 +15,14 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { registerAffiliatedAcademyAction } from './actions';
+import { formatPhone } from '@/lib/validation';
 
 export function RegisterAcademyButton() {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [phoneValue, setPhoneValue] = useState('');
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -94,10 +96,14 @@ export function RegisterAcademyButton() {
                             variant="lg"
                             id="phone"
                             name="phone"
-                            placeholder="66999999999"
+                            type="tel"
+                            value={phoneValue}
+                            onChange={e => setPhoneValue(formatPhone(e.target.value))}
+                            placeholder="(66) 99999-9999"
                             className="bg-background"
                             disabled={loading}
                         />
+                        <p className="text-xs text-muted-foreground">Formato: (DDD) 99999-9999</p>
                     </div>
 
                     <div className="space-y-2">
