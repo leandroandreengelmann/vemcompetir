@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { WarningCircleIcon, CheckCircleIcon, CircleNotchIcon, XIcon } from '@phosphor-icons/react';
+import { WarningCircleIcon, CheckCircleIcon, CircleNotchIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPhone, normalizeNumeric } from '@/lib/validation';
@@ -12,7 +12,6 @@ interface PhoneVerificationBannerProps {
 }
 
 export function PhoneVerificationBanner({ phone: initialPhone }: PhoneVerificationBannerProps) {
-    const [dismissed, setDismissed] = useState(false);
     const [step, setStep] = useState<'idle' | 'sending' | 'code' | 'confirming' | 'verified'>('idle');
     const [code, setCode] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -28,8 +27,6 @@ export function PhoneVerificationBanner({ phone: initialPhone }: PhoneVerificati
     const activePhoneFormatted = changingPhone
         ? newPhoneValue
         : formatPhone(initialPhone);
-
-    if (dismissed) return null;
 
     if (step === 'verified') {
         return (
@@ -72,9 +69,6 @@ export function PhoneVerificationBanner({ phone: initialPhone }: PhoneVerificati
                         </p>
                     </div>
                 </div>
-                <button onClick={() => setDismissed(true)} className="text-red-400 hover:text-red-600 shrink-0">
-                    <XIcon size={16} />
-                </button>
             </div>
 
             {/* Campo para trocar número */}
