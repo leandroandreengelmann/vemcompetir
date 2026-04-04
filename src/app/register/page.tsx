@@ -261,8 +261,8 @@ export default function RegisterPage() {
                     {step === 1 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
                             <div className="space-y-2">
-                                <label htmlFor="nome" className="text-sm font-medium">Nome Completo</label>
-                                <Input id="nome" name="nome" placeholder="Seu nome completo" value={formData.nome} onChange={handleInputChange} variant="lg" required disabled={loading} />
+                                <label htmlFor="nome" className="text-sm font-medium">Nome Completo do Atleta</label>
+                                <Input id="nome" name="nome" placeholder="Nome completo do atleta" value={formData.nome} onChange={handleInputChange} variant="lg" required disabled={loading} />
                             </div>
                             <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.nome.trim()}>
                                 Próximo
