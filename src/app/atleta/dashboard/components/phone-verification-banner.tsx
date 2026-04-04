@@ -130,13 +130,14 @@ export function PhoneVerificationBanner({ phone: initialPhone }: PhoneVerificati
                             autoFocus
                         />
                         <Button
-                            type="button" size="sm" pill className="h-9 text-xs"
+                            type="button" size="sm" pill
+                            className="h-9 text-xs bg-red-600 hover:bg-red-700 text-white border-0"
                             onClick={handleConfirm}
                             disabled={code.length < 6 || step === 'confirming'}
                         >
                             {step === 'confirming' ? <CircleNotchIcon size={13} className="animate-spin" /> : 'Confirmar'}
                         </Button>
-                        <Button type="button" size="sm" variant="ghost" pill className="h-9 text-xs text-muted-foreground" onClick={handleSend}>
+                        <Button type="button" size="sm" variant="ghost" pill className="h-9 text-xs text-red-600 hover:text-red-800 hover:bg-red-100" onClick={handleSend}>
                             Reenviar
                         </Button>
                     </div>
