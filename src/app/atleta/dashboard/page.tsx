@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { BeltKnot } from '@/components/athlete/belt-knot';
 import { InterestNotificationWrapper } from './components/interest-notification';
+import { PhoneVerificationBanner } from './components/phone-verification-banner';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -75,6 +76,13 @@ export default async function AthleteDashboard() {
             className="min-h-screen md:h-screen md:overflow-hidden bg-[#FAFAFA] relative flex flex-col items-center justify-center p-4 pt-20 md:pt-8"
             style={{ '--primary': activeHsl } as React.CSSProperties}
         >
+            {/* Banner de verificação de WhatsApp */}
+            {profile?.phone && !profile?.phone_verified && (
+                <div className="absolute top-0 left-0 right-0 z-40">
+                    <PhoneVerificationBanner phone={profile.phone} />
+                </div>
+            )}
+
             {/* Header: Avatar (Left) and Belt (Right) — mobile only */}
             <div className="md:hidden absolute top-4 left-4 right-4 flex items-start justify-between">
                 {/* Left: Avatar + Greeting */}
