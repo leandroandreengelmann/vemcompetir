@@ -722,7 +722,14 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                         if (file.size > 16 * 1024 * 1024) { toast.error('Imagem muito grande. Máximo 16MB.'); return; }
                                         setSendingMedia(true);
                                         try {
-                                            await sendMediaMessage(selected.id, file, file.type);
+                                            const base64 = await new Promise<string>((resolve, reject) => {
+                                                const reader = new FileReader();
+                                                reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                                                reader.onerror = reject;
+                                                reader.readAsDataURL(file);
+                                            });
+                                            const ext = file.type.split('/')[1] ?? 'png';
+                                            await sendMediaMessage(selected.id, base64, `imagem.${ext}`, file.type);
                                             await loadMessages(selected.id);
                                             await loadConversations();
                                         } catch (err: any) {
