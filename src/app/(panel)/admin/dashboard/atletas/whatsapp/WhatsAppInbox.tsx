@@ -20,9 +20,10 @@ import { getConversations, getMessages, sendMessage, markAsRead, updateConversat
 import { useRef as useFileRef } from 'react';
 
 const CONTACT_CONFIG = {
-    atleta:      { label: 'Atleta',      icon: UserCircleIcon,  className: 'bg-blue-500/10 text-blue-700' },
-    academia:    { label: 'Academia',    icon: BuildingsIcon,   className: 'bg-purple-500/10 text-purple-700' },
-    desconhecido:{ label: 'Desconhecido',icon: UsersIcon,       className: 'bg-muted text-muted-foreground' },
+    atleta:       { label: 'Atleta',       icon: UserCircleIcon,  className: 'bg-blue-500/10 text-blue-700' },
+    academia:     { label: 'Academia',     icon: BuildingsIcon,   className: 'bg-purple-500/10 text-purple-700' },
+    verificacao:  { label: 'Verificação',  icon: CheckCircleIcon, className: 'bg-emerald-500/10 text-emerald-700' },
+    desconhecido: { label: 'Desconhecido', icon: UsersIcon,       className: 'bg-muted text-muted-foreground' },
 };
 
 function formatMsgTime(date: string) {
@@ -50,7 +51,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const [selected, setSelected] = useState<any | null>(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'todas' | 'aberta' | 'resolvida' | 'arquivada'>('aberta');
-    const [typeFilter, setTypeFilter] = useState<'todos' | 'atleta' | 'academia'>('todos');
+    const [typeFilter, setTypeFilter] = useState<'todos' | 'atleta' | 'academia' | 'verificacao'>('todos');
     const [text, setText] = useState('');
     const [sending, setSending] = useState(false);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
@@ -333,28 +334,21 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                 </div>
 
                 {/* Filtro por tipo de contato */}
-                <div className="flex gap-1 px-3 py-2 border-b">
+                <div className="flex flex-wrap gap-1 px-3 py-2 border-b">
                     {([
-                        { key: 'todos', label: 'Todos' },
-                        { key: 'atleta', label: 'Atleta' },
-                        { key: 'academia', label: 'Academia' },
-                    ] as const).map(({ key, label }) => (
+                        { key: 'todos',       label: 'Todos',       color: 'bg-foreground text-background' },
+                        { key: 'atleta',      label: 'Atleta',      color: 'bg-blue-600 text-white' },
+                        { key: 'academia',    label: 'Academia',    color: 'bg-purple-600 text-white' },
+                        { key: 'verificacao', label: 'Verificação', color: 'bg-emerald-600 text-white' },
+                    ] as const).map(({ key, label, color }) => (
                         <button
                             key={key}
                             onClick={() => setTypeFilter(key)}
                             className={cn(
-                                'flex items-center gap-1 px-2.5 py-1 rounded-full text-panel-sm font-semibold whitespace-nowrap transition-all',
-                                typeFilter === key
-                                    ? key === 'atleta'
-                                        ? 'bg-blue-600 text-white'
-                                        : key === 'academia'
-                                        ? 'bg-purple-600 text-white'
-                                        : 'bg-foreground text-background'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                'px-2.5 py-1 rounded-full text-panel-sm font-semibold whitespace-nowrap transition-all',
+                                typeFilter === key ? color : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
-                            {key === 'atleta' && <UserCircleIcon size={12} weight="bold" />}
-                            {key === 'academia' && <BuildingsIcon size={12} weight="bold" />}
                             {label}
                         </button>
                     ))}

@@ -107,6 +107,38 @@ export async function sendPhoneVerificationAction(phone: string) {
 
     if (!res.ok) return { error: 'Não foi possível enviar o código. Verifique se o número está no WhatsApp.' };
 
+    // Registra/atualiza conversa no inbox para o admin ver
+    const { data: profile } = await adminClient.from('profiles').select('full_name').eq('id', user.id).single();
+    const contactName = profile?.full_name ?? 'Atleta';
+    const now = new Date().toISOString();
+
+    const { data: existing } = await adminClient
+        .from('whatsapp_conversations')
+        .select('id')
+        .eq('phone', normalizedPhone)
+        .maybeSingle();
+
+    if (existing) {
+        await adminClient.from('whatsapp_conversations').update({
+            last_message: message,
+            last_message_at: now,
+            last_message_direction: 'outbound',
+            last_message_status: 'sent',
+        }).eq('id', existing.id);
+    } else {
+        await adminClient.from('whatsapp_conversations').insert({
+            phone: normalizedPhone,
+            contact_name: contactName,
+            contact_type: 'verificacao',
+            linked_id: user.id,
+            status: 'aberta',
+            last_message: message,
+            last_message_at: now,
+            last_message_direction: 'outbound',
+            last_message_status: 'sent',
+        });
+    }
+
     return { success: true };
 }
 
