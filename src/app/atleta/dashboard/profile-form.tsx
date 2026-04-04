@@ -692,10 +692,10 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                                                         maxLength={6}
                                                         className="h-8 w-28 text-center text-sm font-mono rounded-lg shadow-none"
                                                     />
-                                                    <Button type="button" size="sm" pill className="h-8 text-xs" onClick={handleConfirmVerification} disabled={verifyCode.length < 6 || verifyStep === 'confirming'}>
+                                                    <Button type="button" size="sm" pill className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white border-0" onClick={handleConfirmVerification} disabled={verifyCode.length < 6 || verifyStep === 'confirming'}>
                                                         {verifyStep === 'confirming' ? <CircleNotchIcon size={13} className="animate-spin" /> : 'Confirmar'}
                                                     </Button>
-                                                    <Button type="button" size="sm" variant="ghost" pill className="h-8 text-xs text-muted-foreground" onClick={handleSendVerification}>
+                                                    <Button type="button" size="sm" variant="ghost" pill className="h-8 text-xs text-red-600 hover:text-red-800 hover:bg-red-100" onClick={handleSendVerification}>
                                                         Reenviar
                                                     </Button>
                                                 </div>
