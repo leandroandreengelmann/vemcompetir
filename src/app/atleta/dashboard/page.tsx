@@ -23,7 +23,7 @@ export default async function AthleteDashboard() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('id, full_name, role, belt_color, avatar_url, weight, birth_date, gym_name, tenant_id, master_id, master_name')
+        .select('id, full_name, role, belt_color, avatar_url, weight, birth_date, gym_name, tenant_id, master_id, master_name, phone, phone_verified')
         .eq('id', user.id)
         .single();
 
@@ -191,7 +191,7 @@ export default async function AthleteDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-6 md:p-8 bg-white max-h-[80vh] overflow-y-auto">
-                            <AthleteProfileForm profile={profile} user={user} belts={BELTS} />
+                            <AthleteProfileForm profile={profile} user={user} belts={BELTS} phoneVerified={profile?.phone_verified ?? false} />
                         </CardContent>
                     </Card>
                 </div>

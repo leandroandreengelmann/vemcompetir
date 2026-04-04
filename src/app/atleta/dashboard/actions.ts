@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 
@@ -65,6 +66,71 @@ export async function updateAthleteProfile(formData: FormData) {
     revalidatePath('/atleta/dashboard');
     revalidatePath('/atleta/dashboard/perfil');
     revalidatePath('/atleta/dashboard/inscricoes');
+    return { success: true };
+}
+
+export async function sendPhoneVerificationAction(phone: string) {
+    const user = await requireAuth();
+    const supabase = await createClient();
+    const adminClient = createAdminClient();
+
+    // Gera código de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutos
+
+    // Remove verificações anteriores do mesmo perfil
+    await adminClient.from('phone_verifications').delete().eq('profile_id', user.id);
+
+    // Salva o novo código
+    const { error: insertError } = await adminClient.from('phone_verifications').insert({
+        profile_id: user.id,
+        phone,
+        code,
+        expires_at: expiresAt,
+    });
+    if (insertError) return { error: 'Erro ao gerar código de verificação.' };
+
+    // Busca config Z-API
+    const { data: config } = await adminClient.from('whatsapp_config').select('*').limit(1).maybeSingle();
+    if (!config?.instance_id || !config?.token) return { error: 'WhatsApp não configurado. Tente mais tarde.' };
+
+    const normalizedPhone = phone.startsWith('55') ? phone : `55${phone}`;
+    const message = `🔐 Seu código de verificação VemCompetir: *${code}*\n\nVálido por 10 minutos. Não compartilhe este código.`;
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (config.client_token) headers['Client-Token'] = config.client_token;
+
+    const res = await fetch(
+        `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
+        { method: 'POST', headers, body: JSON.stringify({ phone: normalizedPhone, message }) }
+    );
+
+    if (!res.ok) return { error: 'Não foi possível enviar o código. Verifique se o número está no WhatsApp.' };
+
+    return { success: true };
+}
+
+export async function confirmPhoneVerificationAction(phone: string, code: string) {
+    const user = await requireAuth();
+    const adminClient = createAdminClient();
+
+    const { data: record } = await adminClient
+        .from('phone_verifications')
+        .select('*')
+        .eq('profile_id', user.id)
+        .eq('phone', phone)
+        .eq('used', false)
+        .single();
+
+    if (!record) return { error: 'Código inválido ou expirado.' };
+    if (new Date(record.expires_at) < new Date()) return { error: 'Código expirado. Solicite um novo.' };
+    if (record.code !== code.trim()) return { error: 'Código incorreto.' };
+
+    // Marca como usado e verifica o telefone no perfil
+    await adminClient.from('phone_verifications').update({ used: true }).eq('id', record.id);
+    await adminClient.from('profiles').update({ phone_verified: true }).eq('id', user.id);
+
+    revalidatePath('/atleta/dashboard');
     return { success: true };
 }
 

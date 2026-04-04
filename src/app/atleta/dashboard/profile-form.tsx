@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CheckIcon, CircleNotchIcon, XIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { updateAthleteProfile, searchGyms, searchMasters, signOutAction } from './actions';
+import { updateAthleteProfile, searchGyms, searchMasters, signOutAction, sendPhoneVerificationAction, confirmPhoneVerificationAction } from './actions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
@@ -36,9 +36,10 @@ interface ProfileFormProps {
     profile: any;
     user: any;
     belts: string[];
+    phoneVerified?: boolean;
 }
 
-export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
+export function AthleteProfileForm({ profile, user, belts, phoneVerified = false }: ProfileFormProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const initialStep = searchParams.get('step') ? parseInt(searchParams.get('step') as string, 10) : 1;
@@ -87,6 +88,10 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
     const [cpfValue, setCpfValue] = useState(profile?.cpf ? formatCPF(profile.cpf) : '');
     const [phoneValue, setPhoneValue] = useState(profile?.phone ? formatPhone(profile.phone) : '');
+    const [isPhoneVerified, setIsPhoneVerified] = useState(phoneVerified);
+    const [verifyStep, setVerifyStep] = useState<'idle' | 'sending' | 'code' | 'confirming'>('idle');
+    const [verifyCode, setVerifyCode] = useState('');
+    const [verifyError, setVerifyError] = useState<string | null>(null);
     const [cpfError, setCpfError] = useState<string | null>(null);
     const [birthDateValue, setBirthDateValue] = useState(profile?.birth_date || '');
     const [emailValue, setEmailValue] = useState(user?.email || '');
@@ -296,6 +301,27 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
             ), { duration: 5000 });
             router.push('/atleta/dashboard/inscricoes');
         }
+    };
+
+    const handleSendVerification = async () => {
+        const clean = normalizeNumeric(phoneValue);
+        if (clean.length < 10) { setVerifyError('Digite um telefone válido primeiro.'); return; }
+        setVerifyStep('sending');
+        setVerifyError(null);
+        const result = await sendPhoneVerificationAction(clean);
+        if (result.error) { setVerifyError(result.error); setVerifyStep('idle'); return; }
+        setVerifyStep('code');
+    };
+
+    const handleConfirmVerification = async () => {
+        setVerifyStep('confirming');
+        setVerifyError(null);
+        const clean = normalizeNumeric(phoneValue);
+        const result = await confirmPhoneVerificationAction(clean, verifyCode);
+        if (result.error) { setVerifyError(result.error); setVerifyStep('code'); return; }
+        setIsPhoneVerified(true);
+        setVerifyStep('idle');
+        setVerifyCode('');
     };
 
     return (
@@ -629,11 +655,55 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                     name="phone"
                                     type="tel"
                                     value={phoneValue}
-                                    onChange={(e) => setPhoneValue(formatPhone(e.target.value))}
+                                    onChange={(e) => { setPhoneValue(formatPhone(e.target.value)); setIsPhoneVerified(false); setVerifyStep('idle'); }}
                                     placeholder="(00) 00000-0000"
                                     required
                                     className="h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium"
                                 />
+                                {/* Banner de verificação WhatsApp */}
+                                {phoneValue && normalizeNumeric(phoneValue).length >= 10 && (
+                                    isPhoneVerified ? (
+                                        <div className="flex items-center gap-2 text-emerald-600 text-xs font-semibold pt-1">
+                                            <CheckCircleIcon size={16} weight="fill" />
+                                            WhatsApp verificado
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
+                                            <div className="flex items-start gap-2">
+                                                <WarningCircleIcon size={16} weight="fill" className="text-red-500 mt-0.5 shrink-0" />
+                                                <p className="text-xs text-red-700 font-medium">Número não verificado. Confirme para receber notificações no WhatsApp.</p>
+                                            </div>
+                                            {verifyStep === 'idle' && (
+                                                <Button type="button" size="sm" variant="outline" pill className="h-7 text-xs border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800" onClick={handleSendVerification}>
+                                                    Verificar via WhatsApp
+                                                </Button>
+                                            )}
+                                            {verifyStep === 'sending' && (
+                                                <p className="text-xs text-red-600 flex items-center gap-1.5">
+                                                    <CircleNotchIcon size={13} className="animate-spin" /> Enviando código...
+                                                </p>
+                                            )}
+                                            {(verifyStep === 'code' || verifyStep === 'confirming') && (
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        value={verifyCode}
+                                                        onChange={e => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                        placeholder="000000"
+                                                        maxLength={6}
+                                                        className="h-8 w-28 text-center text-sm font-mono rounded-lg shadow-none"
+                                                    />
+                                                    <Button type="button" size="sm" pill className="h-8 text-xs" onClick={handleConfirmVerification} disabled={verifyCode.length < 6 || verifyStep === 'confirming'}>
+                                                        {verifyStep === 'confirming' ? <CircleNotchIcon size={13} className="animate-spin" /> : 'Confirmar'}
+                                                    </Button>
+                                                    <Button type="button" size="sm" variant="ghost" pill className="h-8 text-xs text-muted-foreground" onClick={handleSendVerification}>
+                                                        Reenviar
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            {verifyError && <p className="text-xs text-red-600">{verifyError}</p>}
+                                        </div>
+                                    )
+                                )}
                             </div>
                         </div>
 
