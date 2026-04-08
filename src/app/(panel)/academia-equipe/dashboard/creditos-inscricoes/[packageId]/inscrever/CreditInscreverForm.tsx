@@ -2,25 +2,21 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
-    CircleNotchIcon, MagnifyingGlassIcon, TicketIcon, WarningCircleIcon,
+    CircleNotchIcon, TicketIcon, WarningCircleIcon, CheckCircleIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { getBeltStyle } from '@/lib/belt-theme';
-import { useDebounce } from '@/hooks/use-debounce';
-import { RegistrationCategoryCard } from '@/app/(panel)/academia-equipe/dashboard/eventos/components/registration-category-card';
+import { CategorySearchPanel } from '@/app/atleta/dashboard/campeonatos/components/_components/CategorySearchPanel';
 import { getEligibleCategoriesAction } from '@/app/(panel)/academia-equipe/dashboard/eventos/registrations-actions';
 import { registerWithCreditAction } from '../../actions';
+import { formatFullCategoryName } from '@/lib/category-utils';
 
 interface Athlete {
     id: string;
@@ -43,7 +39,7 @@ interface Props {
 }
 
 function calculateAge(birthDateStr: string) {
-    if (!birthDateStr) return '';
+    if (!birthDateStr) return null;
     const birthDate = new Date(birthDateStr);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -52,16 +48,23 @@ function calculateAge(birthDateStr: string) {
     return age;
 }
 
+function getStatusLabel(status: string): { label: string; className: string } {
+    const map: Record<string, { label: string; className: string }> = {
+        pago: { label: 'Pago', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
+        isento: { label: 'Isento', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
+        confirmado: { label: 'Confirmado', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
+        aguardando_pagamento: { label: 'Aguard. pagamento', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
+        pendente: { label: 'Pendente', className: 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400' },
+    };
+    return map[status] || { label: status, className: 'bg-gray-100 text-gray-600' };
+}
+
 export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props) {
     const router = useRouter();
     const [selectedAthleteId, setSelectedAthleteId] = useState('');
-    const [suggestions, setSuggestions] = useState<any[]>([]);
     const [allCategories, setAllCategories] = useState<any[]>([]);
     const [enrolledCategories, setEnrolledCategories] = useState<any[]>([]);
     const [loadingCategories, setLoadingCategories] = useState(false);
-    const [registering, setRegistering] = useState<string | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const debouncedQuery = useDebounce(searchQuery, 300);
 
     const selectedAthlete = useMemo(
         () => athletes.find(a => a.id === selectedAthleteId),
@@ -70,7 +73,6 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
 
     useEffect(() => {
         if (!selectedAthleteId) {
-            setSuggestions([]);
             setAllCategories([]);
             setEnrolledCategories([]);
             return;
@@ -81,13 +83,11 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                 if (data.error) {
                     toast.error(data.error);
                 } else {
-                    // Filter by excluded_divisions
                     const excluded = pkg.excluded_divisions ?? [];
                     const filter = (cats: any[]) => excluded.length === 0 ? cats : cats.filter((cat: any) => {
-                        const div = cat.divisao_idade ?? cat.divisao ?? '';
+                        const div = cat.divisao_idade ?? '';
                         return !excluded.some((ex: string) => ex.toLowerCase() === div.toLowerCase());
                     });
-                    setSuggestions(filter(data.suggestions ?? []));
                     setAllCategories(filter(data.all ?? []));
                     setEnrolledCategories(data.enrolledCategories ?? []);
                 }
@@ -96,50 +96,26 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
             .finally(() => setLoadingCategories(false));
     }, [selectedAthleteId, event.id, pkg.excluded_divisions]);
 
-    const filteredAll = useMemo(() => {
-        if (!debouncedQuery) return allCategories;
-        const lower = debouncedQuery.toLowerCase();
-        return allCategories.filter(cat =>
-            cat.categoria_completa?.toLowerCase().includes(lower) ||
-            cat.faixa?.toLowerCase().includes(lower) ||
-            cat.divisao_idade?.toLowerCase().includes(lower)
-        );
-    }, [allCategories, debouncedQuery]);
-
-    const noSuggestionDiagnosis = useMemo(() => {
-        if (suggestions.length > 0 || loadingCategories || !selectedAthleteId) return null;
-        const mismatches = { belt: 0, age: 0, weight: 0, sex: 0 };
-        allCategories.forEach(cat => {
-            if (cat.match?.reasons) {
-                if (!cat.match.reasons.belt) mismatches.belt++;
-                if (!cat.match.reasons.age) mismatches.age++;
-                if (!cat.match.reasons.weight) mismatches.weight++;
-                if (!cat.match.reasons.sex) mismatches.sex++;
-            }
-        });
-        return { mismatches, hasEnrolled: enrolledCategories.length > 0, hasCategories: allCategories.length > 0 };
-    }, [suggestions, loadingCategories, selectedAthleteId, allCategories, enrolledCategories]);
+    const enrolledCategoryIds = useMemo(
+        () => new Set<string>(enrolledCategories.map((e: any) => e.id)),
+        [enrolledCategories]
+    );
 
     const handleRegister = async (categoryId: string) => {
         if (!selectedAthleteId) return;
-        setRegistering(categoryId);
         const result = await registerWithCreditAction(pkg.id, event.id, selectedAthleteId, categoryId);
         if (result?.error) {
             toast.error(result.error);
-            setRegistering(null);
             return;
         }
         toast.success('Atleta inscrito com sucesso!');
-        setRegistering(null);
-        // Refresh categories to reflect new enrollment
         const data = await getEligibleCategoriesAction(event.id, selectedAthleteId);
         if (!data.error) {
             const excluded = pkg.excluded_divisions ?? [];
             const filter = (cats: any[]) => excluded.length === 0 ? cats : cats.filter((cat: any) => {
-                const div = cat.divisao_idade ?? cat.divisao ?? '';
+                const div = cat.divisao_idade ?? '';
                 return !excluded.some((ex: string) => ex.toLowerCase() === div.toLowerCase());
             });
-            setSuggestions(filter(data.suggestions ?? []));
             setAllCategories(filter(data.all ?? []));
             setEnrolledCategories(data.enrolledCategories ?? []);
         }
@@ -218,7 +194,7 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                                 { label: 'Sexo', value: selectedAthlete.sexo },
                                 { label: 'Peso', value: `${selectedAthlete.weight}kg` },
                                 { label: 'Faixa', value: selectedAthlete.belt_color },
-                                calculateAge(selectedAthlete.birth_date) ? { label: 'Idade', value: `${calculateAge(selectedAthlete.birth_date)} anos` } : null,
+                                calculateAge(selectedAthlete.birth_date) != null ? { label: 'Idade', value: `${calculateAge(selectedAthlete.birth_date)} anos` } : null,
                             ].filter(Boolean).map((item: any) => (
                                 <div key={item.label} className="bg-muted px-3 py-1.5 rounded-lg text-panel-sm font-medium flex items-center gap-2">
                                     <span className="text-muted-foreground opacity-60">{item.label}:</span>
@@ -231,7 +207,7 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
 
                 {/* 2. Categorias */}
                 {selectedAthleteId && (
-                    <div className="space-y-4 bg-card p-6 rounded-3xl border shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                         <Label className="text-panel-md font-semibold">2. Selecione a Categoria</Label>
 
                         {loadingCategories ? (
@@ -240,83 +216,47 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                                 <span className="text-panel-sm">Buscando categorias...</span>
                             </div>
                         ) : (
-                            <Tabs defaultValue="match">
-                                <TabsList className="mb-4">
-                                    <TabsTrigger value="match">
-                                        Sugeridas
-                                        {suggestions.length > 0 && (
-                                            <Badge variant="secondary" className="ml-2 rounded-full text-[10px]">{suggestions.length}</Badge>
-                                        )}
-                                    </TabsTrigger>
-                                    <TabsTrigger value="all">
-                                        Todas
-                                        {allCategories.length > 0 && (
-                                            <Badge variant="secondary" className="ml-2 rounded-full text-[10px]">{allCategories.length}</Badge>
-                                        )}
-                                    </TabsTrigger>
-                                </TabsList>
-
-                                {/* Sugeridas */}
-                                <TabsContent value="match" className="space-y-3">
-                                    {noSuggestionDiagnosis ? (
-                                        <Alert>
-                                            <WarningCircleIcon size={16} />
-                                            <AlertTitle>Nenhuma categoria compatível</AlertTitle>
-                                            <AlertDescription className="text-panel-sm mt-1">
-                                                {noSuggestionDiagnosis.hasEnrolled
-                                                    ? 'Este atleta já está inscrito em todas as categorias compatíveis.'
-                                                    : noSuggestionDiagnosis.hasCategories
-                                                        ? 'O perfil do atleta (faixa, peso, sexo, idade) não corresponde às categorias disponíveis. Veja a aba "Todas" para inscrição manual.'
-                                                        : 'Nenhuma categoria disponível neste evento.'}
-                                            </AlertDescription>
-                                        </Alert>
-                                    ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {suggestions.map(cat => (
-                                                <RegistrationCategoryCard
-                                                    key={cat.id}
-                                                    eventId={event.id}
-                                                    category={cat}
-                                                    isWhiteBelt={isWhiteBelt}
-                                                    onAddToCart={async () => handleRegister(cat.id)}
-                                                    isInCart={enrolledCategories.some((e: any) => e.id === cat.id)}
-                                                />
-                                            ))}
+                            <div className="space-y-4">
+                                {/* Já inscritos */}
+                                {enrolledCategories.length > 0 && (
+                                    <div className="bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-6">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-emerald-500/10 rounded-xl shrink-0">
+                                                <CheckCircleIcon size={28} weight="duotone" className="text-emerald-500" />
+                                            </div>
+                                            <p className="text-panel-md font-semibold text-emerald-700 dark:text-emerald-400">
+                                                {enrolledCategories.length === 1 ? 'Já inscrito nesta categoria' : `Já inscrito em ${enrolledCategories.length} categorias`}
+                                            </p>
                                         </div>
-                                    )}
-                                </TabsContent>
-
-                                {/* Todas */}
-                                <TabsContent value="all" className="space-y-3">
-                                    <div className="relative">
-                                        <MagnifyingGlassIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Buscar categoria..."
-                                            value={searchQuery}
-                                            onChange={e => setSearchQuery(e.target.value)}
-                                            className="pl-9 h-10 rounded-xl bg-background"
-                                        />
+                                        <div className="flex flex-col gap-2">
+                                            {enrolledCategories.map((ec: any) => {
+                                                const s = getStatusLabel(ec.status);
+                                                return (
+                                                    <div key={ec.id} className="flex items-center justify-between bg-white/70 dark:bg-card rounded-xl px-4 py-3 border border-emerald-500/20 gap-3">
+                                                        <span className="text-panel-sm font-bold truncate text-emerald-900 dark:text-emerald-100">
+                                                            {formatFullCategoryName(ec)}
+                                                        </span>
+                                                        <span className={`text-panel-sm font-bold px-4 py-1.5 rounded-full shadow-sm shrink-0 ${s.className}`}>{s.label}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                    {filteredAll.length === 0 ? (
-                                        <p className="text-center text-panel-sm text-muted-foreground py-8">
-                                            Nenhuma categoria encontrada.
-                                        </p>
-                                    ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {filteredAll.map(cat => (
-                                                <RegistrationCategoryCard
-                                                    key={cat.id}
-                                                    eventId={event.id}
-                                                    category={cat}
-                                                    isWhiteBelt={isWhiteBelt}
-                                                    onAddToCart={async () => handleRegister(cat.id)}
-                                                    isInCart={enrolledCategories.some((e: any) => e.id === cat.id)}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </TabsContent>
-                            </Tabs>
+                                )}
+
+                                <CategorySearchPanel
+                                    key={selectedAthleteId}
+                                    eventId={event.id}
+                                    categories={allCategories}
+                                    isWhiteBelt={isWhiteBelt}
+                                    athleteSex={selectedAthlete?.sexo ?? null}
+                                    athleteAge={selectedAthlete?.birth_date ? (calculateAge(selectedAthlete.birth_date) as number) : null}
+                                    onAddToCart={handleRegister}
+                                    cartCategoryIds={enrolledCategoryIds}
+                                    addToCartLabel="Inscrever"
+                                    inCartLabel="Inscrito"
+                                />
+                            </div>
                         )}
                     </div>
                 )}
