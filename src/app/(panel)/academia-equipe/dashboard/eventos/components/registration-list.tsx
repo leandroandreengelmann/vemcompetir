@@ -24,6 +24,7 @@ interface Registration {
     status: string;
     created_at: string;
     registered_by: string;
+    registration_number?: number | null;
     athlete: {
         id: string;
         full_name: string;
@@ -141,7 +142,8 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                         <Table className="min-w-[600px] md:min-w-full">
                             <TableHeader className="bg-muted/30">
                                 <TableRow>
-                                    <TableHead className="pl-6">Atleta</TableHead>
+                                    <TableHead className="pl-6 w-[60px]">Nº</TableHead>
+                                    <TableHead>Atleta</TableHead>
                                     <TableHead className="hidden sm:table-cell">Faixa</TableHead>
                                     <TableHead>Categoria</TableHead>
                                     <TableHead className="hidden md:table-cell">Inscrito Por</TableHead>
@@ -152,14 +154,17 @@ export function RegistrationList({ event, registrations, athletes, currentUserId
                             <TableBody>
                                 {!registrations || registrations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                             Nenhuma inscrição encontrada.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     registrations.map((reg) => (
                                         <TableRow key={reg.id} className="hover:bg-muted/10 transition-colors">
-                                            <TableCell className="pl-6 py-4">
+                                            <TableCell className="pl-6 py-4 font-mono text-panel-sm font-bold text-muted-foreground">
+                                                {reg.registration_number != null ? `#${String(reg.registration_number).padStart(3, '0')}` : '—'}
+                                            </TableCell>
+                                            <TableCell className="py-4">
                                                 <div className="flex flex-col gap-1 items-start">
                                                     <span className="font-bold text-foreground text-panel-sm">{reg.athlete?.full_name}</span>
                                                     <span className="sm:hidden block mt-0.5">

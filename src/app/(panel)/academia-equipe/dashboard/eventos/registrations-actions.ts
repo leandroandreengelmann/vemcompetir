@@ -554,6 +554,7 @@ export async function getEventRegistrationsAction(eventId: string) {
             status,
             created_at,
             registered_by,
+            registration_number,
             athlete:profiles!athlete_id (
                 id,
                 full_name,

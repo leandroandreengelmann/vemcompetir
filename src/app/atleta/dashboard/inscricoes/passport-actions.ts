@@ -11,6 +11,7 @@ export interface PassportData {
     registrationId: string;
     event_id: string;
     registration_code: string;
+    registration_number: number | null;
     athlete_name: string;
     belt_color: string;
     gym_name: string;
@@ -43,6 +44,7 @@ export async function getPassportDataAction(registrationId: string): Promise<Pas
             id,
             status,
             registration_code,
+            registration_number,
             tenant_id,
             registered_by,
             event:events(id, title, event_date, location, address_city, address_state, passport_bg_from, passport_bg_via, passport_text_color, passport_font, passport_border_radius),
@@ -127,6 +129,7 @@ export async function getPassportDataAction(registrationId: string): Promise<Pas
             registrationId: reg.id,
             event_id: event?.id || '',
             registration_code: code,
+            registration_number: (reg as any).registration_number ?? null,
             athlete_name: athlete?.full_name || 'Atleta',
             belt_color: athlete?.belt_color || 'branca',
             gym_name: athlete?.gym_name || '',

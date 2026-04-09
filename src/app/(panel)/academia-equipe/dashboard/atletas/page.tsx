@@ -121,7 +121,12 @@ export default async function AthleteManagementPage() {
                     p_threshold: 0.25,
                 });
 
-            suggestedAthletes = (similar ?? []).filter((a: any) => !linkedIds.has(a.id));
+            const seen = new Set<string>();
+            suggestedAthletes = (similar ?? []).filter((a: any) => {
+                if (linkedIds.has(a.id) || seen.has(a.id)) return false;
+                seen.add(a.id);
+                return true;
+            });
         }
     }
 

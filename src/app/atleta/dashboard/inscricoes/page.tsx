@@ -36,6 +36,7 @@ export default async function AthleteInscricoes() {
 id,
     status,
     created_at,
+    registration_number,
     event: events(id, title, event_date, location, image_path, category_change_deadline_days),
         category: category_rows(categoria_completa, faixa, categoria_peso)
         `)
@@ -174,9 +175,16 @@ id,
                                         <div className="p-4 flex-1 flex flex-col justify-center gap-3">
                                             {/* Título + badge de status */}
                                             <div className="flex items-start justify-between gap-2">
-                                                <h3 className="font-bold text-panel-lg leading-tight text-brand-950 group-hover:text-primary transition-colors flex-1">
-                                                    {inscricao.event?.title}
-                                                </h3>
+                                                <div className="flex-1">
+                                                    <h3 className="font-bold text-panel-lg leading-tight text-brand-950 group-hover:text-primary transition-colors">
+                                                        {inscricao.event?.title}
+                                                    </h3>
+                                                    {inscricao.registration_number != null && (
+                                                        <span className="text-panel-sm font-mono font-bold text-muted-foreground">
+                                                            Inscrição #{String(inscricao.registration_number).padStart(3, '0')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="shrink-0">{getStatusBadge(inscricao.status)}</div>
                                             </div>
 

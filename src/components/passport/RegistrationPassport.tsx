@@ -280,33 +280,62 @@ export function RegistrationPassport({ data, passportRef }: RegistrationPassport
                 </p>
             </div>
 
-            {/* Registration code */}
+            {/* Registration code + number */}
             <div style={{
                 margin: '16px 16px 0',
                 padding: '14px 16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
                 flexShrink: 0,
             }}>
-                <p style={{
-                    color: `${textColor}59`,
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    letterSpacing: '0.15em',
-                    textTransform: 'uppercase',
-                    margin: 0,
-                    marginBottom: '6px',
-                }}>
-                    CÓDIGO DE INSCRIÇÃO
-                </p>
-                <p style={{
-                    color: textColor,
-                    fontSize: '26px',
-                    fontWeight: 900,
-                    letterSpacing: '0.18em',
-                    fontFamily: 'monospace, system-ui',
-                    margin: 0,
-                }}>
-                    {data.registration_code}
-                </p>
+                <div>
+                    <p style={{
+                        color: `${textColor}59`,
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        letterSpacing: '0.15em',
+                        textTransform: 'uppercase',
+                        margin: 0,
+                        marginBottom: '6px',
+                    }}>
+                        CÓDIGO DE INSCRIÇÃO
+                    </p>
+                    <p style={{
+                        color: textColor,
+                        fontSize: '26px',
+                        fontWeight: 900,
+                        letterSpacing: '0.18em',
+                        fontFamily: 'monospace, system-ui',
+                        margin: 0,
+                    }}>
+                        {data.registration_code}
+                    </p>
+                </div>
+                {data.registration_number != null && (
+                    <div style={{ textAlign: 'right' }}>
+                        <p style={{
+                            color: `${textColor}59`,
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            letterSpacing: '0.15em',
+                            textTransform: 'uppercase',
+                            margin: 0,
+                            marginBottom: '6px',
+                        }}>
+                            Nº INSCRIÇÃO
+                        </p>
+                        <p style={{
+                            color: textColor,
+                            fontSize: '26px',
+                            fontWeight: 900,
+                            fontFamily: 'monospace, system-ui',
+                            margin: 0,
+                        }}>
+                            #{String(data.registration_number).padStart(3, '0')}
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Bottom tear line with cutout circles */}

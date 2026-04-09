@@ -174,6 +174,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="hover:bg-transparent border-border/50">
+                                    <TableHead className="text-panel-sm font-semibold h-11 w-[60px]">Nº</TableHead>
                                     <TableHead className="text-panel-sm font-semibold h-11">Atleta</TableHead>
                                     <TableHead className="text-panel-sm font-semibold h-11">CPF</TableHead>
                                     <TableHead className="text-panel-sm font-semibold h-11">Categoria / Faixa</TableHead>
@@ -204,6 +205,9 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                                 setIsDialogOpen(true);
                                             }}
                                         >
+                                            <TableCell className="font-mono text-panel-sm font-bold text-muted-foreground py-4">
+                                                {reg.registration_number != null ? `#${String(reg.registration_number).padStart(3, '0')}` : '—'}
+                                            </TableCell>
                                             <TableCell className="text-panel-sm font-bold py-4">{reg.athlete?.full_name}</TableCell>
                                             <TableCell className="text-panel-sm text-muted-foreground">{formatCPF(reg.athlete?.cpf)}</TableCell>
                                             <TableCell>
@@ -232,7 +236,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-sm">
+                                        <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-sm">
                                             Nenhuma inscrição encontrada.
                                         </TableCell>
                                     </TableRow>
