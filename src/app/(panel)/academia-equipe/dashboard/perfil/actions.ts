@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 
@@ -10,6 +11,7 @@ export async function updateAcademiaProfile(formData: FormData) {
         const admin = createAdminClient();
 
         const gymName = formData.get('gymName') as string;
+        const email = formData.get('email') as string | null;
         const cpf = formData.get('cpf') as string;
         const phone = formData.get('phone') as string;
 
@@ -32,10 +34,22 @@ export async function updateAcademiaProfile(formData: FormData) {
             return { error: 'Ocorreu um erro ao atualizar o perfil: ' + error.message };
         }
 
+        let emailChanged = false;
+        if (email && email !== user.email) {
+            const supabase = await createClient();
+            const { error: authError } = await supabase.auth.updateUser({ email: email.trim() });
+            if (authError) {
+                console.error('Update email error:', authError);
+                return { error: 'Erro ao tentar atualizar o e-mail. Verifique se ele já não está em uso por outra conta.' };
+            }
+            emailChanged = true;
+        }
+
         revalidatePath('/academia-equipe/dashboard/perfil');
-        return { success: true };
+        return { success: true, emailChanged };
     } catch (error) {
         console.error('Failed to update academia profile:', error);
         return { error: 'Não autorizado.' };
     }
 }
+

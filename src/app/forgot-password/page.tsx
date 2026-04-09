@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
                     <SectionHeader
                         title={step === 1 ? "Recuperar Senha" : step === 2 ? "Verificar Código" : "Nova Senha"}
                         description={
-                            step === 1 ? "Enviaremos um código de 8 dígitos para o seu e-mail." :
+                            step === 1 ? "Enviaremos um código de 6 dígitos para o seu e-mail." :
                                 step === 2 ? `Insira o código enviado para ${formData.email}` :
                                     "Crie uma nova senha forte para sua conta."
                         }
@@ -167,14 +167,14 @@ export default function ForgotPasswordPage() {
                         <form onSubmit={handleVerifyOTP} className="space-y-6">
                             <div className="space-y-2 text-center">
                                 <label htmlFor="otp" className="text-sm font-medium leading-none">
-                                    Código de 8 dígitos
+                                    Código de 6 dígitos
                                 </label>
                                 <Input
                                     id="otp"
                                     name="otp"
                                     type="text"
-                                    placeholder="00000000"
-                                    maxLength={8}
+                                    placeholder="000000"
+                                    maxLength={6}
                                     className="text-center text-2xl tracking-[0.3em] font-bold h-14"
                                     value={formData.otp}
                                     onChange={handleInputChange}
@@ -188,7 +188,7 @@ export default function ForgotPasswordPage() {
                                 type="submit"
                                 pill
                                 className="w-full h-12 text-base font-semibold"
-                                disabled={formData.otp.length !== 8 || loading}
+                                disabled={formData.otp.length !== 6 || loading}
                             >
                                 {loading ? 'Verificando...' : 'Verificar Código'}
                             </Button>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmação de Troca de E-mail - COMPETIR</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            background-color: #1a1f2e;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 40px;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .content h1 {
+            font-size: 24px;
+            color: #111827;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .otp-container {
+            background-color: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .otp-code {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: 12px;
+            color: #1a1f2e;
+            margin: 0;
+        }
+
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        .security-notice {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="color: white; margin: 0; font-size: 28px; letter-spacing: 2px;">COMPETIR</h2>
+        </div>
+        <div class="content">
+            <h1>Confirme seu novo e-mail</h1>
+            <p style="text-align: center;">Olá, recebemos uma solicitação para alterar o e-mail da sua conta na plataforma COMPETIR.</p>
+            <p style="text-align: center;">Use o código de verificação abaixo para confirmar a troca:</p>
+            <div class="otp-container">
+                <div class="otp-code">{{ .Token }}</div>
+            </div>
+            <p style="text-align: center;">Este código é válido por tempo limitado.</p>
+            <div class="security-notice">
+                <p>Se você não solicitou esta alteração, ignore este e-mail. Seu e-mail atual permanecerá inalterado.</p>
+                <p>Por segurança, nunca compartilhe este link. Nossa equipe nunca solicitará seus dados fora do sistema.</p>
+            </div>
+        </div>
+        <div class="footer">
+            &copy; 2026 COMPETIR. Todos os direitos reservados.<br>
+            <a href="{{ .SiteURL }}" style="color: #1a1f2e; text-decoration: none;">Acesse nossa plataforma</a>
+        </div>
+    </div>
+</body>
+
+</html>

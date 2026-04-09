@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateAcademiaProfile } from './actions';
+import { createClient } from '@/lib/supabase/client';
 import { CircleNotchIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -40,8 +41,12 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const [gymName, setGymName] = useState(profile.gym_name || '');
+    const [email, setEmail] = useState(profile.email || '');
     const [cpfCnpj, setCpfCnpj] = useState(() => profile.cpf ? maskCpfCnpj(profile.cpf) : '');
     const [phone, setPhone] = useState(() => profile.phone ? maskPhone(profile.phone) : '');
+    const [showOtpField, setShowOtpField] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [pendingEmail, setPendingEmail] = useState('');
 
     const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/\D/g, '');
@@ -73,6 +78,7 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
 
         const formData = new FormData();
         formData.append('gymName', gymName);
+        formData.append('email', email);
         formData.append('cpf', cpfCnpj);
         formData.append('phone', phone);
 
@@ -80,8 +86,40 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
             const result = await updateAcademiaProfile(formData);
             if (result.error) {
                 setMessage({ type: 'error', text: result.error });
+            } else if (result.emailChanged) {
+                setPendingEmail(email);
+                setShowOtpField(true);
+                setMessage({ type: 'success', text: 'Perfil atualizado! Enviamos um código de verificação para o novo e-mail. Insira-o abaixo para confirmar a troca.' });
             } else {
                 setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
+            }
+        } catch {
+            setMessage({ type: 'error', text: 'Ocorreu um erro inesperado.' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setMessage(null);
+
+        try {
+            const supabase = createClient();
+            const { error } = await supabase.auth.verifyOtp({
+                email: pendingEmail,
+                token: otpCode,
+                type: 'email_change',
+            });
+
+            if (error) {
+                console.error('Verify email change OTP error:', error);
+                setMessage({ type: 'error', text: 'Código inválido ou expirado. Tente novamente.' });
+            } else {
+                setShowOtpField(false);
+                setOtpCode('');
+                setMessage({ type: 'success', text: 'E-mail alterado com sucesso!' });
             }
         } catch {
             setMessage({ type: 'error', text: 'Ocorreu um erro inesperado.' });
@@ -146,12 +184,54 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
                         </Label>
                         <Input
                             id="email"
-                            value={profile.email || ''}
-                            disabled
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="seu@email.com"
                             variant="lg"
-                            className="bg-muted/50 cursor-not-allowed text-muted-foreground disabled:opacity-100"
                         />
+                        {email !== (profile.email || '') && !showOtpField && (
+                            <p className="text-panel-sm text-amber-600">
+                                Ao salvar, enviaremos um código de verificação para o novo e-mail.
+                            </p>
+                        )}
                     </div>
+
+                    {showOtpField && (
+                        <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                            <Label htmlFor="otpCode" className="text-panel-sm font-semibold text-amber-800">
+                                Código de verificação enviado para {pendingEmail}
+                            </Label>
+                            <Input
+                                id="otpCode"
+                                type="text"
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="000000"
+                                maxLength={6}
+                                className="text-center text-2xl tracking-[0.3em] font-bold h-14"
+                                variant="lg"
+                                inputMode="numeric"
+                                autoFocus
+                            />
+                            <Button
+                                type="button"
+                                onClick={handleVerifyOtp}
+                                disabled={otpCode.length !== 6 || isLoading}
+                                pill
+                                className="w-full h-11"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                                        Verificando...
+                                    </>
+                                ) : (
+                                    'Confirmar Troca de E-mail'
+                                )}
+                            </Button>
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label htmlFor="cpf" className="text-panel-sm font-semibold text-muted-foreground">
