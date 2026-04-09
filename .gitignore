@@ -59,6 +59,9 @@ image.png
 # replace_dom.py
 # etc...
 
+# Claude Code settings (contém tokens)
+.claude/settings.local.json
+
 # Supabase
 supabase/migrations/
 supabase/.temp/
