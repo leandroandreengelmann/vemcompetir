@@ -17,6 +17,10 @@ import { CategorySearchPanel } from '@/app/atleta/dashboard/campeonatos/componen
 import { getEligibleCategoriesAction } from '@/app/(panel)/academia-equipe/dashboard/eventos/registrations-actions';
 import { registerWithCreditAction } from '../../actions';
 import { formatFullCategoryName } from '@/lib/category-utils';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface Athlete {
     id: string;
@@ -51,10 +55,12 @@ function calculateAge(birthDateStr: string) {
 function getStatusLabel(status: string): { label: string; className: string } {
     const map: Record<string, { label: string; className: string }> = {
         pago: { label: 'Pago', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
-        isento: { label: 'Isento', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
+        isento: { label: 'Pago pela Academia', className: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' },
         confirmado: { label: 'Confirmado', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
+        agendado: { label: 'Pagamento Agendado', className: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' },
         aguardando_pagamento: { label: 'Aguard. pagamento', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
         pendente: { label: 'Pendente', className: 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400' },
+        carrinho: { label: 'Na Cesta', className: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400' },
     };
     return map[status] || { label: status, className: 'bg-gray-100 text-gray-600' };
 }
@@ -65,6 +71,8 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
     const [allCategories, setAllCategories] = useState<any[]>([]);
     const [enrolledCategories, setEnrolledCategories] = useState<any[]>([]);
     const [loadingCategories, setLoadingCategories] = useState(false);
+    const [confirmCategoryId, setConfirmCategoryId] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
 
     const selectedAthlete = useMemo(
         () => athletes.find(a => a.id === selectedAthleteId),
@@ -101,25 +109,36 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
         [enrolledCategories]
     );
 
-    const handleRegister = async (categoryId: string) => {
+    const handleRegister = (categoryId: string) => {
         if (!selectedAthleteId) return;
-        const result = await registerWithCreditAction(pkg.id, event.id, selectedAthleteId, categoryId);
-        if (result?.error) {
-            toast.error(result.error);
-            return;
+        setConfirmCategoryId(categoryId);
+    };
+
+    const confirmRegister = async () => {
+        if (!selectedAthleteId || !confirmCategoryId) return;
+        setSubmitting(true);
+        try {
+            const result = await registerWithCreditAction(pkg.id, event.id, selectedAthleteId, confirmCategoryId);
+            if (result?.error) {
+                toast.error(result.error);
+                return;
+            }
+            toast.success('Atleta inscrito com sucesso!');
+            const data = await getEligibleCategoriesAction(event.id, selectedAthleteId);
+            if (!data.error) {
+                const excluded = pkg.excluded_divisions ?? [];
+                const filter = (cats: any[]) => excluded.length === 0 ? cats : cats.filter((cat: any) => {
+                    const div = cat.divisao_idade ?? '';
+                    return !excluded.some((ex: string) => ex.toLowerCase() === div.toLowerCase());
+                });
+                setAllCategories(filter(data.all ?? []));
+                setEnrolledCategories(data.enrolledCategories ?? []);
+            }
+            router.refresh();
+        } finally {
+            setSubmitting(false);
+            setConfirmCategoryId(null);
         }
-        toast.success('Atleta inscrito com sucesso!');
-        const data = await getEligibleCategoriesAction(event.id, selectedAthleteId);
-        if (!data.error) {
-            const excluded = pkg.excluded_divisions ?? [];
-            const filter = (cats: any[]) => excluded.length === 0 ? cats : cats.filter((cat: any) => {
-                const div = cat.divisao_idade ?? '';
-                return !excluded.some((ex: string) => ex.toLowerCase() === div.toLowerCase());
-            });
-            setAllCategories(filter(data.all ?? []));
-            setEnrolledCategories(data.enrolledCategories ?? []);
-        }
-        router.refresh();
     };
 
     const isWhiteBelt = selectedAthlete?.belt_color?.toLowerCase() === 'branca' || selectedAthlete?.belt_color?.toLowerCase() === 'white';
@@ -261,6 +280,31 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                     </div>
                 )}
             </div>
+
+            <Dialog open={confirmCategoryId != null} onOpenChange={(open) => { if (!open) setConfirmCategoryId(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirmar inscrição</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja inscrever <strong>{selectedAthlete?.full_name}</strong> nesta categoria? Será consumido 1 crédito do pacote.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {confirmCategoryId && (
+                        <div className="p-3 rounded-xl border bg-muted/40 text-panel-sm font-semibold">
+                            {allCategories.find(c => c.id === confirmCategoryId)?.categoria_completa || 'Categoria'}
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setConfirmCategoryId(null)} disabled={submitting}>
+                            Cancelar
+                        </Button>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={confirmRegister} disabled={submitting}>
+                            {submitting ? <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-2" /> : <CheckCircleIcon size={16} weight="duotone" className="mr-2" />}
+                            Confirmar inscrição
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }
