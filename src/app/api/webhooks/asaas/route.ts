@@ -175,8 +175,27 @@ export async function POST(request: NextRequest) {
         // Use ONLY the official confirmed status from Asaas
         const effectiveStatus = confirmedStatus;
 
-        // Handle CONFIRMED/RECEIVED
-        if (['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(effectiveStatus)) {
+        // Handle CONFIRMED (pagamento agendado — dinheiro ainda não caiu)
+        if (effectiveStatus === 'CONFIRMED') {
+            if (paymentRecord.status === 'PAID') {
+                return NextResponse.json({ ok: true });
+            }
+
+            await admin
+                .from('payments')
+                .update({ status: 'CONFIRMED', updated_at: new Date().toISOString() })
+                .eq('id', paymentRecord.id);
+
+            await admin
+                .from('event_registrations')
+                .update({ status: 'agendado' })
+                .eq('payment_id', paymentRecord.id);
+
+            auditLog('WEBHOOK_PAYMENT_SCHEDULED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId });
+        }
+
+        // Handle RECEIVED (dinheiro efetivamente recebido)
+        if (['RECEIVED', 'RECEIVED_IN_CASH'].includes(effectiveStatus)) {
             // Idempotency: skip if already PAID
             if (paymentRecord.status === 'PAID') {
                 return NextResponse.json({ ok: true });
@@ -233,7 +252,7 @@ export async function POST(request: NextRequest) {
                 });
             }
 
-            auditLog('WEBHOOK_PAYMENT_CONFIRMED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, value: confirmedValue, net_value: confirmedNetValue });;
+            auditLog('WEBHOOK_PAYMENT_CONFIRMED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, value: confirmedValue, net_value: confirmedNetValue });
         }
 
         // Handle PARTIALLY_RECEIVED — log only, no action (Asaas will send RECEIVED when complete)

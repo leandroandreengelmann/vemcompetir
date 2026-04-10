@@ -67,6 +67,8 @@ id,
 
     const getStatusBadge = (status: string) => {
         switch (status) {
+            case 'agendado':
+                return <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Pagamento Agendado</Badge>;
             case 'isento':
                 return <Badge className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Pago pela Academia</Badge>;
             case 'pago':

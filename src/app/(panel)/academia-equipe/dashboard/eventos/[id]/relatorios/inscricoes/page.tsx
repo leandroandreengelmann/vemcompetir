@@ -59,6 +59,13 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
     const totalPages = Math.ceil(count / 20);
 
     const renderStatusBadge = (status: string) => {
+        if (status === 'agendado') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30">
+                    PAGAMENTO AGENDADO
+                </Badge>
+            );
+        }
         if (status === 'isento') {
             return (
                 <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-orange-500/10 text-orange-700 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
