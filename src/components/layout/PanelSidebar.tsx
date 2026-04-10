@@ -24,6 +24,7 @@ import {
     TreeStructureIcon,
     CurrencyCircleDollarIcon,
     CoinsIcon,
+    ExportIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -182,6 +183,12 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             label: "Tokens",
             icon: CoinsIcon,
             href: "/admin/dashboard/pacotes-tokens",
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Exportações",
+            icon: ExportIcon,
+            href: "/admin/dashboard/exportacoes",
             roles: ['admin_geral'],
         },
         {
