@@ -103,7 +103,12 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
 // pois o Z-API roteia usando o formato de 12 dígitos
 function normalizePhone(phone: string): string {
     const digits = phone.replace(/\D/g, '');
-    const normalized = digits.startsWith('55') ? digits : `55${digits}`;
+    let normalized = digits.startsWith('55') ? digits : `55${digits}`;
+    // Z-API espera formato 55 + DDD(2) + número(8) = 12 dígitos (sem o 9)
+    // Se tem 13 dígitos, remove o 9 após 55+DDD
+    if (normalized.length === 13) {
+        normalized = normalized.slice(0, 4) + normalized.slice(5);
+    }
     return normalized;
 }
 
