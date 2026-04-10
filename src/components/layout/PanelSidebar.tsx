@@ -99,6 +99,12 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             roles: ['academia/equipe'],
         },
         {
+            label: "Inscrições",
+            icon: FileTextIcon,
+            href: "/academia-equipe/dashboard/inscricoes",
+            roles: ['academia/equipe'],
+        },
+        {
             label: "Cortesias",
             icon: TicketIcon,
             href: "/academia-equipe/dashboard/cortesias",
