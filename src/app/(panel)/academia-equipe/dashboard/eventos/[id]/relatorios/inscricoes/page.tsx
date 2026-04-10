@@ -130,7 +130,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     variant="lg"
                                     className="pl-11 bg-background border-input shadow-sm"
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                                 />
                             </div>
                             <Select value={status} onValueChange={(val) => { setStatus(val); setPage(1); }}>

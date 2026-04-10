@@ -19,21 +19,29 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
 
     const adminSupabase = createAdminClient();
 
+    const hasSearch = !!filters.search;
+
     let query = adminSupabase
         .from('event_registrations')
         .select(`
             *,
-            athlete:profiles!athlete_id(full_name, cpf, belt_color, gym_name),
+            athlete:profiles!athlete_id${hasSearch ? '!inner' : ''}(full_name, cpf, belt_color, gym_name),
             category:category_rows!category_id(categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg)
         `, { count: 'exact' })
         .eq('event_id', eventId);
 
     if (filters.status && filters.status !== 'todas') {
-        query = query.eq('status', filters.status);
+        if (filters.status === 'paga') {
+            query = query.in('status', ['paga', 'pago', 'confirmado']);
+        } else if (filters.status === 'pendente') {
+            query = query.in('status', ['pendente', 'aguardando_pagamento']);
+        } else {
+            query = query.eq('status', filters.status);
+        }
     }
 
     if (filters.search) {
-        query = query.or(`athlete.full_name.ilike.%${filters.search}%,athlete.cpf.ilike.%${filters.search}%`);
+        query = query.or(`full_name.ilike.%${filters.search}%,cpf.ilike.%${filters.search}%`, { referencedTable: 'athlete' });
     }
 
     if (filters.categoryId) {
