@@ -41,7 +41,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
         }
     }
 
-    const pagos = data.filter(d => d.status === 'paga' || d.status === 'confirmado');
+    const pagos = data.filter(d => d.status === 'paga' || d.status === 'pago' || d.status === 'confirmado' || d.status === 'isento');
     const pendentes = data.filter(d => d.status === 'pendente' || d.status === 'aguardando_pagamento');
     const carrinho = data.filter(d => d.status === 'carrinho');
 
