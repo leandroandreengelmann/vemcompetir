@@ -73,6 +73,7 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [confirmCategoryId, setConfirmCategoryId] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [confirmResolve, setConfirmResolve] = useState<{ resolve: (confirmed: boolean) => void } | null>(null);
 
     const selectedAthlete = useMemo(
         () => athletes.find(a => a.id === selectedAthleteId),
@@ -109,19 +110,22 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
         [enrolledCategories]
     );
 
-    const handleRegister = (categoryId: string) => {
+    const handleRegister = async (categoryId: string) => {
         if (!selectedAthleteId) return;
         setConfirmCategoryId(categoryId);
-    };
 
-    const confirmRegister = async () => {
-        if (!selectedAthleteId || !confirmCategoryId) return;
+        const confirmed = await new Promise<boolean>((resolve) => {
+            setConfirmResolve({ resolve });
+        });
+
+        if (!confirmed) throw new Error('cancelled');
+
         setSubmitting(true);
         try {
-            const result = await registerWithCreditAction(pkg.id, event.id, selectedAthleteId, confirmCategoryId);
+            const result = await registerWithCreditAction(pkg.id, event.id, selectedAthleteId, categoryId);
             if (result?.error) {
                 toast.error(result.error);
-                return;
+                throw new Error(result.error);
             }
             toast.success('Atleta inscrito com sucesso!');
             const data = await getEligibleCategoriesAction(event.id, selectedAthleteId);
@@ -139,6 +143,17 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
             setSubmitting(false);
             setConfirmCategoryId(null);
         }
+    };
+
+    const onConfirm = () => {
+        confirmResolve?.resolve(true);
+        setConfirmResolve(null);
+    };
+
+    const onCancel = () => {
+        confirmResolve?.resolve(false);
+        setConfirmResolve(null);
+        setConfirmCategoryId(null);
     };
 
     const isWhiteBelt = selectedAthlete?.belt_color?.toLowerCase() === 'branca' || selectedAthlete?.belt_color?.toLowerCase() === 'white';
@@ -281,7 +296,7 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                 )}
             </div>
 
-            <Dialog open={confirmCategoryId != null} onOpenChange={(open) => { if (!open) setConfirmCategoryId(null); }}>
+            <Dialog open={confirmCategoryId != null && !submitting} onOpenChange={(open) => { if (!open) onCancel(); }}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Confirmar inscrição</DialogTitle>
@@ -295,11 +310,11 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                         </div>
                     )}
                     <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="outline" onClick={() => setConfirmCategoryId(null)} disabled={submitting}>
+                        <Button variant="outline" onClick={onCancel}>
                             Cancelar
                         </Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={confirmRegister} disabled={submitting}>
-                            {submitting ? <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-2" /> : <CheckCircleIcon size={16} weight="duotone" className="mr-2" />}
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onConfirm}>
+                            <CheckCircleIcon size={16} weight="duotone" className="mr-2" />
                             Confirmar inscrição
                         </Button>
                     </DialogFooter>
