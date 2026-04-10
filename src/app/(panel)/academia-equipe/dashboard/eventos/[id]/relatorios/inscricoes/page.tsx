@@ -59,22 +59,29 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
     const totalPages = Math.ceil(count / 20);
 
     const renderStatusBadge = (status: string) => {
+        if (status === 'isento') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-orange-500/10 text-orange-700 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
+                    PAGO PELA ACADEMIA
+                </Badge>
+            );
+        }
         if (status === 'paga' || status === 'pago' || status === 'confirmado') {
             return (
-                <Badge variant="outline" className="text-panel-sm font-semibold px-2 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
                     PAGO
                 </Badge>
             );
         }
         if (status === 'pendente' || status === 'aguardando_pagamento') {
             return (
-                <Badge variant="outline" className="text-panel-sm font-semibold px-2 font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                     PENDENTE
                 </Badge>
             );
         }
         return (
-            <Badge variant="outline" className="text-panel-sm font-semibold px-2 font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
+            <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
                 NA CESTA DE COMPRAS
             </Badge>
         );
@@ -141,6 +148,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     <SelectItem value="todas">Todas</SelectItem>
                                     <SelectItem value="paga">Pagas</SelectItem>
                                     <SelectItem value="pendente">Pendentes</SelectItem>
+                                    <SelectItem value="isento">Pagas pela Academia</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

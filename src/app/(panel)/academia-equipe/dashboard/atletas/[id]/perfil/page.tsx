@@ -42,9 +42,10 @@ function calculateAge(birthDateStr: string | null) {
 const getStatusBadgeVariant = (status: string) => {
     switch (status) {
         case 'pago':
-        case 'isento':
         case 'confirmado':
             return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+        case 'isento':
+            return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
         case 'pendente':
             return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
         case 'carrinho':
@@ -59,7 +60,7 @@ const getStatusBadgeVariant = (status: string) => {
 const getStatusLabel = (status: string) => {
     switch (status) {
         case 'pago': return 'Pago';
-        case 'isento': return 'Isento';
+        case 'isento': return 'Pago pela Academia';
         case 'confirmado': return 'Confirmado';
         case 'pendente': return 'Pendente';
         case 'carrinho': return 'No Carrinho';

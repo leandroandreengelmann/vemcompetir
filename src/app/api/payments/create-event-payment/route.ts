@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
                 const registrationIds = cartItems.map(i => i.id);
                 const { error: regUpdateError } = await admin
                     .from('event_registrations')
-                    .update({ status: 'pago', payment_id: paymentId })
+                    .update({ status: 'isento', payment_id: paymentId })
                     .in('id', registrationIds);
 
                 if (regUpdateError) {

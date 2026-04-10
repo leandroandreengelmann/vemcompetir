@@ -77,6 +77,13 @@ function canChangeCategory(event: Event): boolean {
 
 export function RegistrationList({ event, registrations, athletes, currentUserId, currentUserTenantId }: RegistrationListProps) {
     const renderStatusBadge = (status: string) => {
+        if (status === 'isento') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-700 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
+                    PAGO PELA ACADEMIA
+                </Badge>
+            );
+        }
         if (status === 'paga' || status === 'pago' || status === 'confirmado') {
             return (
                 <Badge variant="outline" className="text-panel-sm font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">

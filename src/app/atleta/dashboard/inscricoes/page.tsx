@@ -67,6 +67,8 @@ id,
 
     const getStatusBadge = (status: string) => {
         switch (status) {
+            case 'isento':
+                return <Badge className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Pago pela Academia</Badge>;
             case 'pago':
             case 'confirmado':
                 return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 uppercase text-panel-sm whitespace-nowrap px-2 py-0.5 tracking-wider font-bold">Confirmada</Badge>;
@@ -94,7 +96,7 @@ id,
             {inscricoes.length > 0 && (
                 <div className="hidden md:flex items-center gap-3 -mt-2 mb-2 flex-wrap">
                     {(() => {
-                        const confirmadas = inscricoes.filter((i: any) => ['pago', 'confirmado'].includes(i.status)).length;
+                        const confirmadas = inscricoes.filter((i: any) => ['pago', 'confirmado', 'isento'].includes(i.status)).length;
                         const pendentes = inscricoes.filter((i: any) => ['aguardando_pagamento', 'pendente'].includes(i.status)).length;
                         return (
                             <>

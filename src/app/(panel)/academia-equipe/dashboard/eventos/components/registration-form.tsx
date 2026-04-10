@@ -22,7 +22,7 @@ import { formatFullCategoryName } from '@/lib/category-utils';
 function getStatusLabel(status: string): { label: string; className: string } {
     const map: Record<string, { label: string; className: string }> = {
         pago: { label: 'Pago', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
-        isento: { label: 'Isento', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
+        isento: { label: 'Pago pela Academia', className: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' },
         confirmado: { label: 'Confirmado', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
         aguardando_pagamento: { label: 'Aguard. pagamento', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
         pendente: { label: 'Pendente', className: 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400' },
