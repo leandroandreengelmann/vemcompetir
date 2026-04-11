@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decrypt } from '@/lib/crypto';
+import { normalizePhone } from '@/lib/phone';
 
 function decryptApiKey(stored: string): string {
     if (!stored) return stored;
@@ -15,43 +16,49 @@ function decryptApiKey(stored: string): string {
     return stored;
 }
 
-function normalizePhone(phone: string): string {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('55') && digits.length >= 12) return digits;
-    return `55${digits}`;
-}
-
 // ─── Envia mensagem via Z-API ─────────────────────────────────────────────────
 
-async function sendZapi(config: any, phone: string, message: string) {
-    const res = await fetch(
-        `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) },
-            body: JSON.stringify({ phone, message }),
+async function sendZapi(config: any, phone: string, message: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+        const res = await fetch(
+            `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) },
+                body: JSON.stringify({ phone, message, delayMessage: 3 }),
+                signal: controller.signal,
+            }
+        );
+        if (!res.ok) {
+            const err = await res.text().catch(() => '');
+            console.error('[sendZapi error]', res.status, err);
+            return false;
         }
-    );
-    if (!res.ok) {
-        const err = await res.text().catch(() => '');
-        console.error('[sendZapi error]', res.status, err);
+        return true;
+    } catch (e) {
+        console.error('[sendZapi error]', e);
+        return false;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
 // ─── Salva mensagem outbound no banco ────────────────────────────────────────
 
-async function saveOutboundMessage(supabase: any, conversationId: string, body: string) {
+async function saveOutboundMessage(supabase: any, conversationId: string, body: string, status: 'sent' | 'failed' = 'sent') {
     await supabase.from('whatsapp_messages').insert({
         conversation_id: conversationId,
         direction: 'outbound',
         body,
-        status: 'sent',
+        status,
     });
     await supabase.from('whatsapp_conversations').update({
         last_message: body,
         last_message_at: new Date().toISOString(),
         last_message_direction: 'outbound',
-        last_message_status: 'sent',
+        last_message_status: status,
         updated_at: new Date().toISOString(),
     }).eq('id', conversationId);
 }
@@ -243,8 +250,8 @@ async function handleInboundMessage(phone: string, message: string | null, zaapI
 
         // Avisa o usuário
         const userMsg = '👤 Entendido! Vou chamar um atendente humano. Aguarde um momento, ele entrará em contato em breve pelo inbox. 🙏';
-        await sendZapi(zapiConfig, phone, userMsg);
-        await saveOutboundMessage(supabase, conv!.id, userMsg);
+        const sent = await sendZapi(zapiConfig, phone, userMsg);
+        await saveOutboundMessage(supabase, conv!.id, userMsg, sent ? 'sent' : 'failed');
 
         // Notifica admin
         if (aiConfig?.admin_phone) {
@@ -258,13 +265,13 @@ async function handleInboundMessage(phone: string, message: string | null, zaapI
         const aiReply = await callOpenAI(aiConfig, conv!.id, message, supabase, conv!.contact_name);
 
         if (aiReply) {
-            await sendZapi(zapiConfig, phone, aiReply);
-            await saveOutboundMessage(supabase, conv!.id, aiReply);
+            const sent = await sendZapi(zapiConfig, phone, aiReply);
+            await saveOutboundMessage(supabase, conv!.id, aiReply, sent ? 'sent' : 'failed');
         } else {
             // Fallback se IA falhou
             const fallback = 'Olá! Recebi sua mensagem. Nossa equipe irá responder em breve. 😊';
-            await sendZapi(zapiConfig, phone, fallback);
-            await saveOutboundMessage(supabase, conv!.id, fallback);
+            const sent = await sendZapi(zapiConfig, phone, fallback);
+            await saveOutboundMessage(supabase, conv!.id, fallback, sent ? 'sent' : 'failed');
         }
     }
 }
@@ -273,6 +280,22 @@ async function handleInboundMessage(phone: string, message: string | null, zaapI
 
 export async function POST(req: NextRequest) {
     try {
+        // ── Validação de origem (Client-Token) ──
+        const supabaseInit = createAdminClient();
+        const { data: waCfg } = await supabaseInit
+            .from('whatsapp_config')
+            .select('client_token')
+            .limit(1)
+            .maybeSingle();
+
+        if (waCfg?.client_token) {
+            const incoming = req.headers.get('Client-Token') ?? req.headers.get('client-token');
+            if (incoming !== waCfg.client_token) {
+                console.warn('[Webhook] Client-Token inválido — requisição rejeitada');
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
+        }
+
         const body = await req.json();
 
         const type = body?.type as string | undefined;
@@ -294,11 +317,29 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true });
         }
 
+        // ── DisconnectedCallback ──
+        if (type === 'DisconnectedCallback' || body?.connected === false) {
+            const supabaseAdmin = createAdminClient();
+            const { data: webhookConfig } = await supabaseAdmin
+                .from('whatsapp_config')
+                .select('id')
+                .limit(1)
+                .maybeSingle();
+            if (webhookConfig) {
+                await supabaseAdmin
+                    .from('whatsapp_config')
+                    .update({ connected: false, updated_at: new Date().toISOString() })
+                    .eq('id', webhookConfig.id);
+            }
+            console.warn('[Webhook] WhatsApp desconectado');
+            return NextResponse.json({ ok: true });
+        }
+
         // ── MessageStatusCallback ──
         if (type === 'MessageStatusCallback') {
             const ids: string[] = body?.ids ?? [];
             const statusRaw = body?.status as string | undefined;
-            const statusMap: Record<string, string> = { RECEIVED: 'delivered', READ: 'read', PLAYED: 'read' };
+            const statusMap: Record<string, string> = { SENT: 'sent', RECEIVED: 'delivered', READ: 'read', PLAYED: 'read' };
             const newStatus = statusRaw ? statusMap[statusRaw] : null;
 
             if (newStatus && ids.length > 0) {
@@ -377,10 +418,21 @@ export async function POST(req: NextRequest) {
             const phone = body?.phone ? normalizePhone(body.phone) : null;
             if (!phone) return NextResponse.json({ ok: true });
 
-            const message = body?.text?.message ?? body?.caption ?? null;
+            let message = body?.text?.message ?? body?.caption ?? null;
             const zaapId = body?.messageId ?? null;
-            const mediaUrl = body?.image?.imageUrl ?? body?.video?.videoUrl ?? body?.document?.documentUrl ?? body?.audio?.audioUrl ?? null;
-            const mediaType = body?.image ? 'image' : body?.video ? 'video' : body?.document ? 'document' : body?.audio ? 'audio' : null;
+            const mediaUrl = body?.image?.imageUrl ?? body?.video?.videoUrl ?? body?.document?.documentUrl ?? body?.audio?.audioUrl ?? body?.sticker?.stickerUrl ?? null;
+            let mediaType = body?.image ? 'image' : body?.video ? 'video' : body?.document ? 'document' : body?.audio ? 'audio' : body?.sticker ? 'image' : null;
+
+            // Tipos especiais: salvar como texto descritivo para o admin ver no inbox
+            if (body?.location) {
+                message = `📍 Localização: ${body.location.address || `${body.location.latitude}, ${body.location.longitude}`}`;
+            } else if (body?.contact) {
+                message = `👤 Contato: ${body.contact.displayName || 'Sem nome'}`;
+            } else if (body?.reaction) {
+                message = `${body.reaction.value || '👍'}`;
+            } else if (body?.sticker && !message) {
+                message = '🏷️ Sticker';
+            }
 
             await handleInboundMessage(phone, message, zaapId, mediaUrl, mediaType);
             return NextResponse.json({ ok: true });
@@ -416,15 +468,25 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Fallback: inbound sem type ──
-        const hasContent = body?.text?.message || body?.caption || body?.image || body?.video || body?.document || body?.audio;
+        const hasContent = body?.text?.message || body?.caption || body?.image || body?.video || body?.document || body?.audio || body?.sticker || body?.location || body?.contact || body?.reaction;
         if (body?.fromMe === false && body?.phone && hasContent) {
             if (body?.isGroup === true) return NextResponse.json({ ok: true });
 
             const phone = normalizePhone(body.phone);
-            const message = body?.text?.message ?? body?.caption ?? null;
+            let message = body?.text?.message ?? body?.caption ?? null;
             const zaapId = body?.messageId ?? null;
-            const mediaUrl = body?.image?.imageUrl ?? body?.video?.videoUrl ?? body?.document?.documentUrl ?? body?.audio?.audioUrl ?? null;
-            const mediaType = body?.image ? 'image' : body?.video ? 'video' : body?.document ? 'document' : body?.audio ? 'audio' : null;
+            const mediaUrl = body?.image?.imageUrl ?? body?.video?.videoUrl ?? body?.document?.documentUrl ?? body?.audio?.audioUrl ?? body?.sticker?.stickerUrl ?? null;
+            const mediaType = body?.image ? 'image' : body?.video ? 'video' : body?.document ? 'document' : body?.audio ? 'audio' : body?.sticker ? 'image' : null;
+
+            if (body?.location) {
+                message = `📍 Localização: ${body.location.address || `${body.location.latitude}, ${body.location.longitude}`}`;
+            } else if (body?.contact) {
+                message = `👤 Contato: ${body.contact.displayName || 'Sem nome'}`;
+            } else if (body?.reaction) {
+                message = `${body.reaction.value || '👍'}`;
+            } else if (body?.sticker && !message) {
+                message = '🏷️ Sticker';
+            }
 
             await handleInboundMessage(phone, message, zaapId, mediaUrl, mediaType);
         }

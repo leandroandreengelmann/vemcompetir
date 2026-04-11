@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
+import { normalizePhone } from '@/lib/phone';
 
 export async function updateAthleteProfile(formData: FormData) {
     const user = await requireAuth();
@@ -94,16 +95,25 @@ export async function sendPhoneVerificationAction(phone: string) {
     const { data: config } = await adminClient.from('whatsapp_config').select('*').limit(1).maybeSingle();
     if (!config?.instance_id || !config?.token) return { error: 'WhatsApp não configurado. Tente mais tarde.' };
 
-    const normalizedPhone = phone.startsWith('55') ? phone : `55${phone}`;
+    const normalizedPhone = normalizePhone(phone);
     const message = `🔐 Seu código de verificação VemCompetir: *${code}*\n\nVálido por 10 minutos. Não compartilhe este código.`;
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (config.client_token) headers['Client-Token'] = config.client_token;
 
-    const res = await fetch(
-        `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
-        { method: 'POST', headers, body: JSON.stringify({ phone: normalizedPhone, message }) }
-    );
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    let res: Response;
+    try {
+        res = await fetch(
+            `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
+            { method: 'POST', headers, body: JSON.stringify({ phone: normalizedPhone, message, delayMessage: 3 }), signal: controller.signal }
+        );
+    } catch {
+        return { error: 'Tempo esgotado ao enviar o código. Tente novamente.' };
+    } finally {
+        clearTimeout(timeout);
+    }
 
     if (!res.ok) return { error: 'Não foi possível enviar o código. Verifique se o número está no WhatsApp.' };
 

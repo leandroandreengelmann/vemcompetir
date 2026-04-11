@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { encrypt, decrypt } from '@/lib/crypto';
+import { normalizePhone } from '@/lib/phone';
 
 async function requireAdmin() {
     const supabase = await createClient();
@@ -86,10 +87,11 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
         'update-webhook-message-status',
         'update-webhook-chat-presence',
         'update-webhook-connected',
+        'update-webhook-disconnected',
     ];
 
     const results = await Promise.allSettled(
-        endpoints.map(ep => fetch(`${base}/${ep}`, { method: 'PUT', headers, body }))
+        endpoints.map(ep => zapiFetch(`${base}/${ep}`, { method: 'PUT', headers, body }))
     );
 
     console.log('[Z-API webhook registration]', results.map((r, i) => ({
@@ -98,23 +100,7 @@ async function registerZapiWebhooks(instanceId: string, token: string, clientTok
     })));
 }
 
-// Normaliza telefone sempre com código do país 55
-// Remove o 9º dígito extra de números móveis brasileiros (13→12 dígitos)
-// pois o Z-API roteia usando o formato de 12 dígitos
-function normalizePhone(phone: string): string {
-    const digits = phone.replace(/\D/g, '');
-    let normalized = digits.startsWith('55') ? digits : `55${digits}`;
-    // Z-API espera formato 55 + DDD(2) + número(8) = 12 dígitos (sem o 9)
-    // Se tem 13 dígitos, remove o 9 após 55+DDD
-    if (normalized.length === 13) {
-        normalized = normalized.slice(0, 4) + normalized.slice(5);
-    }
-    return normalized;
-}
 
-function formatPhoneForZapi(phone: string): string {
-    return normalizePhone(phone);
-}
 
 function zapiHeaders(config: any) {
     return {
@@ -123,11 +109,21 @@ function zapiHeaders(config: any) {
     };
 }
 
+async function zapiFetch(url: string, init: RequestInit, timeoutMs = 10_000): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 export async function checkConnectionStatus() {
     const config = await getWhatsAppConfig();
     if (!config) throw new Error('Sem configuração');
 
-    const res = await fetch(
+    const res = await zapiFetch(
         `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/status`,
         { cache: 'no-store', headers: zapiHeaders(config) }
     );
@@ -195,14 +191,14 @@ export async function sendMessage(conversationId: string, body: string) {
         .single();
     if (!conv) throw new Error('Conversa não encontrada');
 
-    const phone = formatPhoneForZapi(conv.phone);
+    const phone = normalizePhone(conv.phone);
 
-    const res = await fetch(
+    const res = await zapiFetch(
         `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
         {
             method: 'POST',
             headers: zapiHeaders(config),
-            body: JSON.stringify({ phone, message: body }),
+            body: JSON.stringify({ phone, message: body, delayMessage: 3 }),
         }
     );
     const json = await res.json();
@@ -467,14 +463,14 @@ export async function executeBroadcast(
             link: 'https://competir.com',
         });
 
-        const normalizedPhone = formatPhoneForZapi(athlete.phone);
+        const normalizedPhone = normalizePhone(athlete.phone);
         try {
-            const res = await fetch(
+            const res = await zapiFetch(
                 `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
                 {
                     method: 'POST',
                     headers: zapiHeaders(config),
-                    body: JSON.stringify({ phone: normalizedPhone, message }),
+                    body: JSON.stringify({ phone: normalizedPhone, message, delayMessage: 3 }),
                 }
             );
 
@@ -574,8 +570,7 @@ export async function sendMediaMessage(conversationId: string, fileBase64: strin
         .single();
     if (!conv) throw new Error('Conversa não encontrada');
 
-    const phone = conv.phone.replace(/\D/g, '');
-    if (!phone.startsWith('55')) throw new Error('Telefone inválido');
+    const phone = normalizePhone(conv.phone);
 
     // Upload para Supabase Storage
     const ext = fileName.split('.').pop() ?? 'bin';
@@ -593,20 +588,20 @@ export async function sendMediaMessage(conversationId: string, fileBase64: strin
     const base = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}`;
 
     let endpoint = 'send-document/url';
-    let body: any = { phone, url: publicUrl, fileName };
+    let body: any = { phone, url: publicUrl, fileName, delayMessage: 3 };
 
     if (mimeType.startsWith('image/')) {
         endpoint = 'send-image';
-        body = { phone, image: publicUrl, caption: fileName };
+        body = { phone, image: publicUrl, caption: fileName, delayMessage: 3 };
     } else if (mimeType.startsWith('audio/') || mimeType === 'application/ogg') {
         endpoint = 'send-audio';
-        body = { phone, audio: publicUrl };
+        body = { phone, audio: publicUrl, delayMessage: 3 };
     } else if (mimeType.startsWith('video/')) {
         endpoint = 'send-video';
-        body = { phone, video: publicUrl, caption: fileName };
+        body = { phone, video: publicUrl, caption: fileName, delayMessage: 3 };
     }
 
-    const res = await fetch(`${base}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await zapiFetch(`${base}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
     const json = await res.json();
     if (!res.ok) throw new Error(`Falha ao enviar mídia: ${JSON.stringify(json)}`);
 
@@ -666,11 +661,7 @@ export async function getPendingRegistrationNotifications() {
         .filter((r: any) => r.profiles?.phone);
 }
 
-async function zapiSendText(config: any, phone: string, message: string) {
-    const headers = { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) };
-    const res = await fetch(`https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`, { method: 'POST', headers, body: JSON.stringify({ phone, message }) });
-    if (!res.ok) { const json = await res.json(); throw new Error(`Falha ao enviar: ${JSON.stringify(json)}`); }
-}
+
 
 async function upsertConversation(supabase: any, phone: string, name: string | null, linkedId: string | null, contactType: string, message: string) {
     const { data: existing } = await supabase.from('whatsapp_conversations').select('id').eq('phone', phone).maybeSingle();
@@ -710,7 +701,11 @@ export async function sendRegistrationNotification(registrationId: string, athle
     const athletePhone = normalizePhone(profile.phone);
 
     // ── Envia para o atleta ──
-    await zapiSendText(config, athletePhone, athleteMessage);
+    const athleteRes = await zapiFetch(
+        `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
+        { method: 'POST', headers: zapiHeaders(config), body: JSON.stringify({ phone: athletePhone, message: athleteMessage, delayMessage: 3 }) }
+    );
+    if (!athleteRes.ok) { const json = await athleteRes.json(); throw new Error(`Falha ao enviar: ${JSON.stringify(json)}`); }
     const convId = await upsertConversation(adminClient, athletePhone, profile.full_name, reg!.athlete_id, 'atleta', athleteMessage);
     if (convId) await adminClient.from('whatsapp_messages').insert({ conversation_id: convId, direction: 'outbound', body: athleteMessage, status: 'sent' });
 
@@ -721,7 +716,11 @@ export async function sendRegistrationNotification(registrationId: string, athle
             const { data: organizer } = await adminClient.from('profiles').select('full_name, phone, id').eq('tenant_id', tenantId).eq('role', 'academia/equipe').maybeSingle();
             if (organizer?.phone) {
                 const orgPhone = normalizePhone(organizer.phone);
-                await zapiSendText(config, orgPhone, organizerMessage);
+                const orgRes = await zapiFetch(
+                    `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
+                    { method: 'POST', headers: zapiHeaders(config), body: JSON.stringify({ phone: orgPhone, message: organizerMessage, delayMessage: 3 }) }
+                );
+                if (!orgRes.ok) { const json = await orgRes.json(); throw new Error(`Falha ao enviar para organizador: ${JSON.stringify(json)}`); }
                 const orgConvId = await upsertConversation(adminClient, orgPhone, organizer.full_name, organizer.id, 'academia', organizerMessage);
                 if (orgConvId) await adminClient.from('whatsapp_messages').insert({ conversation_id: orgConvId, direction: 'outbound', body: organizerMessage, status: 'sent' });
             }
@@ -747,10 +746,9 @@ export async function sendWelcomeWhatsApp(phone: string, name: string): Promise<
     const cleanPhone = normalizePhone(phone);
     const message = welcomeMsg.replace(/\{nome\}/g, name.split(' ')[0]);
 
-    const headers = { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) };
-    const res = await fetch(
+    const res = await zapiFetch(
         `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/send-text`,
-        { method: 'POST', headers, body: JSON.stringify({ phone: cleanPhone, message }) }
+        { method: 'POST', headers: zapiHeaders(config), body: JSON.stringify({ phone: cleanPhone, message, delayMessage: 3 }) }
     );
     if (!res.ok) return;
 
@@ -842,10 +840,10 @@ export async function deleteMessage(messageId: string) {
                 .eq('id', msg.conversation_id)
                 .single();
             if (conv) {
-                const phone = formatPhoneForZapi(conv.phone);
+                const phone = normalizePhone(conv.phone);
                 try {
                     const params = new URLSearchParams({ messageId: msg.zapi_message_id, phone, owner: 'true' });
-                    const delRes = await fetch(
+                    const delRes = await zapiFetch(
                         `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}/messages?${params}`,
                         { method: 'DELETE', headers: zapiHeaders(config) }
                     );
