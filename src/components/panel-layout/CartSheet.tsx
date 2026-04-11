@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useRegistrationCart } from "@/hooks/use-registration-cart";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { CircleNotchIcon, TrashIcon, ShoppingBagIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -24,7 +22,6 @@ import { cancelPendingCartItemAction, getOwnApiEventIdsAction } from "@/app/(pan
 import { checkAthletesNeedingTermsAction } from "@/app/atleta/components/terms-actions";
 import { CancelRegistrationButton } from "@/app/atleta/dashboard/inscricoes/CancelRegistrationButton";
 import { TermsAcceptanceModal } from "@/components/terms/TermsAcceptanceModal";
-import { formatCPF } from "@/lib/validation";
 import {
     Tooltip,
     TooltipContent,
@@ -57,7 +54,6 @@ export function CartSheet() {
     const [submitting, setSubmitting] = useState(false);
     const [pixModalOpen, setPixModalOpen] = useState(false);
     const [pixData, setPixData] = useState<any>(null);
-    const [cpf, setCpf] = useState("");
     const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
     // Minor terms queue: athletes in this event who need to accept the term before payment
     const [termsQueue, setTermsQueue] = useState<Array<{ athleteId: string; athleteName: string }>>([]);
@@ -101,7 +97,7 @@ export function CartSheet() {
             const res = await fetch('/api/payments/create-event-payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ event_id: eventId, payer_type: 'ACADEMY', cpf: cpf.replace(/\D/g, '') }),
+                body: JSON.stringify({ event_id: eventId, payer_type: 'ACADEMY' }),
             });
             const data = await res.json();
 
@@ -387,24 +383,10 @@ export function CartSheet() {
                                                         </span>
                                                     </div>
 
-                                                    {!ownApiEventIds.has(eventId) && (
-                                                        <div className="space-y-2 px-2">
-                                                            <Label htmlFor={`cpf-${eventId}`} className="text-panel-sm font-black uppercase tracking-wide text-muted-foreground">CPF do Pagador (Obrigatório Asaas)</Label>
-                                                            <Input
-                                                                id={`cpf-${eventId}`}
-                                                                placeholder="000.000.000-00"
-                                                                value={cpf}
-                                                                onChange={(e) => setCpf(formatCPF(e.target.value))}
-                                                                maxLength={14}
-                                                                className="rounded-xl h-10 text-panel-sm bg-background"
-                                                            />
-                                                        </div>
-                                                    )}
-
                                                     <Button pill size="lg"
                                                         className="w-full font-bold shadow-md hover:shadow-lg transition-all h-12 text-panel-sm px-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                                                         onClick={() => handlePay(eventId)}
-                                                        disabled={submitting || isLoading || (!ownApiEventIds.has(eventId) && !cpf)}
+                                                        disabled={submitting || isLoading}
                                                     >
                                                         {submitting ? <CircleNotchIcon size={20} weight="bold" className="animate-spin" /> : (
                                                             <span className="truncate">
