@@ -72,6 +72,8 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
     const audioChunksRef = useRef<Blob[]>([]);
     const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const statusFilterRef = useRef<string>('aberta');
+    const [hasMore, setHasMore] = useState(false);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
     const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -174,11 +176,31 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
         getTemplates().then(setTemplates);
     }, []);
 
+    const PAGE_SIZE = 50;
+
     async function loadMessages(conversationId: string) {
         setLoadingMsgs(true);
-        const data = await getMessages(conversationId);
+        const data = await getMessages(conversationId, PAGE_SIZE);
         setMessages(data);
+        setHasMore(data.length === PAGE_SIZE);
         setLoadingMsgs(false);
+    }
+
+    async function loadOlderMessages() {
+        if (!selected || !hasMore || messages.length === 0) return;
+        const oldest = messages[0]?.created_at;
+        if (!oldest) return;
+        const container = chatContainerRef.current;
+        const prevHeight = container?.scrollHeight ?? 0;
+        const older = await getMessages(selected.id, PAGE_SIZE, oldest);
+        if (older.length < PAGE_SIZE) setHasMore(false);
+        if (older.length > 0) {
+            setMessages(prev => [...older, ...prev]);
+            // Mantém posição de scroll após inserir mensagens acima
+            requestAnimationFrame(() => {
+                if (container) container.scrollTop = container.scrollHeight - prevHeight;
+            });
+        }
     }
 
     async function handleSend() {
@@ -516,7 +538,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                     </div>
 
                     {/* Mensagens */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/5">
+                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/5">
                         {loadingMsgs ? (
                             <div className="flex items-center justify-center h-full">
                                 <SpinnerGapIcon size={24} weight="bold" className="animate-spin text-muted-foreground" />
@@ -525,7 +547,15 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                                 <p className="text-panel-sm italic">Nenhuma mensagem ainda.</p>
                             </div>
-                        ) : messages.map(msg => {
+                        ) : (<>
+                            {hasMore && (
+                                <div className="flex justify-center pb-2">
+                                    <button onClick={loadOlderMessages} className="text-xs text-muted-foreground hover:text-foreground underline">
+                                        Carregar mensagens anteriores
+                                    </button>
+                                </div>
+                            )}
+                            {messages.map(msg => {
                             const isOut = msg.direction === 'outbound';
                             const isHovered = hoveredMsgId === msg.id;
                             const isConfirming = confirmDeleteId === msg.id;
@@ -608,6 +638,7 @@ export function WhatsAppInbox({ initialConvId }: { initialConvId?: string }) {
                                 </div>
                             );
                         })}
+                        </>)}
                         <div ref={messagesEndRef} />
                     </div>
 

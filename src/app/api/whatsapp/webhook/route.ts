@@ -80,6 +80,32 @@ function isHumanRequest(text: string): boolean {
     );
 }
 
+// ─── Palavras de opt-out (parar de receber disparos) ─────────────────────────
+
+const OPTOUT_TRIGGERS = [
+    'parar', 'cancelar', 'sair', 'nao quero mais', 'não quero mais',
+    'parar de receber', 'nao envie mais', 'não envie mais',
+    'remover', 'descadastrar', 'desinscrever', 'stop',
+];
+
+const OPTIN_TRIGGERS = [
+    'voltar a receber', 'quero receber', 'inscrever novamente', 'reinscrever',
+];
+
+function isOptOutRequest(text: string): boolean {
+    const lower = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return OPTOUT_TRIGGERS.some(t =>
+        lower.includes(t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+    );
+}
+
+function isOptInRequest(text: string): boolean {
+    const lower = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return OPTIN_TRIGGERS.some(t =>
+        lower.includes(t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+    );
+}
+
 // ─── Chama OpenAI e retorna resposta ─────────────────────────────────────────
 
 async function callOpenAI(aiConfig: any, conversationId: string, userMessage: string, supabase: any, contactName?: string | null): Promise<string | null> {
@@ -242,6 +268,24 @@ async function handleInboundMessage(phone: string, message: string | null, zaapI
 
     // ── Modo HUMANO: admin está tratando, não faz nada ────────────────────────
     if (handlerMode === 'human') return;
+
+    // ── Opt-in: voltar a receber disparos ────────────────────────────────────
+    if (isOptInRequest(message)) {
+        await supabase.from('whatsapp_conversations').update({ opted_out: false, updated_at: new Date().toISOString() }).eq('id', conv!.id);
+        const confirmMsg = '✅ Pronto! Você voltará a receber nossas mensagens.';
+        const sent = await sendZapi(zapiConfig, phone, confirmMsg);
+        await saveOutboundMessage(supabase, conv!.id, confirmMsg, sent ? 'sent' : 'failed');
+        return;
+    }
+
+    // ── Opt-out: parar de receber disparos ───────────────────────────────────
+    if (isOptOutRequest(message)) {
+        await supabase.from('whatsapp_conversations').update({ opted_out: true, updated_at: new Date().toISOString() }).eq('id', conv!.id);
+        const confirmMsg = '🚫 Entendido! Você não receberá mais mensagens de disparos. Se mudar de ideia, envie "quero receber".';
+        const sent = await sendZapi(zapiConfig, phone, confirmMsg);
+        await saveOutboundMessage(supabase, conv!.id, confirmMsg, sent ? 'sent' : 'failed');
+        return;
+    }
 
     // ── Pedido de atendimento humano ──────────────────────────────────────────
     if (isHumanRequest(message)) {

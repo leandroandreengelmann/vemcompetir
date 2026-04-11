@@ -168,14 +168,22 @@ export async function getConversations(status?: string) {
     return data ?? [];
 }
 
-export async function getMessages(conversationId: string) {
+export async function getMessages(conversationId: string, limit = 50, before?: string) {
     const supabase = await createClient();
-    const { data } = await supabase
+    let query = supabase
         .from('whatsapp_messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-    return data ?? [];
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (before) {
+        query = query.lt('created_at', before);
+    }
+
+    const { data } = await query;
+    // Retorna em ordem cronológica (mais antiga primeiro)
+    return (data ?? []).reverse();
 }
 
 export async function sendMessage(conversationId: string, body: string) {
@@ -399,22 +407,31 @@ export async function previewBroadcast(filters: BroadcastFilters): Promise<{
         filtered = filtered.filter(p => p.tenant_id === filters.tenantId);
     }
 
-    const athletes = filtered.map(p => {
-        const regs = regMap.get(p.id) ?? [];
-        const relevant = regs.find((r: any) =>
-            filters.audience === 'carrinho' ? r.status === 'carrinho' :
-            filters.audience === 'aguardando' ? ['aguardando_pagamento', 'pendente'].includes(r.status) :
-            true
-        ) ?? regs[0];
-        return {
-            id: p.id,
-            full_name: p.full_name,
-            phone: p.phone.replace(/\D/g, ''),
-            event_title: (relevant?.events as any)?.title ?? undefined,
-            category: (relevant?.category_rows as any)?.categoria_completa ?? undefined,
-            price: relevant?.price ?? undefined,
-        };
-    });
+    // Exclui contatos que pediram opt-out
+    const { data: optedOut } = await adminClient
+        .from('whatsapp_conversations')
+        .select('phone')
+        .eq('opted_out', true);
+    const optedOutPhones = new Set((optedOut ?? []).map((c: any) => c.phone));
+
+    const athletes = filtered
+        .filter(p => !optedOutPhones.has(normalizePhone(p.phone)))
+        .map(p => {
+            const regs = regMap.get(p.id) ?? [];
+            const relevant = regs.find((r: any) =>
+                filters.audience === 'carrinho' ? r.status === 'carrinho' :
+                filters.audience === 'aguardando' ? ['aguardando_pagamento', 'pendente'].includes(r.status) :
+                true
+            ) ?? regs[0];
+            return {
+                id: p.id,
+                full_name: p.full_name,
+                phone: p.phone.replace(/\D/g, ''),
+                event_title: (relevant?.events as any)?.title ?? undefined,
+                category: (relevant?.category_rows as any)?.categoria_completa ?? undefined,
+                price: relevant?.price ?? undefined,
+            };
+        });
 
     return { total: athletes.length, athletes };
 }
@@ -453,6 +470,8 @@ export async function executeBroadcast(
 
     let sent = 0;
     let failed = 0;
+    let delay = 300;
+    let consecutiveErrors = 0;
 
     for (const athlete of athletes) {
         const message = applyVars(body, {
@@ -476,6 +495,9 @@ export async function executeBroadcast(
 
             if (res.ok) {
                 sent++;
+                consecutiveErrors = 0;
+                delay = 300; // Reset ao delay base após sucesso
+
                 // Garante conversa e salva mensagem
                 let { data: conv } = await supabase
                     .from('whatsapp_conversations')
@@ -504,13 +526,17 @@ export async function executeBroadcast(
                 }
             } else {
                 failed++;
+                consecutiveErrors++;
+                // Backoff exponencial: 600ms, 1.2s, 2.4s, até 10s máximo
+                delay = Math.min(300 * Math.pow(2, consecutiveErrors), 10_000);
             }
         } catch {
             failed++;
+            consecutiveErrors++;
+            delay = Math.min(300 * Math.pow(2, consecutiveErrors), 10_000);
         }
 
-        // Pequena pausa para não sobrecarregar a Z-API
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, delay));
     }
 
     await supabase.from('whatsapp_broadcasts').update({
@@ -587,8 +613,8 @@ export async function sendMediaMessage(conversationId: string, fileBase64: strin
     const headers = { 'Content-Type': 'application/json', ...(config.client_token ? { 'Client-Token': config.client_token } : {}) };
     const base = `https://api.z-api.io/instances/${config.instance_id}/token/${config.token}`;
 
-    let endpoint = 'send-document/url';
-    let body: any = { phone, url: publicUrl, fileName, delayMessage: 3 };
+    let endpoint = `send-document/${ext}`;
+    let body: any = { phone, document: publicUrl, fileName, delayMessage: 3 };
 
     if (mimeType.startsWith('image/')) {
         endpoint = 'send-image';
