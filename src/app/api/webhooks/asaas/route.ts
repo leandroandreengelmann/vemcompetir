@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         // Find our payment record
         const { data: paymentRecord } = await admin
             .from('payments')
-            .select('id, status, tenant_id_organizer, qtd_inscricoes, event_id')
+            .select('id, status, tenant_id_organizer, qtd_inscricoes, event_id, total_inscricoes_snapshot, fee_saas_gross_snapshot')
             .eq('asaas_payment_id', asaasPaymentId)
             .single();
 
@@ -204,6 +204,30 @@ export async function POST(request: NextRequest) {
             // Security: Use ONLY the official confirmed data from Asaas revalidation
             const confirmedValue = verifiedData.value;
             const confirmedNetValue = verifiedData.netValue;
+
+            // Security: verificar se o valor pago bate com o esperado
+            const expectedTotal = Number(paymentRecord.total_inscricoes_snapshot || 0)
+                + Number(paymentRecord.fee_saas_gross_snapshot || 0);
+
+            if (confirmedValue && expectedTotal > 0 && Math.abs(confirmedValue - expectedTotal) > 0.01) {
+                auditLog('WEBHOOK_AMOUNT_MISMATCH', {
+                    payment_id: paymentRecord.id,
+                    asaas_payment_id: asaasPaymentId,
+                    expected: expectedTotal,
+                    received: confirmedValue,
+                }, 'error');
+                // Não confirma — marca como divergente para revisão manual
+                await admin
+                    .from('payments')
+                    .update({
+                        status: 'AMOUNT_MISMATCH',
+                        error_type: 'amount_mismatch',
+                        error_details: { expected: expectedTotal, received: confirmedValue },
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', paymentRecord.id);
+                return NextResponse.json({ ok: true });
+            }
 
             // Determine fee_pix from netValue if available
             const feePixSnapshot = confirmedValue && confirmedNetValue

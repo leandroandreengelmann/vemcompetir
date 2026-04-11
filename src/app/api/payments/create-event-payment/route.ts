@@ -202,6 +202,88 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // 4.7. Revalidação server-side: recalcular preço esperado e comparar com o armazenado
+        // Buscar todas as tabelas de preço vinculadas ao evento
+        const { data: linkedTables } = await admin
+            .from('event_category_tables')
+            .select('category_table_id, registration_fee')
+            .eq('event_id', event_id);
+
+        const tablePriceMap = new Map(
+            (linkedTables || []).map(lt => [lt.category_table_id, Number(lt.registration_fee)])
+        );
+
+        // Buscar overrides individuais por categoria
+        const { data: allOverrides } = await admin
+            .from('event_category_overrides')
+            .select('category_id, registration_fee, promo_type')
+            .eq('event_id', event_id);
+
+        const overridePriceMap = new Map(
+            (allOverrides || []).map(o => [o.category_id, Number(o.registration_fee)])
+        );
+        const overridePromoMap = new Map(
+            (allOverrides || []).map(o => [o.category_id, o.promo_type])
+        );
+
+        // Buscar preço diferenciado por academia (se aplicável)
+        let tenantPricingData: { registration_fee: number; promo_registration_fee: number | null } | null = null;
+        if (payer_type === 'ACADEMY' && payer_ref) {
+            const { data: tp } = await admin
+                .from('event_tenant_pricing')
+                .select('registration_fee, promo_registration_fee')
+                .eq('event_id', event_id)
+                .eq('tenant_id', payer_ref)
+                .eq('active', true)
+                .maybeSingle();
+            tenantPricingData = tp;
+        }
+
+        // Buscar table_id de cada categoria no carrinho
+        const categoryIds = [...new Set(cartItems.map(i => i.category_id))];
+        const { data: categoryRows } = await admin
+            .from('category_rows')
+            .select('id, table_id')
+            .in('id', categoryIds);
+
+        const categoryTableMap = new Map(
+            (categoryRows || []).map(c => [c.id, c.table_id])
+        );
+
+        // Validar cada item (exceto promos gratuitas e combos já validados acima)
+        for (const item of cartItems) {
+            const ci = item as CartItem;
+            // Pular itens gratuitos de promo (free_second_registration com price 0)
+            if (ci.promo_type_applied === 'free_second_registration' && Number(item.price) === 0) continue;
+            // Combos já foram validados no passo 4.6
+            if (ci.promo_type_applied === 'combo_bundle') continue;
+
+            const tableId = categoryTableMap.get(item.category_id);
+            const basePrice = overridePriceMap.get(item.category_id)
+                ?? (tableId ? tablePriceMap.get(tableId) : null)
+                ?? 0;
+
+            const promoType = overridePromoMap.get(item.category_id) || null;
+
+            let expectedPrice = basePrice;
+            if (tenantPricingData) {
+                if (promoType) {
+                    if (tenantPricingData.promo_registration_fee !== null) {
+                        expectedPrice = tenantPricingData.promo_registration_fee;
+                    }
+                } else {
+                    expectedPrice = tenantPricingData.registration_fee;
+                }
+            }
+
+            if (Math.abs(Number(item.price) - expectedPrice) > 0.01) {
+                return NextResponse.json(
+                    { error: 'O preço de uma inscrição no carrinho diverge do valor atual. Remova os itens e adicione novamente.' },
+                    { status: 400 }
+                );
+            }
+        }
+
         // 5. Calculate
         const qtd_inscricoes = cartItems.length;
         const total_inscricoes = cartItems.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
