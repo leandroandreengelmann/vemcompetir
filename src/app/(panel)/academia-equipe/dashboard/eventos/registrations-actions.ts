@@ -309,6 +309,17 @@ export async function getEligibleCategoriesAction(
     const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
     const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
 
+    // 4.1 Preço diferenciado por academia (tenant pricing)
+    const { data: tenantPricing } = await supabase
+        .from('event_tenant_pricing')
+        .select('registration_fee, promo_registration_fee, active')
+        .eq('event_id', eventId)
+        .eq('tenant_id', tenant_id)
+        .eq('active', true)
+        .maybeSingle();
+
+    const hasTenantPricing = !!tenantPricing;
+
     // 4.5 Get enrolled athlete counts and previews
     const supabaseAdmin = createAdminClient();
     const { data: countsData } = await supabaseAdmin
@@ -368,7 +379,24 @@ export async function getEligibleCategoriesAction(
             if (cat.peso_min_kg !== null || cat.peso_max_kg !== null) score += 1;
         }
 
-        const price = overridesMap.get(cat.id) ?? tablePriceMap.get(cat.table_id) ?? 0;
+        const basePrice = overridesMap.get(cat.id) ?? tablePriceMap.get(cat.table_id) ?? 0;
+        const promoType = overridesPromoMap.get(cat.id) || null;
+
+        // Preço diferenciado: se a academia tem tenant pricing ativo, usa ele
+        let price = basePrice;
+        if (hasTenantPricing) {
+            if (promoType) {
+                // Categoria promo (ex: absoluto) → só sobrescreve se definiu promo_registration_fee
+                if (tenantPricing!.promo_registration_fee !== null) {
+                    price = tenantPricing!.promo_registration_fee!;
+                }
+                // senão mantém basePrice (preço padrão do absoluto)
+            } else {
+                // Categoria normal → usa registration_fee do tenant
+                price = tenantPricing!.registration_fee;
+            }
+        }
+
         const registeredCount = countMap.get(cat.id) || 0;
         const previewAthletes = previewMap.get(cat.id) || [];
 
@@ -376,7 +404,7 @@ export async function getEligibleCategoriesAction(
             ...cat,
             registration_fee: price,
             description: overridesDescMap.get(cat.id) || null,
-            promo_type: overridesPromoMap.get(cat.id) || null,
+            promo_type: promoType,
             registered_count: registeredCount,
             preview_athletes: previewAthletes,
             match,

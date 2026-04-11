@@ -527,6 +527,20 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                         {isEdit && (
                             <Button
                                 type="button"
+                                pill
+                                asChild
+                                variant="secondary"
+                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold shadow-lg shadow-primary/10"
+                            >
+                                <Link href={`/admin/dashboard/eventos/${initialData.id}/precos-academias`}>
+                                    Preços por Academia
+                                </Link>
+                            </Button>
+                        )}
+
+                        {isEdit && (
+                            <Button
+                                type="button"
                                 variant="destructive"
                                 pill
                                 onClick={() => setIsDeleteDialogOpen(true)}

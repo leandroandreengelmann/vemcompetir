@@ -31,11 +31,9 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
 
     if (existing) {
         if (existing.status === 'carrinho') {
-            await supabase
-                .from('event_registrations')
-                .update({ price: item.price })
-                .eq('id', existing.id);
-            return { success: true, message: 'Item atualizado no carrinho.' };
+            // Preço será recalculado no servidor abaixo, mas para update rápido
+            // mantemos o fluxo simples — o preço correto é aplicado na inserção
+            return { success: true, message: 'Item já está no carrinho.' };
         }
         return { error: 'Atleta já inscrito nesta categoria.' };
     }
@@ -67,6 +65,52 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
         promoType = override?.promo_type ?? null;
     }
 
+    // Validação server-side: calcular o preço correto no servidor
+    let serverPrice = item.price;
+    if (category?.table_id) {
+        // 1. Preço base da tabela
+        const { data: tableLink } = await supabase
+            .from('event_category_tables')
+            .select('registration_fee')
+            .eq('event_id', item.eventId)
+            .eq('category_table_id', category.table_id)
+            .maybeSingle();
+
+        // 2. Override por categoria
+        const { data: override } = await supabase
+            .from('event_category_overrides')
+            .select('registration_fee')
+            .eq('event_id', item.eventId)
+            .eq('category_id', item.categoryId)
+            .maybeSingle();
+
+        const basePrice = override?.registration_fee ?? tableLink?.registration_fee ?? 0;
+
+        // 3. Preço diferenciado por academia (prioridade máxima)
+        const { data: tenantPricing } = await supabase
+            .from('event_tenant_pricing')
+            .select('registration_fee, promo_registration_fee')
+            .eq('event_id', item.eventId)
+            .eq('tenant_id', tenant_id)
+            .eq('active', true)
+            .maybeSingle();
+
+        if (tenantPricing) {
+            if (promoType) {
+                // Categoria promo (ex: absoluto) → só sobrescreve se definiu promo_registration_fee
+                if (tenantPricing.promo_registration_fee !== null) {
+                    serverPrice = tenantPricing.promo_registration_fee;
+                } else {
+                    serverPrice = basePrice; // mantém preço padrão do absoluto
+                }
+            } else {
+                serverPrice = tenantPricing.registration_fee;
+            }
+        } else {
+            serverPrice = basePrice;
+        }
+    }
+
     const registrationId = crypto.randomUUID();
 
     const { error } = await supabase
@@ -79,7 +123,7 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
             registered_by: profile.id,
             tenant_id: tenant_id,
             status: 'carrinho',
-            price: item.price
+            price: serverPrice
         });
 
     if (error) {
