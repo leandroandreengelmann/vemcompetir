@@ -11,9 +11,9 @@ import { getPendingRegistrationNotifications, sendRegistrationNotification, getT
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const DEFAULT_ATHLETE_MSG = `🏆 Olá, {nome}! Sua inscrição no *{evento}* foi confirmada com sucesso! 🎉\n\nCategoria: *{categoria}*\nValor pago: *{valor}*\n\nNos vemos na competição! 💪`;
+const DEFAULT_ATHLETE_MSG = `🏆 Olá, {nome}! Sua inscrição no *{evento}* foi confirmada com sucesso! 🎉\n\nValor pago: *{valor}*\n\nNos vemos na competição! 💪`;
 
-const DEFAULT_ORGANIZER_MSG = `Inscrição confirmada!\n\nAtleta: {atleta}\nCategoria: {categoria}\nValor: {valor}`;
+const DEFAULT_ORGANIZER_MSG = `Inscrição confirmada!\n\nAtleta: {atleta}\nValor: {valor}`;
 
 function applyVars(template: string, vars: Record<string, string>) {
     return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
