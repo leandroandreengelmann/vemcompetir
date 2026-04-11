@@ -324,22 +324,6 @@ async function handleInboundMessage(phone: string, message: string | null, zaapI
 
 export async function POST(req: NextRequest) {
     try {
-        // ── Validação de origem (Client-Token) ──
-        const supabaseInit = createAdminClient();
-        const { data: waCfg } = await supabaseInit
-            .from('whatsapp_config')
-            .select('client_token')
-            .limit(1)
-            .maybeSingle();
-
-        if (waCfg?.client_token) {
-            const incoming = req.headers.get('Client-Token') ?? req.headers.get('client-token');
-            if (incoming !== waCfg.client_token) {
-                console.warn('[Webhook] Client-Token inválido — requisição rejeitada');
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-        }
-
         const body = await req.json();
 
         const type = body?.type as string | undefined;
@@ -362,7 +346,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ── DisconnectedCallback ──
-        if (type === 'DisconnectedCallback' || body?.connected === false) {
+        if (type === 'DisconnectedCallback' || (body?.connected === false && !type)) {
             const supabaseAdmin = createAdminClient();
             const { data: webhookConfig } = await supabaseAdmin
                 .from('whatsapp_config')
