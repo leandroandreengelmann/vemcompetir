@@ -36,7 +36,7 @@ export async function uploadSecondaryImageAction(formData: FormData): Promise<{ 
     if (!event) return { error: 'Evento não encontrado.' };
 
     const ext = file.name.split('.').pop() || 'jpg';
-    const storagePath = `tenant/${event.tenant_id}/events/${eventId}/secondary_${slot}.${ext}`;
+    const storagePath = `tenant/${event.tenant_id}/events/${eventId}/secondary_${slot}_${Date.now()}.${ext}`;
 
     // Remove old file if exists
     const oldPath = slot === '1' ? event.secondary_image_1_path : event.secondary_image_2_path;

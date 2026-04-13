@@ -9,12 +9,25 @@ export type EventSummary = {
     event_date: string | null;
     status: string;
     stats: {
-        athletes_total: number;
+        total_registrations: number;
         categories_active: number;
+
+        // Contagens por tipo
         paid_count: number;
+        scheduled_count: number;
         pending_count: number;
+        courtesy_count: number;
+        own_event_count: number;
+        promo_free_count: number;
+
+        // Valores (receita bruta, sem desconto de taxa)
         paid_amount: number;
+        scheduled_amount: number;
         pending_amount: number;
+
+        // Quem pagou (dentre os pagos)
+        paid_by_academy: number;
+        paid_by_athlete: number;
     };
 };
 
@@ -56,22 +69,64 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
     }
 
     // Processar KPIs por evento
-    const { getEventFee } = await import('@/lib/fee-calculator');
-
     const summaries: EventSummary[] = await Promise.all(data.map(async (event: any) => {
-        const [feeRes, { data: statsData }] = await Promise.all([
-            getEventFee(event.id),
-            adminSupabase
-                .from('event_registrations')
-                .select('status, price, category_id')
-                .eq('event_id', event.id)
-        ]);
+        const { data: regs } = await adminSupabase
+            .from('event_registrations')
+            .select('status, price, category_id, payment_id, promo_type_applied')
+            .eq('event_id', event.id);
 
-        const fee = feeRes.fee;
+        const allRegs = regs || [];
 
-        const paid = statsData?.filter(r => r.status === 'paga' || r.status === 'pago' || r.status === 'confirmado') || [];
-        const pending = statsData?.filter(r => r.status === 'pendente' || r.status === 'aguardando_pagamento') || [];
-        const uniqueCategoriesActive = new Set(paid.map(r => r.category_id)).size;
+        // Buscar payments vinculados para diferenciar cortesia vs evento próprio
+        const paymentIds = [...new Set(allRegs.filter(r => r.payment_id).map(r => r.payment_id))];
+        let paymentsMap: Record<string, { payer_type: string; asaas_payment_id: string }> = {};
+
+        if (paymentIds.length > 0) {
+            const { data: payments } = await adminSupabase
+                .from('payments')
+                .select('id, payer_type, asaas_payment_id')
+                .in('id', paymentIds);
+
+            if (payments) {
+                paymentsMap = Object.fromEntries(payments.map(p => [p.id, p]));
+            }
+        }
+
+        // Classificar cada registro
+        let paid_count = 0, scheduled_count = 0, pending_count = 0;
+        let courtesy_count = 0, own_event_count = 0, promo_free_count = 0;
+        let paid_amount = 0, scheduled_amount = 0, pending_amount = 0;
+        let paid_by_academy = 0, paid_by_athlete = 0;
+        const paidCategoryIds = new Set<string>();
+
+        for (const reg of allRegs) {
+            const price = Number(reg.price || 0);
+            const payment = reg.payment_id ? paymentsMap[reg.payment_id] : null;
+
+            if (reg.status === 'isento') {
+                if (payment?.asaas_payment_id?.startsWith('own_event_')) {
+                    own_event_count++;
+                } else {
+                    courtesy_count++;
+                }
+            } else if (reg.status === 'agendado') {
+                scheduled_count++;
+                scheduled_amount += price;
+                if (reg.category_id) paidCategoryIds.add(reg.category_id);
+                if (payment?.payer_type === 'ACADEMY') paid_by_academy++;
+                else paid_by_athlete++;
+            } else if (reg.status === 'pago' || reg.status === 'paga' || reg.status === 'confirmado') {
+                paid_count++;
+                paid_amount += price;
+                if (reg.category_id) paidCategoryIds.add(reg.category_id);
+                if (price === 0 && reg.promo_type_applied) promo_free_count++;
+                if (payment?.payer_type === 'ACADEMY') paid_by_academy++;
+                else paid_by_athlete++;
+            } else if (reg.status === 'pendente' || reg.status === 'aguardando_pagamento') {
+                pending_count++;
+                pending_amount += price;
+            }
+        }
 
         return {
             id: event.id,
@@ -79,22 +134,25 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
             event_date: event.event_date,
             status: event.status,
             stats: {
-                athletes_total: paid.length,
-                categories_active: uniqueCategoriesActive,
-                paid_count: paid.length,
-                pending_count: pending.length,
-                paid_amount: paid.reduce((acc: any, current: any) => {
-                    const price = Number(current.price || 0);
-                    const net = price > 0 ? Math.max(0, price - fee) : 0;
-                    return acc + net;
-                }, 0),
-                pending_amount: pending.reduce((acc: any, current: any) => acc + Number(current.price || 0), 0),
+                total_registrations: allRegs.length,
+                categories_active: paidCategoryIds.size,
+                paid_count,
+                scheduled_count,
+                pending_count,
+                courtesy_count,
+                own_event_count,
+                promo_free_count,
+                paid_amount,
+                scheduled_amount,
+                pending_amount,
+                paid_by_academy,
+                paid_by_athlete,
             }
         };
     }));
 
     if (filters.sort === 'mais_inscricoes') {
-        return summaries.sort((a, b) => b.stats.athletes_total - a.stats.athletes_total);
+        return summaries.sort((a, b) => b.stats.total_registrations - a.stats.total_registrations);
     }
     if (filters.sort === 'maior_faturamento') {
         return summaries.sort((a, b) => b.stats.paid_amount - a.stats.paid_amount);

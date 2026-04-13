@@ -32,7 +32,7 @@ export function EventDashboardCard({ event }: EventDashboardCardProps) {
             </div>
 
             {/* KPIs Rápidos */}
-            <EventDashboardSummaryKpis stats={event.stats} />
+            <EventDashboardSummaryKpis eventId={event.id} stats={event.stats} />
 
             {/* Expandido Sempre */}
             <EventDashboardExpanded eventId={event.id} />

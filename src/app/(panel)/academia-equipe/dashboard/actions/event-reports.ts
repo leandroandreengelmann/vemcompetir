@@ -6,7 +6,87 @@ import { requireTenantScope } from '@/lib/auth-guards';
 import { getEventFee } from '@/lib/fee-calculator';
 import { formatFullCategoryName } from '@/lib/category-utils';
 
-// 1. Inscrições
+// Helper: classificar tipo de registro com base no status e payment
+function classifyRegistration(status: string, payment: { payer_type?: string; asaas_payment_id?: string } | null): { tipo: string; payer_type: string | null } {
+    if (status === 'isento') {
+        if (payment?.asaas_payment_id?.startsWith('own_event_')) {
+            return { tipo: 'evento_proprio', payer_type: payment?.payer_type || null };
+        }
+        return { tipo: 'cortesia', payer_type: null };
+    }
+    if (status === 'agendado') return { tipo: 'agendado', payer_type: payment?.payer_type || null };
+    if (status === 'pago' || status === 'paga' || status === 'confirmado') return { tipo: 'pago', payer_type: payment?.payer_type || null };
+    if (status === 'pendente' || status === 'aguardando_pagamento') return { tipo: 'pendente', payer_type: payment?.payer_type || null };
+    return { tipo: 'carrinho', payer_type: null };
+}
+
+// Helper: buscar payments e criar mapa
+async function fetchPaymentsMap(adminSupabase: any, paymentIds: string[]): Promise<Record<string, { payer_type: string; asaas_payment_id: string }>> {
+    if (paymentIds.length === 0) return {};
+    const { data: payments } = await adminSupabase
+        .from('payments')
+        .select('id, payer_type, asaas_payment_id')
+        .in('id', paymentIds);
+    if (!payments) return {};
+    return Object.fromEntries(payments.map((p: any) => [p.id, p]));
+}
+
+// 1a. Summary de inscrições (KPIs sem paginação)
+export async function getEventReportInscricoesSummary(eventId: string) {
+    const { tenant_id } = await requireTenantScope();
+    const supabase = await createClient();
+
+    const { data: event } = await supabase.from('events').select('id, owner_tenant_id:tenant_id').eq('id', eventId).single();
+    if (event?.owner_tenant_id !== tenant_id) throw new Error('Acesso negado');
+
+    const adminSupabase = createAdminClient();
+
+    const { data: regs } = await adminSupabase
+        .from('event_registrations')
+        .select('status, price, payment_id, promo_type_applied')
+        .eq('event_id', eventId);
+
+    const allRegs = regs || [];
+    const paymentIds = [...new Set(allRegs.filter(r => r.payment_id).map(r => r.payment_id))];
+    const paymentsMap = await fetchPaymentsMap(adminSupabase, paymentIds);
+
+    let paid_count = 0, scheduled_count = 0, pending_count = 0;
+    let courtesy_count = 0, own_event_count = 0, promo_free_count = 0;
+    let paid_amount = 0, scheduled_amount = 0, pending_amount = 0;
+    let paid_by_academy = 0, paid_by_athlete = 0;
+
+    for (const reg of allRegs) {
+        const price = Number(reg.price || 0);
+        const payment = reg.payment_id ? paymentsMap[reg.payment_id] : null;
+        const { tipo } = classifyRegistration(reg.status, payment);
+
+        if (tipo === 'cortesia') courtesy_count++;
+        else if (tipo === 'evento_proprio') own_event_count++;
+        else if (tipo === 'agendado') {
+            scheduled_count++;
+            scheduled_amount += price;
+            if (payment?.payer_type === 'ACADEMY') paid_by_academy++; else paid_by_athlete++;
+        } else if (tipo === 'pago') {
+            paid_count++;
+            paid_amount += price;
+            if (price === 0 && reg.promo_type_applied) promo_free_count++;
+            if (payment?.payer_type === 'ACADEMY') paid_by_academy++; else paid_by_athlete++;
+        } else if (tipo === 'pendente') {
+            pending_count++;
+            pending_amount += price;
+        }
+    }
+
+    return {
+        total_registrations: allRegs.length,
+        paid_count, scheduled_count, pending_count,
+        courtesy_count, own_event_count, promo_free_count,
+        paid_amount, scheduled_amount, pending_amount,
+        paid_by_academy, paid_by_athlete,
+    };
+}
+
+// 1b. Inscrições paginadas
 export async function getEventReportInscricoes(eventId: string, filters: { status?: string; search?: string; categoryId?: string; page?: number }) {
     const { tenant_id } = await requireTenantScope();
     const supabase = await createClient();
@@ -21,22 +101,35 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
 
     const hasSearch = !!filters.search;
 
+    // Filtros que precisam post-filtrar
+    const needsPostFilter = filters.status === 'cortesia' || filters.status === 'evento_proprio' || filters.status === 'sem_receita' || filters.status === 'promo_gratis';
+
     let query = adminSupabase
         .from('event_registrations')
         .select(`
             *,
             athlete:profiles!athlete_id${hasSearch ? '!inner' : ''}(full_name, cpf, belt_color, gym_name),
             category:category_rows!category_id(categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg)
-        `, { count: 'exact' })
+        `, { count: needsPostFilter ? undefined : 'exact' })
         .eq('event_id', eventId);
 
-    if (filters.status && filters.status !== 'todas') {
+    if (filters.status && filters.status !== 'todas' && !needsPostFilter) {
         if (filters.status === 'paga') {
             query = query.in('status', ['paga', 'pago', 'confirmado']);
+        } else if (filters.status === 'pagas_todas') {
+            query = query.in('status', ['paga', 'pago', 'confirmado', 'agendado']);
         } else if (filters.status === 'pendente') {
             query = query.in('status', ['pendente', 'aguardando_pagamento']);
         } else {
             query = query.eq('status', filters.status);
+        }
+    }
+
+    if (needsPostFilter) {
+        if (filters.status === 'promo_gratis') {
+            query = query.in('status', ['paga', 'pago', 'confirmado']);
+        } else {
+            query = query.eq('status', 'isento');
         }
     }
 
@@ -48,17 +141,51 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
         query = query.eq('category_id', filters.categoryId);
     }
 
+    if (needsPostFilter) {
+        // Buscar todos os isentos sem paginação para post-filtrar
+        const { data: allData, error } = await query.order('created_at', { ascending: false });
+        const allItems = allData || [];
+
+        // Buscar payments para diferenciar cortesia vs evento próprio
+        const paymentIds = [...new Set(allItems.filter((r: any) => r.payment_id).map((r: any) => r.payment_id))];
+        const paymentsMap = await fetchPaymentsMap(adminSupabase, paymentIds);
+
+        const filtered = allItems.filter((item: any) => {
+            const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
+            const { tipo } = classifyRegistration(item.status, payment);
+            if (filters.status === 'sem_receita') return tipo === 'cortesia' || tipo === 'evento_proprio';
+            if (filters.status === 'promo_gratis') return Number(item.price || 0) === 0 && !!item.promo_type_applied;
+            return tipo === filters.status;
+        });
+
+        const paginatedData = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+        const processedData = paginatedData.map((item: any) => {
+            if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
+            const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
+            const { tipo, payer_type } = classifyRegistration(item.status, payment);
+            return { ...item, tipo, payer_type };
+        });
+
+        return { data: processedData, count: filtered.length, pageSize, error };
+    }
+
     const { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range((page - 1) * pageSize, page * pageSize - 1);
 
-    const processedData = (data || [])
-        .map((item: any) => {
-            if (item.category) {
-                item.category.categoria_completa = formatFullCategoryName(item.category);
-            }
-            return item;
-        });
+    const allItems = data || [];
+
+    // Buscar payments para enriquecer com tipo e payer_type
+    const paymentIds = [...new Set(allItems.filter((r: any) => r.payment_id).map((r: any) => r.payment_id))];
+    const paymentsMap = await fetchPaymentsMap(adminSupabase, paymentIds);
+
+    const processedData = allItems.map((item: any) => {
+        if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
+        const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
+        const { tipo, payer_type } = classifyRegistration(item.status, payment);
+        return { ...item, tipo, payer_type };
+    });
 
     return {
         data: processedData,
@@ -178,62 +305,75 @@ export async function getEventReportFinanceiro(eventId: string) {
 
     const adminSupabase = createAdminClient();
 
-    const [eventFeeRes, { data, error }] = await Promise.all([
-        getEventFee(eventId),
-        adminSupabase
-            .from('event_registrations')
-            .select(`
-                status,
-                price,
-                created_at,
-                payment_id,
-                athlete:profiles!athlete_id(full_name),
-                category:category_rows!category_id(categoria_completa)
-            `)
-            .eq('event_id', eventId)
-    ]);
+    const { data, error } = await adminSupabase
+        .from('event_registrations')
+        .select(`
+            status,
+            price,
+            created_at,
+            payment_id,
+            promo_type_applied,
+            athlete:profiles!athlete_id(full_name),
+            category:category_rows!category_id(categoria_completa)
+        `)
+        .eq('event_id', eventId);
 
-    const fee = eventFeeRes.fee;
+    const allRegs = data || [];
 
-    const processedData = (data || [])
-        .map((item: any) => {
-            let cat = item.category?.categoria_completa || 'Sem categoria';
+    // Buscar payments para classificação
+    const paymentIds = [...new Set(allRegs.filter(r => r.payment_id).map(r => r.payment_id))];
+    const paymentsMap = await fetchPaymentsMap(adminSupabase, paymentIds);
 
-            if (cat.toLowerCase().includes('absoluto')) {
-                const parts = cat.split(' • ');
-                if (parts.length >= 4) {
-                    cat = parts.slice(-4).join(' • ');
-                }
-            }
+    // Classificar e processar cada registro
+    let paid_count = 0, scheduled_count = 0, pending_count = 0;
+    let courtesy_count = 0, own_event_count = 0, promo_free_count = 0;
+    let paid_amount = 0, scheduled_amount = 0, pending_amount = 0;
+    let paid_by_academy = 0, paid_by_athlete = 0;
 
-            return {
-                ...item,
-                athlete: item.athlete?.full_name || 'Desconhecido',
-                category: cat
-            };
-        });
+    const processedData = allRegs.map((item: any) => {
+        let cat = item.category?.categoria_completa || 'Sem categoria';
+        if (cat.toLowerCase().includes('absoluto')) {
+            const parts = cat.split(' • ');
+            if (parts.length >= 4) cat = parts.slice(-4).join(' • ');
+        }
 
-    const paid = processedData.filter((r: any) => r.status === 'paga' || r.status === 'pago' || r.status === 'confirmado' || r.status === 'isento');
-    const pending = processedData.filter((r: any) => r.status === 'pendente' || r.status === 'aguardando_pagamento');
-    const cart = processedData.filter((r: any) => r.status === 'carrinho');
+        const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
+        const { tipo, payer_type } = classifyRegistration(item.status, payment);
+        const price = Number(item.price || 0);
 
-    const paid_amount = paid.reduce((acc: number, r: any) => {
-        const val = Number(r.price || 0);
-        const liquid = val > 0 ? Math.max(0, val - fee) : 0;
-        return acc + liquid;
-    }, 0);
+        // Acumular summary
+        if (tipo === 'cortesia') courtesy_count++;
+        else if (tipo === 'evento_proprio') own_event_count++;
+        else if (tipo === 'agendado') {
+            scheduled_count++;
+            scheduled_amount += price;
+            if (payment?.payer_type === 'ACADEMY') paid_by_academy++; else paid_by_athlete++;
+        } else if (tipo === 'pago') {
+            paid_count++;
+            paid_amount += price;
+            if (price === 0 && item.promo_type_applied) promo_free_count++;
+            if (payment?.payer_type === 'ACADEMY') paid_by_academy++; else paid_by_athlete++;
+        } else if (tipo === 'pendente') {
+            pending_count++;
+            pending_amount += price;
+        }
 
-    const pending_amount = pending.reduce((acc: number, r: any) => acc + Number(r.price || 0), 0);
-    const cart_amount = cart.reduce((acc: number, r: any) => acc + Number(r.price || 0), 0);
+        return {
+            ...item,
+            athlete: item.athlete?.full_name || 'Desconhecido',
+            category: cat,
+            tipo,
+            payer_type,
+        };
+    });
 
     return {
         summary: {
-            paid_amount,
-            pending_amount,
-            cart_amount,
-            paid_count: paid.length,
-            pending_count: pending.length,
-            cart_count: cart.length
+            total_registrations: allRegs.length,
+            paid_count, scheduled_count, pending_count,
+            courtesy_count, own_event_count, promo_free_count,
+            paid_amount, scheduled_amount, pending_amount,
+            paid_by_academy, paid_by_athlete,
         },
         data: processedData,
         error

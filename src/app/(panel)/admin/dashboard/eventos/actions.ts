@@ -72,7 +72,7 @@ export async function createAdminEventAction(formData: FormData) {
     const imageFile = formData.get('image') as File;
     if (imageFile && imageFile.size > 0 && event) {
         const fileExt = imageFile.name.split('.').pop();
-        const filePath = `tenant/${tenant_id}/events/${event.id}/thumb.${fileExt}`;
+        const filePath = `tenant/${tenant_id}/events/${event.id}/thumb_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await adminClient.storage
             .from('event-images')
@@ -182,7 +182,7 @@ export async function updateAdminEventAction(formData: FormData) {
     const imageFile = formData.get('image') as File;
     if (imageFile && imageFile.size > 0) {
         const fileExt = imageFile.name.split('.').pop();
-        const filePath = `tenant/${tenant_id}/events/${id}/thumb.${fileExt}`;
+        const filePath = `tenant/${tenant_id}/events/${id}/thumb_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await adminClient.storage
             .from('event-images')
@@ -218,7 +218,7 @@ export async function updateAdminEventAction(formData: FormData) {
     const sec1File = formData.get('secondary_image_1') as File;
     if (sec1File && sec1File.size > 0) {
         const ext = sec1File.name.split('.').pop();
-        const path = `tenant/${tenant_id}/events/${id}/secondary_1.${ext}`;
+        const path = `tenant/${tenant_id}/events/${id}/secondary_1_${Date.now()}.${ext}`;
         const { error: e } = await adminClient.storage.from('event-images').upload(path, sec1File, { upsert: true });
         if (!e) {
             await adminClient.from('events').update({ secondary_image_1_path: path }).eq('id', id);
@@ -237,7 +237,7 @@ export async function updateAdminEventAction(formData: FormData) {
     const sec2File = formData.get('secondary_image_2') as File;
     if (sec2File && sec2File.size > 0) {
         const ext = sec2File.name.split('.').pop();
-        const path = `tenant/${tenant_id}/events/${id}/secondary_2.${ext}`;
+        const path = `tenant/${tenant_id}/events/${id}/secondary_2_${Date.now()}.${ext}`;
         const { error: e } = await adminClient.storage.from('event-images').upload(path, sec2File, { upsert: true });
         if (!e) {
             await adminClient.from('events').update({ secondary_image_2_path: path }).eq('id', id);

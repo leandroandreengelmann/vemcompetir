@@ -59,29 +59,46 @@ export function RegistrationDetailsDialog({
         );
     };
 
-    const renderStatusBadge = (status: string) => {
-        if (status === 'agendado') {
+    const renderStatusBadge = (reg: any) => {
+        const tipo = reg.tipo;
+        const payerType = reg.payer_type;
+
+        if (tipo === 'cortesia') {
             return (
-                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30">
-                    PAGAMENTO AGENDADO
+                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
+                    PACOTE DE INSCRIÇÕES
                 </Badge>
             );
         }
-        if (status === 'isento') {
+        if (tipo === 'evento_proprio') {
             return (
-                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-orange-500/10 text-orange-700 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
-                    PAGO PELA ACADEMIA
+                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-slate-500/10 text-slate-700 border-slate-500/20 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-500/30">
+                    EVENTO PRÓPRIO
                 </Badge>
             );
         }
-        if (status === 'pago' || status === 'paga' || status === 'confirmado') {
+        if (tipo === 'agendado') {
             return (
-                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
-                    PAGO
+                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
+                    AGENDADO
                 </Badge>
             );
         }
-        if (status === 'pendente' || status === 'aguardando_pagamento') {
+        if (tipo === 'pago') {
+            return (
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                        PAGO
+                    </Badge>
+                    {payerType && (
+                        <span className="text-xs text-muted-foreground">
+                            {payerType === 'ACADEMY' ? 'pela academia' : 'pelo atleta'}
+                        </span>
+                    )}
+                </div>
+            );
+        }
+        if (tipo === 'pendente') {
             return (
                 <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                     PENDENTE
@@ -160,8 +177,13 @@ export function RegistrationDetailsDialog({
 
                                 <div className="sm:col-span-2">
                                     <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">STATUS</span>
-                                    <div>
-                                        {renderStatusBadge(registration.status)}
+                                    <div className="flex flex-col items-start gap-1">
+                                        {renderStatusBadge(registration)}
+                                        {registration.promo_type_applied && (
+                                            <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-violet-500/10 text-violet-700 border-violet-500/20 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30">
+                                                2ª CATEGORIA GRÁTIS
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
                             </div>
