@@ -206,8 +206,9 @@ export async function POST(request: NextRequest) {
             const confirmedNetValue = verifiedData.netValue;
 
             // Security: verificar se o valor pago bate com o esperado
-            const expectedTotal = Number(paymentRecord.total_inscricoes_snapshot || 0)
-                + Number(paymentRecord.fee_saas_gross_snapshot || 0);
+            // O valor cobrado no Asaas é sempre total_inscricoes (a taxa é extraída via split, não somada ao valor).
+            // Evento próprio nunca gera cobrança no Asaas (só debita token), então não chega aqui.
+            const expectedTotal = Number(paymentRecord.total_inscricoes_snapshot || 0);
 
             if (confirmedValue && expectedTotal > 0 && Math.abs(confirmedValue - expectedTotal) > 0.01) {
                 auditLog('WEBHOOK_AMOUNT_MISMATCH', {
