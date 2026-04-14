@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith('/forgot-password') &&
         !request.nextUrl.pathname.startsWith('/auth') &&
         !request.nextUrl.pathname.startsWith('/api/webhooks') &&
+        !request.nextUrl.pathname.startsWith('/api/cron') &&
         !request.nextUrl.pathname.startsWith('/api/whatsapp') &&
         !request.nextUrl.pathname.startsWith('/kibo-test') &&
         !request.nextUrl.pathname.startsWith('/magic-test') &&
