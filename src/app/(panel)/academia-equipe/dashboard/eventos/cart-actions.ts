@@ -38,7 +38,6 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
         return { error: 'Atleta já inscrito nesta categoria.' };
     }
 
-    // Check if this is own event — promo does NOT apply for own events
     const { data: event } = await supabase
         .from('events')
         .select('tenant_id')
@@ -55,7 +54,7 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
         .single();
 
     let promoType: string | null = null;
-    if (!isOwnEvent && category?.table_id) {
+    if (category?.table_id) {
         const { data: override } = await supabase
             .from('event_category_overrides')
             .select('promo_type')
