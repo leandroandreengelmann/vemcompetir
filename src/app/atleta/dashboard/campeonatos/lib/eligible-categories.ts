@@ -345,6 +345,9 @@ export async function getEligibleCategories(eventId: string) {
         sexo: (profile as any).sexo || null
     };
 
+    const athleteGymName: string | null = (profile as any).gym_name || null;
+    const athleteMasterName: string | null = (profile as any).master_name || null;
+
     const incompleteReasons: string[] = [];
     if (!athlete.sexo) incompleteReasons.push("Sexo");
     if (!athlete.belt_color) incompleteReasons.push("Faixa");
@@ -419,6 +422,48 @@ export async function getEligibleCategories(eventId: string) {
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
     const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
     const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
+
+    // 4b. Athlete pricing — preço diferenciado por gym_name/master_name
+    let athletePricingFee: number | null = null;
+    if (athleteGymName || athleteMasterName) {
+        const { data: athletePricings } = await supabaseAdmin
+            .from('event_athlete_pricing')
+            .select('gym_name, master_name, registration_fee')
+            .eq('event_id', eventId)
+            .eq('active', true);
+
+        if (athletePricings && athletePricings.length > 0) {
+            const normalizeMatch = (a: string | null, b: string | null) =>
+                a && b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+            // Prioridade: match em ambos > match so gym > match so master
+            for (const ap of athletePricings) {
+                if (ap.gym_name && ap.master_name) {
+                    if (normalizeMatch(ap.gym_name, athleteGymName) && normalizeMatch(ap.master_name, athleteMasterName)) {
+                        athletePricingFee = ap.registration_fee;
+                        break;
+                    }
+                }
+            }
+            if (athletePricingFee === null) {
+                for (const ap of athletePricings) {
+                    if (ap.gym_name && !ap.master_name && normalizeMatch(ap.gym_name, athleteGymName)) {
+                        athletePricingFee = ap.registration_fee;
+                        break;
+                    }
+                }
+            }
+            if (athletePricingFee === null) {
+                for (const ap of athletePricings) {
+                    if (!ap.gym_name && ap.master_name && normalizeMatch(ap.master_name, athleteMasterName)) {
+                        athletePricingFee = ap.registration_fee;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     const { data: countsData } = await supabaseAdmin
         .from('event_registrations')
         .select(`
@@ -470,7 +515,13 @@ export async function getEligibleCategories(eventId: string) {
             if (cat.peso_min_kg !== null || cat.peso_max_kg !== null) score += 1;
         }
 
-        const price = overridesMap.get(cat.id) ?? tablePriceMap.get(cat.table_id) ?? 0;
+        let price = overridesMap.get(cat.id) ?? tablePriceMap.get(cat.table_id) ?? 0;
+
+        // Athlete pricing: aplica preco diferenciado se nao for absoluto
+        if (athletePricingFee !== null && !(await isAbsolutoCategory(cat.categoria_completa))) {
+            price = athletePricingFee;
+        }
+
         const registeredCount = countMap.get(cat.id) || 0;
         const previewAthletes = previewMap.get(cat.id) || [];
 
@@ -504,10 +555,11 @@ export async function getEligibleCategories(eventId: string) {
     return {
         suggestions,
         all: categories.filter(c => !myEnrolledCategoryIds.has(c.id)),
-        allWithMeta: results, // todas as categorias com preço, contagem e metadados (para o buscador)
+        allWithMeta: results,
         isIncomplete,
         profile: athlete,
         incompleteReasons,
         comboBundle: comboBundle ?? null,
+        hasAthletePricing: athletePricingFee !== null,
     };
 }

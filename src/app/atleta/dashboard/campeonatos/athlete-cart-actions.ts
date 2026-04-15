@@ -24,7 +24,7 @@ export async function addToAthleteCartAction(item: {
     // Get full profile — needed for eligibility + role check
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role, sexo, belt_color, birth_date, weight')
+        .select('role, sexo, belt_color, birth_date, weight, gym_name, master_name')
         .eq('id', user.id)
         .single();
 
@@ -73,6 +73,45 @@ export async function addToAthleteCartAction(item: {
 
         finalPrice = override?.registration_fee ?? tableLink?.registration_fee ?? 0;
         promoType = override?.promo_type ?? null;
+
+        // Athlete pricing: preco diferenciado por gym_name/master_name (exceto absoluto)
+        if (!(await isAbsolutoCategory(category.categoria_completa))) {
+            const athleteGymName = (profile as any).gym_name || null;
+            const athleteMasterName = (profile as any).master_name || null;
+
+            if (athleteGymName || athleteMasterName) {
+                const supabaseAdmin = createAdminClient();
+                const { data: athletePricings } = await supabaseAdmin
+                    .from('event_athlete_pricing')
+                    .select('gym_name, master_name, registration_fee')
+                    .eq('event_id', item.eventId)
+                    .eq('active', true);
+
+                if (athletePricings && athletePricings.length > 0) {
+                    const norm = (a: string | null, b: string | null) =>
+                        a && b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+                    let matched: number | null = null;
+                    // Prioridade: ambos > so gym > so master
+                    for (const ap of athletePricings) {
+                        if (ap.gym_name && ap.master_name && norm(ap.gym_name, athleteGymName) && norm(ap.master_name, athleteMasterName)) {
+                            matched = ap.registration_fee; break;
+                        }
+                    }
+                    if (matched === null) {
+                        for (const ap of athletePricings) {
+                            if (ap.gym_name && !ap.master_name && norm(ap.gym_name, athleteGymName)) { matched = ap.registration_fee; break; }
+                        }
+                    }
+                    if (matched === null) {
+                        for (const ap of athletePricings) {
+                            if (!ap.gym_name && ap.master_name && norm(ap.master_name, athleteMasterName)) { matched = ap.registration_fee; break; }
+                        }
+                    }
+                    if (matched !== null) finalPrice = matched;
+                }
+            }
+        }
     }
 
     // Generate registration ID upfront so we can reference it in the companion insert

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { InfoIcon, CircleNotchIcon, PackageIcon } from '@phosphor-icons/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { InfoIcon, CircleNotchIcon, PackageIcon, HeartIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { getEligibleCategories } from '../lib/eligible-categories';
 import { useAthleteCart } from '@/hooks/use-athlete-cart';
@@ -37,6 +37,8 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
     const [incompleteReasons, setIncompleteReasons] = useState<string[]>([]);
     const [comboBundle, setComboBundle] = useState<{ bundle_total: number } | null>(null);
     const [athleteProfile, setAthleteProfile] = useState<{ belt_color: string | null; weight: number | null; birth_date: string | null; sexo: string | null } | null>(null);
+    const [showPricingBanner, setShowPricingBanner] = useState(false);
+    const pricingBannerShown = useRef(false);
 
     useAthleteCart(state => state.items);
 
@@ -49,6 +51,11 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
             setIncompleteReasons(data.incompleteReasons || []);
             setComboBundle((data as any).comboBundle ?? null);
             setAthleteProfile((data as any).profile ?? null);
+            if ((data as any).hasAthletePricing && !pricingBannerShown.current) {
+                pricingBannerShown.current = true;
+                setShowPricingBanner(true);
+                setTimeout(() => setShowPricingBanner(false), 7000);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -69,6 +76,21 @@ export default function AthleteEventDetail({ event, beltColor = 'branca' }: Athl
                 '--primary': isWhiteBelt ? '240 10% 3.9%' : undefined
             } as React.CSSProperties}
         >
+            {/* Banner de preco diferenciado */}
+            {showPricingBanner && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
+                    <div className="bg-black text-white px-8 py-6 rounded-3xl shadow-2xl shadow-black/50 max-w-sm mx-4 text-center animate-in zoom-in-50 fade-in duration-300 pointer-events-auto">
+                        <HeartIcon size={40} weight="duotone" className="mx-auto mb-3 text-red-400 animate-bounce" />
+                        <p className="text-lg font-black leading-snug">
+                            Aproveita, nao perde tempo!
+                        </p>
+                        <p className="text-base font-semibold mt-2 text-white/90 leading-snug">
+                            Reservei esse valor especial pra voce, meu atleta. OSS!
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-5xl mx-auto px-4 pt-1 sm:pt-4">
                 {/* Main Content Grid: 2 columns on md+ */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10">
