@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
                     return key;
                 }
             }
-            return decrypt(settings.api_key_encrypted, settings.api_key_iv);
+            return decrypt(settings!.api_key_encrypted, settings!.api_key_iv);
         }
 
         let confirmed = 0;
