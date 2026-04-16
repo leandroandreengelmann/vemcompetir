@@ -99,11 +99,37 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                 </Badge>
             );
         }
-        if (tipo === 'evento_proprio') {
+        if (tipo === 'evento_proprio' || tipo === 'isento_evento_proprio') {
             return (
                 <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-slate-500/10 text-slate-700 border-slate-500/20 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-500/30">
-                    EVENTO PRÓPRIO
+                    ISENTO - EVENTO PROPRIO
                 </Badge>
+            );
+        }
+        if (tipo === 'pago_em_mao') {
+            const amount = reg.manual_amount ? `R$ ${Number(reg.manual_amount).toFixed(2)}` : null;
+            return (
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                        PAGO EM MAO
+                    </Badge>
+                    <span className="text-panel-sm text-muted-foreground font-medium">
+                        evento proprio{amount ? ` - ${amount}` : ''}
+                    </span>
+                </div>
+            );
+        }
+        if (tipo === 'pix_direto') {
+            const amount = reg.manual_amount ? `R$ ${Number(reg.manual_amount).toFixed(2)}` : null;
+            return (
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
+                        PIX DIRETO
+                    </Badge>
+                    <span className="text-panel-sm text-muted-foreground font-medium">
+                        evento proprio{amount ? ` - ${amount}` : ''}
+                    </span>
+                </div>
             );
         }
         if (tipo === 'agendado') {
@@ -114,14 +140,18 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
             );
         }
         if (tipo === 'pago') {
+            const manualMethod = reg.manual_method;
+            let subLabel = payerType === 'ACADEMY' ? 'pela academia' : payerType === 'ATHLETE' ? 'pelo atleta' : null;
+            if (manualMethod === 'pago_em_mao') subLabel = 'pago em mao';
+            if (manualMethod === 'pix_direto') subLabel = 'PIX direto';
             return (
                 <div className="flex flex-col items-start gap-0.5">
                     <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
                         PAGO
                     </Badge>
-                    {payerType && (
+                    {subLabel && (
                         <span className="text-panel-sm text-muted-foreground font-medium">
-                            {payerType === 'ACADEMY' ? 'pela academia' : 'pelo atleta'}
+                            {subLabel}
                         </span>
                     )}
                 </div>

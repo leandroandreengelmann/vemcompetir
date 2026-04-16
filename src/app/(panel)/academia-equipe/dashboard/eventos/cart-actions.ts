@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { consumeTokens } from '@/lib/token-utils';
 import {
     isAbsolutoCategory,
     isEligible,
@@ -534,4 +535,104 @@ export async function getOwnApiEventIdsAction(eventIds: string[]): Promise<strin
         .eq('tenant_id', tenant_id);
 
     return (events ?? []).map(e => e.id);
+}
+
+// Checkout own-event registrations with manual payment method
+export async function checkoutOwnEventAction(
+    eventId: string,
+    items: Array<{
+        registrationId: string;
+        paymentMethod: 'pago_em_mao' | 'pix_direto' | 'isento';
+        amount: number;
+        notes?: string;
+    }>
+) {
+    const { profile, tenant_id } = await requireTenantScope();
+    const admin = createAdminClient();
+
+    // Verify event belongs to tenant
+    const { data: event } = await admin
+        .from('events')
+        .select('tenant_id')
+        .eq('id', eventId)
+        .single();
+
+    if (!event || event.tenant_id !== tenant_id) {
+        return { error: 'Evento nao pertence a esta academia.' };
+    }
+
+    // Verify cart items belong to this user
+    const registrationIds = items.map(i => i.registrationId);
+    const { data: cartItems } = await admin
+        .from('event_registrations')
+        .select('id')
+        .in('id', registrationIds)
+        .eq('event_id', eventId)
+        .eq('registered_by', profile.id)
+        .eq('status', 'carrinho');
+
+    if (!cartItems || cartItems.length !== items.length) {
+        return { error: 'Alguns itens nao foram encontrados no carrinho.' };
+    }
+
+    const totalAmount = items.reduce((sum, i) => sum + i.amount, 0);
+
+    // Create payment record
+    const paymentId = crypto.randomUUID();
+    const { error: payError } = await admin.from('payments').insert({
+        id: paymentId,
+        event_id: eventId,
+        payer_type: 'ACADEMY',
+        payer_ref: profile.id,
+        tenant_id_organizer: tenant_id,
+        qtd_inscricoes: items.length,
+        total_inscricoes_snapshot: totalAmount,
+        fee_unit_snapshot: 0,
+        fee_saas_gross_snapshot: 0,
+        fee_source: 'none',
+        asaas_payment_id: `own_event_${paymentId}`,
+        payment_method: 'PIX',
+        status: 'PAID',
+        is_authorized_free: true,
+    });
+
+    if (payError) {
+        console.error('checkoutOwnEventAction payment error:', payError);
+        return { error: 'Erro ao criar registro de pagamento.' };
+    }
+
+    // Update each registration with specific own-event status
+    const statusMap: Record<string, string> = {
+        pago_em_mao: 'pago_em_mao',
+        pix_direto: 'pix_direto',
+        isento: 'isento_evento_proprio',
+    };
+
+    for (const item of items) {
+        const status = statusMap[item.paymentMethod] || 'isento_evento_proprio';
+        const { error } = await admin
+            .from('event_registrations')
+            .update({
+                status,
+                payment_id: paymentId,
+                manual_payment_method: item.paymentMethod,
+                manual_amount: item.amount,
+                manual_payment_notes: item.notes || null,
+            })
+            .eq('id', item.registrationId);
+
+        if (error) {
+            console.error('checkoutOwnEventAction reg update error:', error);
+        }
+    }
+
+    // Consume tokens
+    await consumeTokens(tenant_id, items.length, {
+        eventId,
+        notes: `${items.length} inscricao(oes) confirmada(s) - evento proprio`,
+        createdBy: profile.id,
+    });
+
+    revalidatePath('/academia-equipe/dashboard/eventos');
+    return { success: true, payment_id: paymentId };
 }

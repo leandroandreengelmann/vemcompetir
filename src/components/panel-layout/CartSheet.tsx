@@ -17,8 +17,8 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "./PixModal";
-import { OwnEventConfirmModal } from "./OwnEventConfirmModal";
-import { cancelPendingCartItemAction, getOwnApiEventIdsAction } from "@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions";
+import { OwnEventConfirmModal, type OwnEventCheckoutItem } from "./OwnEventConfirmModal";
+import { cancelPendingCartItemAction, getOwnApiEventIdsAction, checkoutOwnEventAction } from "@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions";
 import { checkAthletesNeedingTermsAction } from "@/app/atleta/components/terms-actions";
 import { CancelRegistrationButton } from "@/app/atleta/dashboard/inscricoes/CancelRegistrationButton";
 import { TermsAcceptanceModal } from "@/components/terms/TermsAcceptanceModal";
@@ -430,10 +430,24 @@ export function CartSheet() {
                     eventTitle={ownEventConfirmEventId ? (groupedItems[ownEventConfirmEventId]?.title ?? '') : ''}
                     items={ownEventConfirmEventId ? (groupedItems[ownEventConfirmEventId]?.items ?? []) : []}
                     submitting={submitting}
-                    onConfirm={async () => {
+                    onConfirm={async (checkoutItems: OwnEventCheckoutItem[]) => {
                         const eventId = ownEventConfirmEventId!;
-                        setOwnEventConfirmEventId(null);
-                        await doPayment(eventId);
+                        setSubmitting(true);
+                        try {
+                            const result = await checkoutOwnEventAction(eventId, checkoutItems);
+                            if (result.error) {
+                                toast.error(result.error);
+                                return;
+                            }
+                            toast.success('Inscricoes confirmadas!');
+                            setOwnEventConfirmEventId(null);
+                            await fetchCart();
+                            router.refresh();
+                        } catch {
+                            toast.error('Erro ao confirmar inscricoes.');
+                        } finally {
+                            setSubmitting(false);
+                        }
                     }}
                     onCancel={() => setOwnEventConfirmEventId(null)}
                 />
