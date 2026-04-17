@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateAcademiaProfile } from './actions';
 import { createClient } from '@/lib/supabase/client';
-import { CircleNotchIcon } from '@phosphor-icons/react';
+import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Profile {
@@ -223,7 +223,7 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
                             >
                                 {isLoading ? (
                                     <>
-                                        <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                         Verificando...
                                     </>
                                 ) : (
@@ -258,7 +258,7 @@ export function AcademiaProfileForm({ profile }: ProfileFormProps) {
                 <Button type="submit" disabled={isLoading} pill className="w-1/2 h-11 px-8">
                     {isLoading ? (
                         <>
-                            <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             Salvando...
                         </>
                     ) : (

@@ -10,8 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { SpinnerGapIcon, FileTextIcon, WarningIcon } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { Loader2, FileText, AlertTriangle } from 'lucide-react';
+import { showToast } from '@/lib/toast';
 import { getTermsModalDataAction, getTermsModalDataForAthleteAction, acceptTermAction, acceptTermForAthleteAction, type TermsModalData } from '@/app/atleta/components/terms-actions';
 import { cn } from '@/lib/utils';
 
@@ -147,7 +147,7 @@ export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onC
                 : await acceptTermAction(data.term.id, eventId, snapshot, data.term.isMinorTerm);
 
             if (result.error) {
-                toast.error(result.error);
+                showToast.error('Não foi possível registrar o aceite', result.error);
                 return;
             }
 
@@ -163,7 +163,7 @@ export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onC
                 <div className="flex flex-col max-h-[90vh]">
                     <DialogHeader className="px-6 py-4 border-b flex-none">
                         <DialogTitle className="flex items-center gap-2 text-base">
-                            <FileTextIcon size={20} weight="duotone" className="text-primary shrink-0" />
+                            <FileText className="h-5 w-5 text-primary shrink-0" />
                             Termo de Responsabilidade e Ciência
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground pt-1">
@@ -171,7 +171,7 @@ export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onC
                         </p>
                         {/* Badge de atleta menor com dados do responsável */}
                         {data?.isMinor && data.guardian && (
-                            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-0.5">
+                            <div className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning space-y-0.5">
                                 <p className="font-semibold">Atleta menor de idade — termo para responsável legal</p>
                                 <p>Responsável: <span className="font-medium">{data.guardian.name || '—'}</span>
                                     {data.guardian.relationship && (
@@ -189,13 +189,13 @@ export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onC
                     >
                         {loading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background">
-                                <SpinnerGapIcon size={20} weight="bold" className="animate-spin text-muted-foreground" />
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                             </div>
                         )}
 
                         {loadError && (
                             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                                <WarningIcon size={20} weight="duotone" className="text-destructive" />
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
                                 <p className="text-sm font-medium text-destructive">{loadError}</p>
                                 <Button variant="outline" size="sm" onClick={onCancel}>Fechar</Button>
                             </div>
@@ -212,7 +212,7 @@ export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onC
                     {data && !loading && (
                         <div className="flex-none border-t px-6 py-4 space-y-4 bg-background">
                             {!scrolledToBottom && (
-                                <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 text-center font-medium">
+                                <p className="text-xs text-warning bg-warning/10 border border-warning/40 rounded-lg px-3 py-2 text-center font-medium">
                                     Role até o final do documento para habilitar o aceite.
                                 </p>
                             )}
@@ -248,7 +248,7 @@ export function TermsAcceptanceModal({ open, eventId, athleteId, onAccepted, onC
                                     disabled={!accepted || !scrolledToBottom || isPending}
                                     className="h-12 font-bold gap-2"
                                 >
-                                    {isPending ? <SpinnerGapIcon size={20} weight="bold" className="animate-spin" /> : null}
+                                    {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                                     {isPending ? 'Registrando...' : 'Aceitar e Continuar'}
                                 </Button>
                             </DialogFooter>

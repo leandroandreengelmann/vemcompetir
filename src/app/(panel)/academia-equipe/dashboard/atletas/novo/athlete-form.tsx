@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, CircleNotchIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -78,12 +79,7 @@ export default function NovoAtletaForm({ academyName, masters }: NovoAtletaFormP
                 return;
             }
 
-            toast.custom(() => (
-                <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
-                    <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
-                    <p className="text-panel-sm font-bold">Atleta cadastrado com sucesso!</p>
-                </div>
-            ), { duration: 4000 });
+            showToast.success('Atleta cadastrado', 'O novo atleta já aparece na lista.');
             router.push('/academia-equipe/dashboard/atletas');
             router.refresh();
         } catch (err: any) {

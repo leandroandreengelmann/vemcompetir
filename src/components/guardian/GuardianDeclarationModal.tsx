@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { PrinterIcon } from '@phosphor-icons/react';
+import { Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { GuardianDeclaration } from '@/types/guardian';
@@ -79,7 +79,7 @@ export function GuardianDeclarationModal({ declaration, trigger }: GuardianDecla
                             </p>
                         </div>
                         <Button variant="outline" size="sm" onClick={handlePrint} className="h-9 px-4 rounded-full font-bold text-xs tracking-wide gap-1.5 shrink-0">
-                            <PrinterIcon size={14} weight="duotone" />
+                            <Printer className="h-3.5 w-3.5" />
                             Imprimir
                         </Button>
                     </div>

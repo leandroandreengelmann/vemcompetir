@@ -65,3 +65,5 @@ image.png
 # Supabase
 supabase/migrations/
 supabase/.temp/
+
+.vercel

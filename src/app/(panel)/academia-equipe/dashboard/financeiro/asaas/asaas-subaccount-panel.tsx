@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CircleNotchIcon } from '@phosphor-icons/react';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { SubaccountData } from './page';
@@ -136,7 +136,7 @@ export function AsaasSubaccountPanel({ subaccount }: AsaasSubaccountPanelProps) 
                         >
                             {isRefreshing ? (
                                 <>
-                                    <CircleNotchIcon size={16} weight="bold" className="mr-2 animate-spin" />
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Verificando...
                                 </>
                             ) : (

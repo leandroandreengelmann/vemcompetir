@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CopyIcon, CheckIcon, ClockIcon, QrCodeIcon, CheckCircleIcon } from '@phosphor-icons/react';
+import { Copy, Check, Clock, QrCode, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 
@@ -124,7 +124,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <QrCodeIcon size={20} weight="duotone" />
+                        <QrCode className="h-5 w-5" />
                         Pagamento via Pix
                     </DialogTitle>
                 </DialogHeader>
@@ -136,14 +136,14 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                             <div className="relative flex items-center justify-center">
                                 {/* Pulsing outer halo */}
                                 <motion.div
-                                    className="absolute h-40 w-40 rounded-full bg-green-100"
+                                    className="absolute h-40 w-40 rounded-full bg-success/20"
                                     initial={{ scale: 0.8, opacity: 0 }}
                                     animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }}
                                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                                 />
                                 {/* Main circle */}
                                 <motion.div
-                                    className="relative h-32 w-32 rounded-full bg-green-100 flex items-center justify-center z-10"
+                                    className="relative h-32 w-32 rounded-full bg-success/20 flex items-center justify-center z-10"
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
@@ -154,7 +154,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                                         animate={{ rotate: 0, opacity: 1 }}
                                         transition={{ duration: 0.45, delay: 0.3, ease: 'easeOut' }}
                                     >
-                                        <CheckCircleIcon size={64} weight="duotone" className="text-green-600" />
+                                        <CheckCircle2 className="h-16 w-16 text-success" />
                                     </motion.div>
                                 </motion.div>
                             </div>
@@ -166,8 +166,8 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.4, delay: 0.5 }}
                             >
-                                <h3 className="text-2xl font-bold text-green-700">Pagamento Confirmado!</h3>
-                                <p className="text-sm text-muted-foreground">Sua inscrição foi efetivada com sucesso.</p>
+                                <h3 className="text-2xl font-bold text-success">Pagamento confirmado</h3>
+                                <p className="text-sm text-muted-foreground">Sua inscrição foi efetivada.</p>
                             </motion.div>
 
                             {/* Pill button — project standard */}
@@ -180,7 +180,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                                 <Button
                                     pill
                                     size="lg"
-                                    className="w-full h-12 font-bold bg-green-600 hover:bg-green-700 text-white"
+                                    className="w-full h-12 font-bold"
                                     onClick={onClose}
                                 >
                                     Concluir
@@ -211,7 +211,7 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                             {/* Timer */}
                             {pixData.pix_expiration && (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <ClockIcon size={16} weight="duotone" />
+                                    <Clock className="h-4 w-4" />
                                     <span>Expira em: <strong className="text-foreground">{timeLeft}</strong></span>
                                 </div>
                             )}
@@ -225,12 +225,12 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                                 >
                                     {copied ? (
                                         <>
-                                            <CheckIcon size={16} weight="duotone" className="text-green-500" />
-                                            Copiado!
+                                            <Check className="h-4 w-4 text-success" />
+                                            Copiado
                                         </>
                                     ) : (
                                         <>
-                                            <CopyIcon size={16} weight="duotone" />
+                                            <Copy className="h-4 w-4" />
                                             Copiar código Pix
                                         </>
                                     )}
@@ -240,8 +240,8 @@ export function PixModal({ open, onClose, pixData }: PixModalProps) {
                             {/* Status */}
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500" />
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-warning" />
                                 </span>
                                 Aguardando pagamento...
                             </div>

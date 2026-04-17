@@ -26,6 +26,7 @@ import {
 import { updateAthleteAction, deleteAthleteAction, unlinkSuggestedMasterAction } from '../actions';
 import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
 import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 function isUnder18(dateStr: string | null | undefined): boolean {
     if (!dateStr) return false;
@@ -122,12 +123,7 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                 return;
             }
 
-            toast.custom(() => (
-                <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
-                    <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
-                    <p className="text-panel-sm font-bold">Atleta atualizado com sucesso!</p>
-                </div>
-            ), { duration: 4000 });
+            showToast.success('Atleta atualizado', 'Os dados foram salvos.');
 
             router.push('/academia-equipe/dashboard/atletas');
             router.refresh();
@@ -147,12 +143,7 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                 return;
             }
 
-            toast.custom(() => (
-                <div className="flex items-center gap-3 w-[356px] bg-foreground rounded-xl px-5 py-4 shadow-xl text-background animate-in slide-in-from-right-2 z-[100]">
-                    <WarningCircleIcon size={24} weight="duotone" className="shrink-0" />
-                    <p className="text-panel-sm font-bold">Atleta excluído.</p>
-                </div>
-            ), { duration: 4000 });
+            showToast.success('Atleta excluído');
 
             router.push('/academia-equipe/dashboard/atletas');
             router.refresh();
@@ -571,19 +562,9 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                                                                 startUnlink(async () => {
                                                                     const res = await unlinkSuggestedMasterAction(athlete.id, linkedSuggestions[0]);
                                                                     if (res.error) {
-                                                                        toast.custom(() => (
-                                                                            <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
-                                                                                <WarningCircleIcon size={24} weight="duotone" className="shrink-0" />
-                                                                                <p className="text-panel-sm font-bold">{res.error}</p>
-                                                                            </div>
-                                                                        ), { duration: 5000 });
+                                                                        showToast.error('Não foi possível desvincular', res.error);
                                                                     } else {
-                                                                        toast.custom(() => (
-                                                                            <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
-                                                                                <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
-                                                                                <p className="text-panel-sm font-bold">Desvinculado com sucesso!</p>
-                                                                            </div>
-                                                                        ), { duration: 4000 });
+                                                                        showToast.success('Desvinculado');
                                                                     }
                                                                 });
                                                             }}

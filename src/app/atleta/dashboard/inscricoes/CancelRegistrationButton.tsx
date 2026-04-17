@@ -1,9 +1,9 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { TrashIcon, CheckIcon, InfoIcon } from "@phosphor-icons/react";
+import { TrashIcon } from "@phosphor-icons/react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
 import {
     Dialog,
     DialogContent,
@@ -36,17 +36,7 @@ export function CancelRegistrationButton({
             await onConfirm();
 
             setOpen(false); // fechar o modal
-            toast.custom((t) => (
-                <div className="flex items-center justify-between gap-3 w-full sm:w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                    <div className="flex items-center gap-3">
-                        <CheckIcon size={24} weight="duotone" className="shrink-0" />
-                        <div className="flex flex-col">
-                            <p className="text-panel-md font-bold">Inscrição removida</p>
-                            <p className="text-panel-sm opacity-90">Sua inscrição pendente foi cancelada.</p>
-                        </div>
-                    </div>
-                </div>
-            ), { duration: 4000 });
+            showToast.success('Inscrição removida', 'Sua inscrição pendente foi cancelada.');
 
             if (onSuccess) {
                 onSuccess();
@@ -56,17 +46,7 @@ export function CancelRegistrationButton({
         } catch (error: any) {
             console.error('Falha ao remover:', error);
             const msg = error.message || 'Ocorreu um erro ao tentar cancelar a inscrição.';
-            toast.custom((t) => (
-                <div className="flex items-center justify-between gap-3 w-full sm:w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2">
-                    <div className="flex items-center gap-3">
-                        <InfoIcon size={24} weight="duotone" className="shrink-0" />
-                        <div className="flex flex-col">
-                            <p className="text-panel-md font-bold">Erro ao remover</p>
-                            <p className="text-panel-sm opacity-90">{msg}</p>
-                        </div>
-                    </div>
-                </div>
-            ), { duration: 5000 });
+            showToast.error('Não foi possível remover', msg);
         } finally {
             setIsLoading(false);
         }

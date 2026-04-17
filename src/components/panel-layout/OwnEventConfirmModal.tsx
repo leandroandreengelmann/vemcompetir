@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { CircleNotchIcon, CheckCircleIcon, UserIcon, CurrencyDollarIcon } from "@phosphor-icons/react";
+import { Loader2, CheckCircle2, User, DollarSign } from "lucide-react";
 
 type PaymentMethod = 'pago_em_mao' | 'pix_direto' | 'isento';
 
@@ -116,8 +116,8 @@ export function OwnEventConfirmModal({
             <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col gap-0 p-0 rounded-2xl overflow-hidden">
                 <DialogHeader className="px-5 pt-5 pb-4">
                     <div className="flex items-center gap-3 mb-1">
-                        <div className="p-2.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-                            <CheckCircleIcon size={22} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
+                        <div className="p-2.5 rounded-full bg-success/10">
+                            <CheckCircle2 className="h-5 w-5 text-success" />
                         </div>
                         <div>
                             <DialogTitle className="text-panel-md font-bold">Confirmar inscricoes</DialogTitle>
@@ -163,7 +163,7 @@ export function OwnEventConfirmModal({
                                 {/* Athlete info */}
                                 <div className="flex items-start gap-3">
                                     <div className="p-1.5 rounded-full bg-muted border border-border shrink-0 mt-0.5">
-                                        <UserIcon size={14} weight="duotone" className="text-muted-foreground" />
+                                        <User className="h-3.5 w-3.5 text-muted-foreground" />
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-panel-sm font-bold leading-tight truncate">{item.athleteName}</p>
@@ -214,7 +214,7 @@ export function OwnEventConfirmModal({
                 <div className="border-t border-border/50 bg-muted/30 px-5 py-4 space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <CurrencyDollarIcon size={18} weight="duotone" className="text-muted-foreground" />
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                             <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-wide">Total recebido</span>
                         </div>
                         <span className="text-lg font-black tabular-nums text-foreground">
@@ -236,11 +236,11 @@ export function OwnEventConfirmModal({
                             pill
                             onClick={handleConfirm}
                             disabled={submitting}
-                            className="flex-1 h-12 text-panel-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+                            className="flex-1 h-12 text-panel-sm font-bold"
                         >
                             {submitting
-                                ? <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-2" />
-                                : <CheckCircleIcon size={16} weight="duotone" className="mr-2" />
+                                ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                : <CheckCircle2 className="h-4 w-4 mr-2" />
                             }
                             Confirmar
                         </Button>

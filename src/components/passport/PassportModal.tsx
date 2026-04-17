@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RegistrationPassport } from './RegistrationPassport';
 import { getPassportDataAction, type PassportData } from '@/app/atleta/dashboard/inscricoes/passport-actions';
-import { CircleNotchIcon, DownloadSimpleIcon, ShareNetworkIcon, XIcon } from '@phosphor-icons/react';
+import { Loader2, Download, Share2 } from 'lucide-react';
 
 interface PassportModalProps {
     registrationId: string;
@@ -117,7 +117,7 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
                     <div className="flex flex-col items-center gap-4">
                         {loading && (
                             <div className="flex items-center justify-center h-[200px]">
-                                <CircleNotchIcon size={32} weight="bold" className="animate-spin text-slate-400" />
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                             </div>
                         )}
 
@@ -143,9 +143,9 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
                                     disabled={exporting}
                                 >
                                     {exporting ? (
-                                        <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-2" />
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                     ) : (
-                                        <DownloadSimpleIcon size={16} weight="duotone" className="mr-2" />
+                                        <Download className="h-4 w-4 mr-2" />
                                     )}
                                     Baixar
                                 </Button>
@@ -156,9 +156,9 @@ export function PassportModal({ registrationId, trigger }: PassportModalProps) {
                                     disabled={exporting}
                                 >
                                     {exporting ? (
-                                        <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-2" />
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                     ) : (
-                                        <ShareNetworkIcon size={16} weight="duotone" className="mr-2" />
+                                        <Share2 className="h-4 w-4 mr-2" />
                                     )}
                                     Compartilhar
                                 </Button>

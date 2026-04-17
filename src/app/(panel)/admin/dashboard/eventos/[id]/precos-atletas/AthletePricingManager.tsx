@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Trash2, Plus, Loader2, Pencil, Check, X } from 'lucide-react';
+import { confirmAsync } from '@/components/panel/ConfirmDialog';
+import { showToast } from '@/lib/toast';
 import {
     upsertAthletePricing,
     updateAthletePricing,
@@ -114,14 +116,21 @@ export function AthletePricingManager({
         });
     }
 
-    function handleDelete(pricing: AthletePricing) {
+    async function handleDelete(pricing: AthletePricing) {
         const label = [pricing.gym_name, pricing.master_name].filter(Boolean).join(' / ');
-        if (!confirm(`Remover preço diferenciado de "${label}"?`)) return;
+        const ok = await confirmAsync({
+            variant: 'destructive',
+            title: 'Remover preço diferenciado?',
+            description: `O preço para "${label}" voltará ao padrão do evento.`,
+            confirmLabel: 'Remover',
+        });
+        if (!ok) return;
 
         startTransition(async () => {
             const result = await deleteAthletePricing(pricing.id, eventId);
             if (result.success) {
                 setPricings(prev => prev.filter(p => p.id !== pricing.id));
+                showToast.success('Preço diferenciado removido');
             }
         });
     }

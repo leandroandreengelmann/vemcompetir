@@ -234,9 +234,9 @@ export default function RegisterPage() {
                     </Alert>
                 )}
                 {success && (
-                    <Alert className="border-green-500 text-green-700 bg-green-50 animate-in fade-in zoom-in duration-300 [&>svg]:text-green-600">
+                    <Alert variant="success" className="animate-in fade-in zoom-in duration-300">
                         <CheckCircle2 className="h-4 w-4" />
-                        <AlertTitle>Sucesso!</AlertTitle>
+                        <AlertTitle>Pronto</AlertTitle>
                         <AlertDescription>{success}</AlertDescription>
                     </Alert>
                 )}
@@ -259,7 +259,7 @@ export default function RegisterPage() {
                     {/* PASSO 2 — Data de nascimento + CPF */}
                     {step === 2 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
-                            <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-600">
+                            <Alert variant="warning">
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle className="font-bold text-sm">Dados importantes</AlertTitle>
                                 <AlertDescription className="text-xs leading-relaxed">
@@ -327,7 +327,7 @@ export default function RegisterPage() {
                     {/* PASSO 3 — Dados do responsável (só menores) */}
                     {step === 3 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
-                            <Alert className="border-amber-300 bg-amber-50 text-amber-900 [&>svg]:text-amber-600">
+                            <Alert variant="warning">
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle className="font-bold text-sm">Atleta menor de idade</AlertTitle>
                                 <AlertDescription className="text-xs leading-relaxed">

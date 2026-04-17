@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmação de Troca de E-mail - COMPETIR</title>
+    <title>Confirmar alteração de e-mail - COMPETIR</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -41,21 +41,41 @@
             margin-top: 0;
         }
 
-        .otp-container {
+        .email-change-box {
             background-color: #f8fafc;
-            border: 2px dashed #e2e8f0;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 30px;
-            margin: 30px 0;
+            padding: 24px;
+            margin: 28px 0;
             text-align: center;
         }
 
-        .otp-code {
-            font-size: 42px;
-            font-weight: 800;
-            letter-spacing: 12px;
+        .email-value {
+            font-size: 16px;
+            font-weight: 600;
             color: #1a1f2e;
-            margin: 0;
+            word-break: break-all;
+        }
+
+        .email-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .confirm-btn {
+            display: inline-block;
+            background-color: #1a1f2e;
+            color: #ffffff !important;
+            text-decoration: none;
+            font-weight: 700;
+            padding: 14px 36px;
+            border-radius: 999px;
+            font-size: 15px;
+            margin: 20px 0 8px;
         }
 
         .footer {
@@ -74,7 +94,6 @@
             color: #64748b;
             text-align: center;
         }
-
     </style>
 </head>
 
@@ -85,15 +104,25 @@
         </div>
         <div class="content">
             <h1>Confirme seu novo e-mail</h1>
-            <p style="text-align: center;">Olá, recebemos uma solicitação para alterar o e-mail da sua conta na plataforma COMPETIR.</p>
-            <p style="text-align: center;">Use o código de verificação abaixo para confirmar a troca:</p>
-            <div class="otp-container">
-                <div class="otp-code">{{ .Token }}</div>
+            <p style="text-align: center;">Recebemos uma solicitação para alterar o e-mail da sua conta COMPETIR.
+                Para concluir, confirme clicando no botão abaixo.</p>
+
+            <div class="email-change-box">
+                <div class="email-label">Novo e-mail</div>
+                <div class="email-value">{{ .NewEmail }}</div>
             </div>
-            <p style="text-align: center;">Este código é válido por tempo limitado.</p>
+
+            <p style="text-align: center;">
+                <a href="{{ .ConfirmationURL }}" class="confirm-btn">Confirmar alteração</a>
+            </p>
+
+            <p style="text-align: center; font-size: 13px; color: #64748b;">
+                Este link expira em breve. Se você não solicitou esta alteração, ignore este e-mail
+                — o e-mail atual da conta permanecerá o mesmo.
+            </p>
+
             <div class="security-notice">
-                <p>Se você não solicitou esta alteração, ignore este e-mail. Seu e-mail atual permanecerá inalterado.</p>
-                <p>Por segurança, nunca compartilhe este link. Nossa equipe nunca solicitará seus dados fora do sistema.</p>
+                <p>Por segurança, nunca compartilhe este link. Nossa equipe nunca solicitará sua senha fora do sistema.</p>
             </div>
         </div>
         <div class="footer">

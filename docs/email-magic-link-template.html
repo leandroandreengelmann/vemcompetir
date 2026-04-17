@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar no COMPETIR</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f9; margin: 0; padding: 0; }
+        .container {
+            max-width: 600px; margin: 40px auto; background-color: #ffffff;
+            border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        .header { background-color: #1a1f2e; padding: 40px 20px; text-align: center; }
+        .content { padding: 40px; color: #1a1a1a; line-height: 1.6; }
+        .content h1 { font-size: 24px; color: #111827; text-align: center; margin-top: 0; }
+        .login-btn {
+            display: inline-block; background-color: #1a1f2e; color: #ffffff !important;
+            text-decoration: none; font-weight: 700; padding: 14px 36px; border-radius: 999px;
+            font-size: 15px; margin: 24px 0 8px;
+        }
+        .footer {
+            background-color: #f9fafb; padding: 20px; text-align: center;
+            font-size: 14px; color: #9ca3af;
+        }
+        .security-notice {
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9;
+            font-size: 13px; color: #64748b; text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="color: white; margin: 0; font-size: 28px; letter-spacing: 2px;">COMPETIR</h2>
+        </div>
+        <div class="content">
+            <h1>Seu link de acesso</h1>
+            <p style="text-align: center;">Você solicitou um link para entrar sem senha. Clique no botão abaixo
+                para acessar sua conta.</p>
+
+            <p style="text-align: center;">
+                <a href="{{ .ConfirmationURL }}" class="login-btn">Entrar no COMPETIR</a>
+            </p>
+
+            <p style="text-align: center; font-size: 13px; color: #64748b;">
+                Este link expira em breve e só pode ser usado uma vez.
+            </p>
+
+            <div class="security-notice">
+                <p>Se você não solicitou este acesso, ignore este e-mail. Sua conta permanece segura.</p>
+            </div>
+        </div>
+        <div class="footer">
+            &copy; 2026 COMPETIR. Todos os direitos reservados.<br>
+            <a href="{{ .SiteURL }}" style="color: #1a1f2e; text-decoration: none;">vemcompetir.com.br</a>
+        </div>
+    </div>
+</body>
+
+</html>

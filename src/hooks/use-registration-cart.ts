@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { addToCartAction, removeFromCartAction, getCartItemsAction, checkoutCartAction, reactivateCartItemAction } from '@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions';
 import { formatFullCategoryName } from '@/lib/category-utils';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 
 export interface CartItem {
     id: string; // registration id
@@ -82,7 +82,7 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
             });
 
             if (result.error) {
-                toast.error(result.error);
+                showToast.error('Não foi possível adicionar', result.error);
                 return;
             }
 
@@ -90,12 +90,12 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
             set({ isOpen: true });
 
             if ((result as any).companionAdded) {
-                toast.success(`Categoria gratuita adicionada: ${(result as any).companionName}`);
+                showToast.success('Categoria gratuita incluída', `${(result as any).companionName} foi adicionada à sacola.`);
             } else if ((result as any).companionWarning) {
-                toast.warning((result as any).companionWarning, { duration: 6000 });
+                showToast.warning('Atenção', (result as any).companionWarning);
             }
         } catch (error) {
-            toast.error('Erro ao adicionar');
+            showToast.error('Não foi possível adicionar', 'Tente novamente em instantes.');
         } finally {
             set({ isLoading: false });
         }
@@ -109,12 +109,12 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
         try {
             const result = await removeFromCartAction(id);
             if (result.error) {
-                toast.error(result.error);
+                showToast.error('Não foi possível remover', result.error);
                 set({ items: currentItems }); // Revert
                 return;
             }
         } catch (error) {
-            toast.error('Erro ao remover');
+            showToast.error('Não foi possível remover', 'Tente novamente em instantes.');
             set({ items: currentItems }); // Revert
         }
     },
@@ -124,14 +124,14 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
         try {
             const result = await checkoutCartAction(eventIds);
             if (result.error) {
-                toast.error(result.error);
+                showToast.error('Não foi possível finalizar', result.error);
                 return;
             }
-            toast.success('Inscrições realizadas com sucesso!');
+            showToast.success('Inscrições confirmadas', 'Você receberá os detalhes por e-mail.');
             await get().fetchCart();
             set({ isOpen: false });
         } catch (error) {
-            toast.error('Erro ao finalizar');
+            showToast.error('Não foi possível finalizar', 'Tente novamente em instantes.');
         } finally {
             set({ isLoading: false });
         }
@@ -142,12 +142,12 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
         try {
             const result = await reactivateCartItemAction(id);
             if (result.error) {
-                toast.error(result.error);
+                showToast.error('Não foi possível reativar', result.error);
                 return;
             }
             await get().fetchCart();
         } catch (error) {
-            toast.error('Erro ao reativar item');
+            showToast.error('Não foi possível reativar', 'Tente novamente em instantes.');
         } finally {
             set({ isLoading: false });
         }

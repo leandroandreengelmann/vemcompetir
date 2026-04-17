@@ -8,9 +8,11 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAthleteCart } from "@/hooks/use-athlete-cart";
-import { CircleNotchIcon, TrashIcon, ShoppingBagIcon, CreditCardIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon, PackageIcon } from "@phosphor-icons/react";
+import { TrashIcon, ShoppingBagIcon, CreditCardIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon, PackageIcon } from "@phosphor-icons/react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
@@ -78,20 +80,18 @@ export function AthleteCartSheet() {
 
             if (!res.ok) {
                 if (data.error === 'Organizador do evento não possui conta Asaas aprovada.') {
-                    toast.custom((t) => (
-                        <div className="flex items-center gap-3 w-[356px] bg-red-600 rounded-xl px-5 py-4 shadow-xl shadow-red-600/20 text-white animate-in slide-in-from-right-2 z-[100]">
-                            <InfoIcon size={24} weight="duotone" className="shrink-0" />
-                            <p className="text-panel-md font-bold">{data.error}</p>
-                        </div>
-                    ), { duration: 6000 });
+                    showToast.warning(
+                        'Pagamento indisponível',
+                        'O organizador deste evento ainda não concluiu o cadastro Asaas. Tente mais tarde ou fale com o organizador.'
+                    );
                 } else {
-                    toast.error(data.error || 'Erro ao criar pagamento.');
+                    showToast.error('Não foi possível criar o pagamento', data.error);
                 }
                 return;
             }
 
             if (data.free) {
-                toast.success(data.message || 'Inscrições confirmadas!');
+                showToast.success('Inscrições confirmadas', data.message);
                 await fetchCart();
                 router.refresh();
                 return;
@@ -101,7 +101,7 @@ export function AthleteCartSheet() {
             setPixModalOpen(true);
             await fetchCart();
         } catch (error) {
-            toast.error('Erro ao processar pagamento.');
+            showToast.error('Falha ao processar pagamento', 'Verifique sua conexão e tente novamente.');
         } finally {
             setSubmitting(false);
         }
@@ -358,7 +358,7 @@ export function AthleteCartSheet() {
                                                     onClick={() => handlePay(eventId)}
                                                     disabled={submitting || isLoading}
                                                 >
-                                                    {submitting ? <CircleNotchIcon size={20} weight="bold" className="animate-spin" /> : (
+                                                    {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                                                         <span className="truncate">Pagar {group.title}</span>
                                                     )}
                                                 </Button>

@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BellIcon, PaperPlaneTiltIcon, SpinnerGapIcon, CheckCircleIcon, WarningCircleIcon, UserCircleIcon, ClipboardTextIcon, ToggleLeftIcon, ToggleRightIcon } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { BellIcon, PaperPlaneTiltIcon, UserCircleIcon, ClipboardTextIcon } from '@phosphor-icons/react';
+import { Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { showToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { getPendingRegistrationNotifications, sendRegistrationNotification, getTemplates } from './actions';
 import { format } from 'date-fns';
@@ -65,10 +66,10 @@ export function WhatsAppNotificacoes() {
                 buildAthleteMsg(reg),
                 sendToOrganizer ? buildOrganizerMsg(reg) : undefined,
             );
-            toast.success(`Enviado para ${reg.profiles?.full_name}!`);
+            showToast.success('Notificação enviada', `Enviada para ${reg.profiles?.full_name ?? 'o atleta'}.`);
             setRegistrations(prev => prev.filter(r => r.id !== reg.id));
         } catch (err: any) {
-            toast.error(err.message ?? 'Erro ao enviar.');
+            showToast.error('Falha ao enviar', err.message ?? 'Tente novamente em instantes.');
         } finally {
             setSending(null);
         }
@@ -87,7 +88,11 @@ export function WhatsAppNotificacoes() {
             await new Promise(r => setTimeout(r, 400));
         }
         setSendingAll(false);
-        toast.success(`${sent} enviadas${failed > 0 ? `, ${failed} falharam` : ''}!`);
+        if (failed > 0) {
+            showToast.warning('Envio concluído com erros', `${sent} enviadas, ${failed} falharam.`);
+        } else {
+            showToast.success('Notificações enviadas', `${sent} mensagens entregues.`);
+        }
     }
 
     return (
@@ -137,7 +142,7 @@ export function WhatsAppNotificacoes() {
                             </CardTitle>
                             <button
                                 onClick={() => setSendToOrganizer(v => !v)}
-                                className={cn('relative w-10 h-5 rounded-full transition-colors shrink-0', sendToOrganizer ? 'bg-green-500' : 'bg-muted-foreground/30')}
+                                className={cn('relative w-10 h-5 rounded-full transition-colors shrink-0', sendToOrganizer ? 'bg-success' : 'bg-muted-foreground/30')}
                             >
                                 <span className={cn('absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform', sendToOrganizer ? 'translate-x-5' : 'translate-x-0')} />
                             </button>
@@ -166,7 +171,7 @@ export function WhatsAppNotificacoes() {
                             <BellIcon size={20} weight="duotone" className="text-muted-foreground" />
                             Aguardando notificação
                             {registrations.length > 0 && (
-                                <span className="size-5 rounded-full bg-green-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                <span className="size-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center">
                                     {registrations.length}
                                 </span>
                             )}
@@ -174,7 +179,7 @@ export function WhatsAppNotificacoes() {
                         {registrations.length > 1 && (
                             <Button size="sm" pill onClick={handleSendAll} disabled={sendingAll}>
                                 {sendingAll
-                                    ? <SpinnerGapIcon size={14} weight="bold" className="animate-spin mr-1.5" />
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                                     : <PaperPlaneTiltIcon size={14} weight="duotone" className="mr-1.5" />
                                 }
                                 Enviar para todos ({registrations.length})
@@ -185,11 +190,11 @@ export function WhatsAppNotificacoes() {
                 <CardContent className="pt-4">
                     {loading ? (
                         <div className="flex items-center justify-center py-10">
-                            <SpinnerGapIcon size={24} weight="bold" className="animate-spin text-muted-foreground" />
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : registrations.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
-                            <CheckCircleIcon size={32} weight="duotone" className="opacity-30" />
+                            <CheckCircle2 className="h-8 w-8 opacity-30" />
                             <p className="text-panel-sm italic">Nenhuma inscrição pendente de notificação</p>
                         </div>
                     ) : (
@@ -200,8 +205,8 @@ export function WhatsAppNotificacoes() {
                                         <div className="flex items-center gap-2">
                                             <p className="text-panel-sm font-semibold truncate">{reg.profiles?.full_name ?? '—'}</p>
                                             {sendToOrganizer && !reg.organizer?.phone && (
-                                                <span className="inline-flex items-center gap-1 text-panel-sm text-amber-600 shrink-0">
-                                                    <WarningCircleIcon size={16} weight="duotone" />
+                                                <span className="inline-flex items-center gap-1 text-panel-sm text-warning shrink-0">
+                                                    <AlertTriangle className="h-4 w-4" />
                                                     Organizador sem telefone
                                                 </span>
                                             )}
@@ -213,12 +218,12 @@ export function WhatsAppNotificacoes() {
                                             {reg.profiles?.phone} · {reg.price ? `R$ ${Number(reg.price).toFixed(2)}` : ''} · {format(new Date(reg.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                                         </p>
                                     </div>
-                                    <Badge variant="outline" className="text-green-600 border-green-300 shrink-0 capitalize">
+                                    <Badge variant="outline" className="text-success border-success/40 shrink-0 capitalize">
                                         {reg.status}
                                     </Badge>
                                     <Button size="sm" pill onClick={() => handleSendOne(reg)} disabled={sending === reg.id || sendingAll}>
                                         {sending === reg.id
-                                            ? <SpinnerGapIcon size={14} weight="bold" className="animate-spin mr-1.5" />
+                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                                             : <PaperPlaneTiltIcon size={14} weight="duotone" className="mr-1.5" />
                                         }
                                         Enviar

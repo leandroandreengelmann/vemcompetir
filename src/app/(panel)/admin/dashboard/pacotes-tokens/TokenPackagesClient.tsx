@@ -15,6 +15,8 @@ import {
     PlusIcon, PencilSimpleIcon, TrashIcon, SpinnerGapIcon, CoinsIcon, WarningIcon, PackageIcon, ShoppingCartIcon,
 } from '@phosphor-icons/react';
 import { createTokenPackageAction, updateTokenPackageAction, deleteTokenPackageAction, sellTokensToAcademyAction } from './actions';
+import { confirmAsync } from '@/components/panel/ConfirmDialog';
+import { showToast } from '@/lib/toast';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -281,9 +283,16 @@ export default function TokenPackagesClient({ packages: initialPackages, academi
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Desativar o pacote "${name}"?`)) return;
+        const ok = await confirmAsync({
+            variant: 'destructive',
+            title: 'Desativar pacote?',
+            description: `"${name}" deixará de estar disponível para novas vendas. Pacotes já adquiridos continuam válidos.`,
+            confirmLabel: 'Desativar',
+        });
+        if (!ok) return;
         await deleteTokenPackageAction(id);
         setPackages(p => p.filter(pkg => pkg.id !== id));
+        showToast.success('Pacote desativado');
     };
 
     const priceReais = (cents: number) =>

@@ -6,6 +6,7 @@ import { CategoryCard } from './CategoryCard';
 import { addToAthleteCartAction } from '../../athlete-cart-actions';
 import { useAthleteCart } from '@/hooks/use-athlete-cart';
 import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import {
     Select,
     SelectContent,
@@ -338,12 +339,7 @@ export function CategorySearchPanel({ eventId, categories, isWhiteBelt = false, 
                             ? async () => { await onAddToCartProp(cat.id); }
                             : async () => {
                                 await addToAthleteCartAction({ eventId, categoryId: cat.id });
-                                toast.custom(() => (
-                                    <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                                        <CheckIcon size={24} weight="duotone" className="shrink-0" />
-                                        <p className="text-panel-md font-bold">Adicionado à sacola!</p>
-                                    </div>
-                                ), { duration: 4000 });
+                                showToast.success('Adicionado à sacola', cat.name);
                                 useAthleteCart.getState().fetchCart();
                             };
                         return (

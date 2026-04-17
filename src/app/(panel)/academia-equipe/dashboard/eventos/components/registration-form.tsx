@@ -12,6 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { CircleNotchIcon, CheckIcon, CheckCircleIcon, DeviceMobileIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
 import { getEligibleCategoriesAction } from '../registrations-actions';
 import { useRegistrationCart } from '@/hooks/use-registration-cart';
 import { CategorySearchPanel } from '@/app/atleta/dashboard/campeonatos/components/_components/CategorySearchPanel';
@@ -131,12 +132,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax }: Registr
             price: isOwner && adminTax > 0 ? adminTax : category.registration_fee,
         });
 
-        toast.custom(() => (
-            <div className="flex items-center gap-3 w-[356px] bg-green-600 rounded-xl px-5 py-4 shadow-xl shadow-green-600/20 text-white animate-in slide-in-from-right-2">
-                <CheckIcon size={32} weight="duotone" className="shrink-0" />
-                <p className="text-panel-sm font-bold">Adicionado à cesta!</p>
-            </div>
-        ), { duration: 4000 });
+        showToast.success('Adicionado à sacola', `${selectedAthlete.full_name} · ${category.categoria_completa}`);
     };
 
     const isWhiteBelt = selectedAthlete?.belt_color?.toLowerCase() === 'branca' || selectedAthlete?.belt_color?.toLowerCase() === 'white';

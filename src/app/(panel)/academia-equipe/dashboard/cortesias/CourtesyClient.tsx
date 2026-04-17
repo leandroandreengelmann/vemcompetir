@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -227,25 +228,12 @@ export function CourtesyClient({ events, initialCourtesies }: Props) {
                 categoryId: selectedCategory.id,
                 reason,
             });
-            if (result.error) { toast.error(result.error); return; }
+            if (result.error) { showToast.error('Não foi possível conceder a cortesia', result.error); return; }
 
-            toast.custom(() => (
-                <div className="flex items-center gap-3 w-[356px] bg-emerald-600 rounded-xl px-5 py-4 shadow-xl shadow-emerald-600/20 text-white">
-                    <CheckCircleIcon size={24} weight="duotone" className="shrink-0" />
-                    <p className="text-panel-sm font-bold">Cortesia concedida com sucesso!</p>
-                </div>
-            ), { duration: 4000 });
+            showToast.success('Cortesia concedida', `${selectedAthlete.full_name} foi inscrito em ${selectedCategory.categoria_completa}.`);
 
             if (result.tokenWarning) {
-                toast.custom(() => (
-                    <div className="flex items-start gap-3 w-[356px] bg-amber-500 rounded-xl px-5 py-4 shadow-xl shadow-amber-500/25 text-white">
-                        <WarningCircleIcon size={22} weight="duotone" className="shrink-0 mt-0.5" />
-                        <div className="flex flex-col gap-0.5">
-                            <p className="text-[13px] font-bold leading-none">Saldo de tokens negativo</p>
-                            <p className="text-[12px] font-medium opacity-90 leading-snug mt-1">{result.tokenWarning}</p>
-                        </div>
-                    </div>
-                ), { duration: 8000 });
+                showToast.warning('Saldo de tokens negativo', result.tokenWarning);
             }
 
             const updated = await getCourtesyRegistrationsAction(filterEventId === 'all' ? undefined : filterEventId);

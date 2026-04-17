@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Trash2, ListChecks, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
+import { confirmAsync } from "@/components/panel/ConfirmDialog";
 import { linkCategoryTables, unlinkCategoryTable, getEventCategoryTables, getAvailableCategoryTables } from '@/app/(panel)/actions/event-categories';
 import { CategoryTable } from '@/app/(panel)/admin/actions/categories';
 import Link from 'next/link';
@@ -63,16 +65,21 @@ export function EventCategoryManager({ eventId, isSuperAdmin }: EventCategoryMan
     };
 
     const handleUnlink = async (tableId: string) => {
-        if (!confirm("Tem certeza que deseja desvincular este grupo de categorias? Isso não removerá as inscrições já existentes, mas impedirá novas buscas unificadas.")) {
-            return;
-        }
+        const ok = await confirmAsync({
+            variant: 'warning',
+            title: 'Desvincular grupo de categorias?',
+            description: 'Inscrições já feitas serão mantidas, mas novas buscas unificadas ficarão indisponíveis para este grupo.',
+            confirmLabel: 'Desvincular',
+            cancelLabel: 'Voltar',
+        });
+        if (!ok) return;
 
         setSaving(true);
         const result = await unlinkCategoryTable(eventId, tableId);
         if (result.error) {
-            toast.error(result.error);
+            showToast.error('Não foi possível desvincular', result.error);
         } else {
-            toast.success("Categoria desvinculada com sucesso.");
+            showToast.success('Grupo desvinculado');
             loadData();
         }
         setSaving(false);

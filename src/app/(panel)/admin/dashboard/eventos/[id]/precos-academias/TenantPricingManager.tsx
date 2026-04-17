@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Trash2, Plus, Search, Loader2 } from 'lucide-react';
+import { confirmAsync } from '@/components/panel/ConfirmDialog';
+import { showToast } from '@/lib/toast';
 import {
     searchAcademies,
     upsertTenantPricing,
@@ -119,13 +121,20 @@ export function TenantPricingManager({
         });
     }
 
-    function handleDelete(pricing: TenantPricing) {
-        if (!confirm(`Remover preço diferenciado de "${pricing.tenant_name}"?`)) return;
+    async function handleDelete(pricing: TenantPricing) {
+        const ok = await confirmAsync({
+            variant: 'destructive',
+            title: 'Remover preço diferenciado?',
+            description: `O preço para "${pricing.tenant_name}" voltará ao padrão do evento.`,
+            confirmLabel: 'Remover',
+        });
+        if (!ok) return;
 
         startTransition(async () => {
             const result = await deleteTenantPricing(pricing.id, eventId);
             if (result.success) {
                 setPricings(prev => prev.filter(p => p.id !== pricing.id));
+                showToast.success('Preço diferenciado removido');
             }
         });
     }

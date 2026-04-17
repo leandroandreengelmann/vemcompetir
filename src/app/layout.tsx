@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/CookieBanner";
 import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
+import { ConfirmDialogHost } from "@/components/panel/ConfirmDialog";
 
 export default function RootLayout({
   children,
@@ -34,6 +35,7 @@ export default function RootLayout({
         <CookieBanner />
         <WhatsAppFloatingButton />
         <Toaster position="top-right" />
+        <ConfirmDialogHost />
       </body>
     </html>
   );

@@ -16,6 +16,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { createAdminEventAction, updateAdminEventAction, deleteAdminEventAction, approveAdminEventAction, publishAdminEventAction, unpublishAdminEventAction } from '../actions';
+import { confirmAsync } from '@/components/panel/ConfirmDialog';
+import { showToast } from '@/lib/toast';
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmationDialog } from "@/components/panel/DeleteConfirmationDialog";
 
@@ -114,13 +116,21 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
     };
 
     const handleApprove = async () => {
-        if (!initialData?.id || !confirm('Deseja aprovar este evento?')) return;
+        if (!initialData?.id) return;
+        const ok = await confirmAsync({
+            variant: 'default',
+            title: 'Aprovar evento?',
+            description: 'Após aprovado, o evento poderá ser publicado e aparecerá na página inicial.',
+            confirmLabel: 'Aprovar',
+        });
+        if (!ok) return;
         setLoading(true);
         const result = await approveAdminEventAction(initialData.id);
         if (result.error) {
             setError(result.error);
             setLoading(false);
         } else {
+            showToast.success('Evento aprovado');
             router.refresh();
             setLoading(false);
         }
@@ -137,7 +147,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
             if (result.error) {
                 setError(result.error);
             } else if (result.success) {
-                alert('Evento publicado com sucesso! Agora ele está visível na página inicial.');
+                showToast.success('Evento publicado', 'Agora ele está visível na página inicial.');
                 router.refresh();
             }
         } catch (err) {
@@ -150,7 +160,13 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
     const handleUnpublish = async () => {
         if (!initialData?.id || loading) return;
 
-        if (!confirm('Deseja despublicar este evento? Ele deixará de ser visível na página inicial.')) return;
+        const ok = await confirmAsync({
+            variant: 'warning',
+            title: 'Despublicar evento?',
+            description: 'O evento deixará de ser visível na página inicial até você publicá-lo novamente.',
+            confirmLabel: 'Despublicar',
+        });
+        if (!ok) return;
 
         setLoading(true);
         setError(null);
@@ -160,7 +176,7 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
             if (result.error) {
                 setError(result.error);
             } else if (result.success) {
-                alert('Evento despublicado com sucesso.');
+                showToast.success('Evento despublicado');
                 router.refresh();
             }
         } catch (err) {

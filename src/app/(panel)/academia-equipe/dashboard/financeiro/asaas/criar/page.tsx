@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { CircleNotchIcon } from '@phosphor-icons/react';
+import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type PersonType = 'PF' | 'PJ';
@@ -438,7 +438,7 @@ export default function CriarSubcontaPage() {
                     >
                         {isLoading ? (
                             <>
-                                <CircleNotchIcon size={20} weight="bold" className="mr-2 animate-spin" />
+                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                                 Criando...
                             </>
                         ) : (

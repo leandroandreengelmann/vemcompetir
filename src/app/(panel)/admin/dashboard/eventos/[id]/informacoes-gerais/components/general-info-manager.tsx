@@ -39,6 +39,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Loader2, Trash2, FileText, Image as ImageIcon, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/panel/ConfirmDialog";
 
 interface Asset {
     id: string;
@@ -358,7 +359,13 @@ export function GeneralInfoManager({ eventId, tenantId, initialInfos }: GeneralI
     };
 
     const handleDeleteTopic = async (infoId: string) => {
-        if (!confirm("Tem certeza que deseja excluir este tópico e todos os seus arquivos?")) return;
+        const ok = await confirmAsync({
+            variant: 'destructive',
+            title: 'Excluir tópico?',
+            description: 'O tópico e todos os arquivos anexados serão removidos permanentemente.',
+            confirmLabel: 'Excluir',
+        });
+        if (!ok) return;
 
         setLoading(infoId);
         const result = await deleteGeneralInfoAction(infoId, eventId);

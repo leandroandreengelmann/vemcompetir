@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileTextIcon, PlusIcon, PencilSimpleIcon, TrashIcon, SpinnerGapIcon, FloppyDiskIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
+import { confirmAsync } from '@/components/panel/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { getTemplates, saveTemplate, deleteTemplate } from './actions';
 
@@ -61,20 +63,26 @@ export function WhatsAppTemplates() {
         setLoading(true);
         try {
             await saveTemplate(editing?.id ?? null, form.name, form.category, form.body);
-            toast.success(editing ? 'Template atualizado!' : 'Template criado!');
+            showToast.success(editing ? 'Template atualizado' : 'Template criado');
             await load();
             cancel();
         } catch {
-            toast.error('Erro ao salvar template.');
+            showToast.error('Não foi possível salvar o template', 'Tente novamente em instantes.');
         } finally {
             setLoading(false);
         }
     }
 
     async function handleDelete(id: string) {
-        if (!confirm('Remover este template?')) return;
+        const ok = await confirmAsync({
+            variant: 'destructive',
+            title: 'Remover template?',
+            description: 'Esta ação não pode ser desfeita.',
+            confirmLabel: 'Remover',
+        });
+        if (!ok) return;
         await deleteTemplate(id);
-        toast.success('Template removido.');
+        showToast.success('Template removido');
         await load();
     }
 
