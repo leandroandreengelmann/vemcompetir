@@ -35,6 +35,7 @@ type Summary = {
     scheduled_count: number;
     pending_count: number;
     courtesy_count: number;
+    pacote_count: number;
     own_event_count: number;
     promo_free_count: number;
     paid_amount: number;
@@ -93,6 +94,13 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
         const payerType = reg.payer_type;
 
         if (tipo === 'cortesia') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30">
+                    CORTESIA
+                </Badge>
+            );
+        }
+        if (tipo === 'pacote') {
             return (
                 <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
                     PACOTE DE INSCRIÇÕES
@@ -195,7 +203,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
         );
     };
 
-    const semReceita = (summary?.courtesy_count ?? 0) + (summary?.own_event_count ?? 0);
+    const semReceita = (summary?.courtesy_count ?? 0) + (summary?.pacote_count ?? 0) + (summary?.own_event_count ?? 0);
     const confirmados = (summary?.paid_count ?? 0) + (summary?.scheduled_count ?? 0);
 
     return (
@@ -285,8 +293,10 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     <span className="text-panel-md font-black tabular-nums leading-none mt-1">{semReceita}</span>
                                     {semReceita > 0 && (
                                         <span className="text-panel-sm text-muted-foreground font-medium mt-0.5 truncate">
-                                            {summary.courtesy_count > 0 && `${summary.courtesy_count} via pacote`}
-                                            {summary.courtesy_count > 0 && summary.own_event_count > 0 && ', '}
+                                            {summary.courtesy_count > 0 && `${summary.courtesy_count} cortesia`}
+                                            {summary.courtesy_count > 0 && (summary.pacote_count > 0 || summary.own_event_count > 0) && ', '}
+                                            {summary.pacote_count > 0 && `${summary.pacote_count} pacote`}
+                                            {summary.pacote_count > 0 && summary.own_event_count > 0 && ', '}
                                             {summary.own_event_count > 0 && `${summary.own_event_count} ev. próprio`}
                                         </span>
                                     )}
@@ -419,7 +429,8 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     <SelectItem value="agendado">Agendado</SelectItem>
                                     <SelectItem value="pendente">Pendentes</SelectItem>
                                     <SelectItem value="sem_receita">Sem receita</SelectItem>
-                                    <SelectItem value="cortesia">Usando Pacote</SelectItem>
+                                    <SelectItem value="cortesia">Cortesia</SelectItem>
+                                    <SelectItem value="pacote">Pacote de Inscrições</SelectItem>
                                     <SelectItem value="evento_proprio">Evento Próprio</SelectItem>
                                     <SelectItem value="promo_gratis">2ª Categoria Grátis</SelectItem>
                                 </SelectContent>

@@ -378,6 +378,7 @@ export async function createCourtesyRegistrationAction({
             tenant_id,
             status: 'isento',
             price,
+            is_courtesy: true,
         });
 
     if (insertError) {
@@ -424,7 +425,7 @@ export async function getCourtesyRegistrationsAction(eventId?: string) {
             category:category_rows!category_id ( categoria_completa )
         `)
         .eq('tenant_id', tenant_id)
-        .eq('status', 'isento')
+        .eq('is_courtesy', true)
         .order('created_at', { ascending: false });
 
     if (eventId) {

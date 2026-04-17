@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeftIcon, PencilSimpleIcon, UserIcon, UsersIcon, ShieldCheckIcon, GraduationCapIcon, MapPinIcon, EnvelopeIcon, CreditCardIcon, PhoneIcon } from '@phosphor-icons/react/dist/ssr';
 import DeleteAcademyButton from '../components/DeleteAcademyButton';
 import DeleteAthleteButton from '../components/DeleteAthleteButton';
+import FinancialModuleToggle from '../components/FinancialModuleToggle';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,12 @@ export default async function AcademyDetailPage(props: PageProps) {
 
     const tenantId = academyUser.user_metadata?.tenant_id || academyProfile?.tenant_id;
 
+    const { data: tenant } = await adminClient
+        .from('tenants')
+        .select('financial_module_enabled, financial_module_enabled_at')
+        .eq('id', tenantId)
+        .single();
+
     // 2. Buscar Membros (Atletas) vinculados a esta academia
     const { data: members } = await supabase
         .from('profiles')
@@ -85,6 +92,12 @@ export default async function AcademyDetailPage(props: PageProps) {
                     />
                 </div>
             </div>
+
+            <FinancialModuleToggle
+                tenantId={tenantId}
+                initialEnabled={!!tenant?.financial_module_enabled}
+                enabledAt={tenant?.financial_module_enabled_at ?? null}
+            />
 
             <div className="grid gap-6 md:grid-cols-3">
                 {/* Dados Gerais */}

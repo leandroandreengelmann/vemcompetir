@@ -776,3 +776,34 @@ export async function reregisterOrganizerWebhooksAction() {
         results,
     };
 }
+
+// ---------------------------------------------------------------------------
+// Toggle do módulo financeiro por academia (apenas admin_geral)
+// ---------------------------------------------------------------------------
+export async function toggleFinancialModuleAction(tenantId: string, enabled: boolean) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Não autenticado.' };
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin_geral') return { error: 'Apenas admin_geral pode alterar esta configuração.' };
+
+    const admin = createAdminClient();
+    const { error } = await admin
+        .from('tenants')
+        .update({
+            financial_module_enabled: enabled,
+            financial_module_enabled_at: enabled ? new Date().toISOString() : null,
+            financial_module_enabled_by: enabled ? user.id : null,
+        })
+        .eq('id', tenantId);
+
+    if (error) {
+        console.error('toggleFinancialModuleAction error:', error);
+        return { error: 'Erro ao alterar o módulo financeiro.' };
+    }
+
+    revalidatePath('/admin/dashboard/equipes-academias');
+    revalidatePath(`/admin/dashboard/equipes-academias/${tenantId}`);
+    return { success: true };
+}

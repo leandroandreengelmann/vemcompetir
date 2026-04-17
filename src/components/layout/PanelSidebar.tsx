@@ -41,10 +41,11 @@ interface PanelSidebarProps {
     hasActiveCredits?: boolean;
     hasOwnedEvents?: boolean;
     hasTokenManagement?: boolean;
+    hasFinancialModule?: boolean;
     tokenBalance?: number;
 }
 
-export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCredits = false, hasOwnedEvents = false, hasTokenManagement = false, tokenBalance = 0 }: PanelSidebarProps) {
+export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCredits = false, hasOwnedEvents = false, hasTokenManagement = false, hasFinancialModule = false, tokenBalance = 0 }: PanelSidebarProps) {
     const pathname = usePathname();
     const [, setOpen] = useState(false);
     const { isCollapsed, toggleSidebar } = useSidebar();
@@ -155,6 +156,14 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             href: "/academia-equipe/dashboard/eventos/disponiveis",
             roles: ['academia/equipe'],
         },
+        ...(hasFinancialModule ? [{
+            label: "Financeiro",
+            icon: CurrencyCircleDollarIcon,
+            href: "/academia-equipe/dashboard/financeiro",
+            roles: ['academia/equipe'] as string[],
+            isNew: true,
+            accent: true,
+        }] : []),
         {
             label: "Financeiro Asaas",
             icon: WalletIcon,

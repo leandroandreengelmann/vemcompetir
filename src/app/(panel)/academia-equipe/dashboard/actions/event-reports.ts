@@ -5,43 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { getEventFee } from '@/lib/fee-calculator';
 import { formatFullCategoryName } from '@/lib/category-utils';
-
-// Helper: classificar tipo de registro com base no status, payment e manual_payment_method
-function classifyRegistration(
-    status: string,
-    payment: { payer_type?: string; asaas_payment_id?: string } | null,
-    manualPaymentMethod?: string | null
-): { tipo: string; payer_type: string | null; manual_method: string | null } {
-    // Novos status de evento proprio
-    if (status === 'pago_em_mao') return { tipo: 'pago_em_mao', payer_type: 'OWN_EVENT', manual_method: 'pago_em_mao' };
-    if (status === 'pix_direto') return { tipo: 'pix_direto', payer_type: 'OWN_EVENT', manual_method: 'pix_direto' };
-    if (status === 'isento_evento_proprio') return { tipo: 'isento_evento_proprio', payer_type: 'OWN_EVENT', manual_method: 'isento' };
-
-    // Status legado de evento proprio (inscricoes antigas)
-    if (status === 'isento') {
-        if (payment?.asaas_payment_id?.startsWith('own_event_')) {
-            return { tipo: 'evento_proprio', payer_type: payment?.payer_type || null, manual_method: null };
-        }
-        return { tipo: 'cortesia', payer_type: null, manual_method: null };
-    }
-    if (status === 'pago' || status === 'paga' || status === 'confirmado') {
-        return { tipo: 'pago', payer_type: payment?.payer_type || null, manual_method: null };
-    }
-    if (status === 'agendado') return { tipo: 'agendado', payer_type: payment?.payer_type || null, manual_method: null };
-    if (status === 'pendente' || status === 'aguardando_pagamento') return { tipo: 'pendente', payer_type: payment?.payer_type || null, manual_method: null };
-    return { tipo: 'carrinho', payer_type: null, manual_method: null };
-}
-
-// Helper: buscar payments e criar mapa
-async function fetchPaymentsMap(adminSupabase: any, paymentIds: string[]): Promise<Record<string, { payer_type: string; asaas_payment_id: string }>> {
-    if (paymentIds.length === 0) return {};
-    const { data: payments } = await adminSupabase
-        .from('payments')
-        .select('id, payer_type, asaas_payment_id')
-        .in('id', paymentIds);
-    if (!payments) return {};
-    return Object.fromEntries(payments.map((p: any) => [p.id, p]));
-}
+import { classifyRegistration, fetchPaymentsMap } from './registration-classifier';
 
 // 1a. Summary de inscrições (KPIs sem paginação)
 export async function getEventReportInscricoesSummary(eventId: string) {
@@ -55,7 +19,7 @@ export async function getEventReportInscricoesSummary(eventId: string) {
 
     const { data: regs } = await adminSupabase
         .from('event_registrations')
-        .select('status, price, payment_id, promo_type_applied, manual_payment_method')
+        .select('status, price, payment_id, promo_type_applied, manual_payment_method, is_courtesy')
         .eq('event_id', eventId);
 
     const allRegs = regs || [];
@@ -63,16 +27,17 @@ export async function getEventReportInscricoesSummary(eventId: string) {
     const paymentsMap = await fetchPaymentsMap(adminSupabase, paymentIds);
 
     let paid_count = 0, scheduled_count = 0, pending_count = 0;
-    let courtesy_count = 0, own_event_count = 0, promo_free_count = 0;
+    let courtesy_count = 0, pacote_count = 0, own_event_count = 0, promo_free_count = 0;
     let paid_amount = 0, scheduled_amount = 0, pending_amount = 0;
     let paid_by_academy = 0, paid_by_athlete = 0;
 
     for (const reg of allRegs) {
         const price = Number(reg.price || 0);
         const payment = reg.payment_id ? paymentsMap[reg.payment_id] : null;
-        const { tipo } = classifyRegistration(reg.status, payment, (reg as any).manual_payment_method);
+        const { tipo } = classifyRegistration(reg.status, payment, (reg as any).manual_payment_method, (reg as any).is_courtesy);
 
         if (tipo === 'cortesia') courtesy_count++;
+        else if (tipo === 'pacote') pacote_count++;
         else if (tipo === 'evento_proprio' || tipo === 'isento_evento_proprio') own_event_count++;
         else if (tipo === 'pago_em_mao' || tipo === 'pix_direto') {
             own_event_count++;
@@ -96,7 +61,7 @@ export async function getEventReportInscricoesSummary(eventId: string) {
     return {
         total_registrations: allRegs.length,
         paid_count, scheduled_count, pending_count,
-        courtesy_count, own_event_count, promo_free_count,
+        courtesy_count, pacote_count, own_event_count, promo_free_count,
         paid_amount, scheduled_amount, pending_amount,
         paid_by_academy, paid_by_athlete,
     };
@@ -118,7 +83,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
     const hasSearch = !!filters.search;
 
     // Filtros que precisam post-filtrar
-    const needsPostFilter = filters.status === 'cortesia' || filters.status === 'evento_proprio' || filters.status === 'sem_receita' || filters.status === 'promo_gratis';
+    const needsPostFilter = filters.status === 'cortesia' || filters.status === 'pacote' || filters.status === 'evento_proprio' || filters.status === 'sem_receita' || filters.status === 'promo_gratis';
 
     let query = adminSupabase
         .from('event_registrations')
@@ -170,8 +135,8 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
 
         const filtered = allItems.filter((item: any) => {
             const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
-            const { tipo } = classifyRegistration(item.status, payment, item.manual_payment_method);
-            if (filters.status === 'sem_receita') return tipo === 'cortesia' || tipo === 'evento_proprio' || tipo === 'isento_evento_proprio';
+            const { tipo } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
+            if (filters.status === 'sem_receita') return tipo === 'cortesia' || tipo === 'pacote' || tipo === 'evento_proprio' || tipo === 'isento_evento_proprio';
             if (filters.status === 'evento_proprio') return tipo === 'evento_proprio' || tipo === 'isento_evento_proprio' || tipo === 'pago_em_mao' || tipo === 'pix_direto';
             if (filters.status === 'promo_gratis') return Number(item.price || 0) === 0 && !!item.promo_type_applied;
             return tipo === filters.status;
@@ -182,7 +147,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
         const processedData = paginatedData.map((item: any) => {
             if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
             const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
-            const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method);
+            const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
             return { ...item, tipo, payer_type, manual_method };
         });
 
@@ -202,7 +167,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
     const processedData = allItems.map((item: any) => {
         if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
         const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
-        const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method);
+        const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
         return { ...item, tipo, payer_type, manual_method };
     });
 
@@ -332,6 +297,8 @@ export async function getEventReportFinanceiro(eventId: string) {
             created_at,
             payment_id,
             promo_type_applied,
+            is_courtesy,
+            manual_payment_method,
             athlete:profiles!athlete_id(full_name),
             category:category_rows!category_id(categoria_completa)
         `)
@@ -345,7 +312,7 @@ export async function getEventReportFinanceiro(eventId: string) {
 
     // Classificar e processar cada registro
     let paid_count = 0, scheduled_count = 0, pending_count = 0;
-    let courtesy_count = 0, own_event_count = 0, promo_free_count = 0;
+    let courtesy_count = 0, pacote_count = 0, own_event_count = 0, promo_free_count = 0;
     let paid_amount = 0, scheduled_amount = 0, pending_amount = 0;
     let paid_by_academy = 0, paid_by_athlete = 0;
 
@@ -357,11 +324,12 @@ export async function getEventReportFinanceiro(eventId: string) {
         }
 
         const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
-        const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method);
+        const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
         const price = Number(item.price || 0);
 
         // Acumular summary
         if (tipo === 'cortesia') courtesy_count++;
+        else if (tipo === 'pacote') pacote_count++;
         else if (tipo === 'evento_proprio' || tipo === 'isento_evento_proprio') own_event_count++;
         else if (tipo === 'pago_em_mao' || tipo === 'pix_direto') {
             own_event_count++;
@@ -394,7 +362,7 @@ export async function getEventReportFinanceiro(eventId: string) {
         summary: {
             total_registrations: allRegs.length,
             paid_count, scheduled_count, pending_count,
-            courtesy_count, own_event_count, promo_free_count,
+            courtesy_count, pacote_count, own_event_count, promo_free_count,
             paid_amount, scheduled_amount, pending_amount,
             paid_by_academy, paid_by_athlete,
         },

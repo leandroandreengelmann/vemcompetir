@@ -83,3 +83,36 @@ export async function requireTenantScope() {
 
     return { user, profile, tenant_id: profile.tenant_id };
 }
+
+/**
+ * Gates access to the Financial Module feature.
+ * Requires the tenant to have `financial_module_enabled = true`.
+ * Redirects to dashboard if not enabled.
+ */
+export async function requireFinancialModule() {
+    const { user, profile, tenant_id } = await requireTenantScope();
+    const supabase = await createClient();
+
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('financial_module_enabled')
+        .eq('id', tenant_id)
+        .single();
+
+    if (!tenant?.financial_module_enabled) {
+        redirect('/academia-equipe/dashboard');
+    }
+
+    return { user, profile, tenant_id };
+}
+
+export async function isFinancialModuleEnabled(tenantId: string | null | undefined): Promise<boolean> {
+    if (!tenantId) return false;
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from('tenants')
+        .select('financial_module_enabled')
+        .eq('id', tenantId)
+        .single();
+    return !!data?.financial_module_enabled;
+}

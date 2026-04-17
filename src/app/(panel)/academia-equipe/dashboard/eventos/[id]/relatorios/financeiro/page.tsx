@@ -42,13 +42,20 @@ export default function FinanceiroReportPage({ params }: { params: Promise<{ id:
 
     const summary = data?.summary;
     const confirmados = (summary?.paid_count ?? 0) + (summary?.scheduled_count ?? 0);
-    const semReceita = (summary?.courtesy_count ?? 0) + (summary?.own_event_count ?? 0);
+    const semReceita = (summary?.courtesy_count ?? 0) + (summary?.pacote_count ?? 0) + (summary?.own_event_count ?? 0);
 
     const renderStatusBadge = (reg: any) => {
         const tipo = reg.tipo;
         const payerType = reg.payer_type;
 
         if (tipo === 'cortesia') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30">
+                    CORTESIA
+                </Badge>
+            );
+        }
+        if (tipo === 'pacote') {
             return (
                 <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
                     PACOTE DE INSCRIÇÕES
@@ -160,8 +167,10 @@ export default function FinanceiroReportPage({ params }: { params: Promise<{ id:
                                     <span className="text-panel-md font-black tabular-nums leading-none mt-1">{semReceita}</span>
                                     {semReceita > 0 && (
                                         <span className="text-panel-sm text-muted-foreground font-medium mt-0.5 truncate">
-                                            {summary.courtesy_count > 0 && `${summary.courtesy_count} via pacote`}
-                                            {summary.courtesy_count > 0 && summary.own_event_count > 0 && ', '}
+                                            {summary.courtesy_count > 0 && `${summary.courtesy_count} cortesia`}
+                                            {summary.courtesy_count > 0 && (summary.pacote_count > 0 || summary.own_event_count > 0) && ', '}
+                                            {summary.pacote_count > 0 && `${summary.pacote_count} pacote`}
+                                            {summary.pacote_count > 0 && summary.own_event_count > 0 && ', '}
                                             {summary.own_event_count > 0 && `${summary.own_event_count} ev. próprio`}
                                         </span>
                                     )}

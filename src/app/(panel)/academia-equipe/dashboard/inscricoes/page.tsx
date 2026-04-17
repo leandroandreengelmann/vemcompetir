@@ -64,45 +64,92 @@ export default function AcademyInscricoesPage() {
 
     const totalPages = Math.ceil(count / 20);
 
-    const renderStatusBadge = (status: string) => {
-        if (status === 'agendado') {
+    const renderStatusBadge = (reg: any) => {
+        const tipo = reg.tipo;
+        const payerType = reg.payer_type;
+
+        if (tipo === 'cortesia') {
             return (
-                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30">
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30">
+                    CORTESIA
+                </Badge>
+            );
+        }
+        if (tipo === 'pacote') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
+                    PACOTE DE INSCRIÇÕES
+                </Badge>
+            );
+        }
+        if (tipo === 'evento_proprio' || tipo === 'isento_evento_proprio') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-slate-500/10 text-slate-700 border-slate-500/20 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-500/30">
+                    ISENTO - EVENTO PROPRIO
+                </Badge>
+            );
+        }
+        if (tipo === 'pago_em_mao') {
+            const amount = reg.manual_amount ? `R$ ${Number(reg.manual_amount).toFixed(2)}` : null;
+            return (
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                        PAGO EM MAO
+                    </Badge>
+                    <span className="text-panel-sm text-muted-foreground font-medium">
+                        evento proprio{amount ? ` - ${amount}` : ''}
+                    </span>
+                </div>
+            );
+        }
+        if (tipo === 'pix_direto') {
+            const amount = reg.manual_amount ? `R$ ${Number(reg.manual_amount).toFixed(2)}` : null;
+            return (
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
+                        PIX DIRETO
+                    </Badge>
+                    <span className="text-panel-sm text-muted-foreground font-medium">
+                        evento proprio{amount ? ` - ${amount}` : ''}
+                    </span>
+                </div>
+            );
+        }
+        if (tipo === 'agendado') {
+            return (
+                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
                     AGENDADO
                 </Badge>
             );
         }
-        if (status === 'isento') {
+        if (tipo === 'pago') {
+            const manualMethod = reg.manual_method;
+            let subLabel = payerType === 'ACADEMY' ? 'pela academia' : payerType === 'ATHLETE' ? 'pelo atleta' : null;
+            if (manualMethod === 'pago_em_mao') subLabel = 'pago em mao';
+            if (manualMethod === 'pix_direto') subLabel = 'PIX direto';
             return (
-                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-orange-500/10 text-orange-700 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
-                    PAGO PELA ACADEMIA
-                </Badge>
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                        PAGO
+                    </Badge>
+                    {subLabel && (
+                        <span className="text-panel-sm text-muted-foreground font-medium">
+                            {subLabel}
+                        </span>
+                    )}
+                </div>
             );
         }
-        if (status === 'paga' || status === 'pago' || status === 'confirmado') {
-            return (
-                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
-                    PAGO
-                </Badge>
-            );
-        }
-        if (status === 'pendente' || status === 'aguardando_pagamento') {
+        if (tipo === 'pendente') {
             return (
                 <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                     PENDENTE
                 </Badge>
             );
         }
-        if (status === 'carrinho') {
-            return (
-                <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
-                    NA CESTA
-                </Badge>
-            );
-        }
         return (
             <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
-                {status.replace('_', ' ')}
+                NA CESTA
             </Badge>
         );
     };
@@ -159,8 +206,10 @@ export default function AcademyInscricoesPage() {
                                     <SelectItem value="todas">Todos os Status</SelectItem>
                                     <SelectItem value="paga">Pagas</SelectItem>
                                     <SelectItem value="pendente">Pendentes</SelectItem>
-                                    <SelectItem value="isento">Pagas pela Academia</SelectItem>
                                     <SelectItem value="agendado">Pagamento Agendado</SelectItem>
+                                    <SelectItem value="cortesia">Cortesia</SelectItem>
+                                    <SelectItem value="pacote">Pacote de Inscrições</SelectItem>
+                                    <SelectItem value="evento_proprio">Evento Próprio</SelectItem>
                                     <SelectItem value="carrinho">Na Cesta</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -233,7 +282,7 @@ export default function AcademyInscricoesPage() {
                                                     {renderBeltBadge(reg.athlete?.belt_color)}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{renderStatusBadge(reg.status)}</TableCell>
+                                            <TableCell>{renderStatusBadge(reg)}</TableCell>
                                             <TableCell className="text-right text-panel-sm font-bold">
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(reg.price || 0))}
                                             </TableCell>

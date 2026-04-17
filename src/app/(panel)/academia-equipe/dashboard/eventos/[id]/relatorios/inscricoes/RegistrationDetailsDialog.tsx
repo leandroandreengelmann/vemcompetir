@@ -65,6 +65,13 @@ export function RegistrationDetailsDialog({
 
         if (tipo === 'cortesia') {
             return (
+                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30">
+                    CORTESIA
+                </Badge>
+            );
+        }
+        if (tipo === 'pacote') {
+            return (
                 <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">
                     PACOTE DE INSCRIÇÕES
                 </Badge>

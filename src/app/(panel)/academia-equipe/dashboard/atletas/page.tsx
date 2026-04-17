@@ -48,31 +48,11 @@ export default async function AthleteManagementPage() {
         );
     }
 
-    // Fetch list of athletes
-    let query = supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'atleta');
+    const tenantFilter = isAcademy ? orgProfile.tenant_id : null;
+    const { data: athletesWithEmails } = await supabase
+        .rpc('list_athletes_with_auth', { p_tenant_id: tenantFilter });
 
-    // If academy role, filter by tenant_id
-    if (isAcademy) {
-        query = query.eq('tenant_id', orgProfile.tenant_id);
-    }
-
-    const { data: athletes } = await query.order('updated_at', { ascending: false });
-
-    // Fetch emails via admin client
     const adminClient = createAdminClient();
-    const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers();
-
-    const athletesWithEmails = athletes?.map(a => {
-        const authUser = authUsers.find(u => u.id === a.id);
-        return {
-            ...a,
-            email: authUser?.email || '-',
-            created_at: a.created_at || authUser?.created_at
-        };
-    });
 
     // --- Novas seções: vinculados e sugestões (somente para academias) ---
     let linkedAthletes: any[] = [];
@@ -178,8 +158,10 @@ export default async function AthleteManagementPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                athletesWithEmails.map((athlete) => {
-                                    const hasOwnAccount = !athlete.email?.includes('@dummy.competir.com');
+                                athletesWithEmails.map((athlete: any) => {
+                                    const isDummyEmail = athlete.email?.includes('@dummy.competir.com');
+                                    const hasLoggedIn = !!athlete.last_sign_in_at;
+                                    const hasOwnAccount = !isDummyEmail && hasLoggedIn;
                                     return (
                                         <TableRow key={athlete.id}>
                                             <TableCell className="pl-6 font-medium">
