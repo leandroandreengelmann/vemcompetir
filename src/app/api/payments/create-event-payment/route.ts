@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         // 3. Resolve payer
         const { data: profile, error: profileError } = await admin
             .from('profiles')
-            .select('id, tenant_id, full_name, asaas_customer_id, asaas_customer_id_platform, cpf')
+            .select('id, tenant_id, full_name, asaas_customer_id, asaas_customer_id_platform, cpf, gym_name, master_name')
             .eq('id', user.id)
             .single();
 
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
             (allOverrides || []).map(o => [o.category_id, o.promo_type])
         );
 
-        // Buscar preço diferenciado por academia (se aplicável)
+        // Buscar preço diferenciado por academia (aplica quando a academia é o pagador)
         let tenantPricingData: { registration_fee: number; promo_registration_fee: number | null } | null = null;
         if (payer_type === 'ACADEMY' && payer_ref) {
             const { data: tp } = await admin
@@ -239,16 +239,55 @@ export async function POST(request: NextRequest) {
             tenantPricingData = tp;
         }
 
-        // Buscar table_id de cada categoria no carrinho
+        // Buscar preço diferenciado por atleta (aplica quando o atleta é o pagador)
+        // Match por gym_name/master_name do perfil do atleta, mesma lógica do carrinho
+        let athletePricings: Array<{ gym_name: string | null; master_name: string | null; registration_fee: number }> | null = null;
+        if (payer_type === 'ATHLETE' && (profile.gym_name || profile.master_name)) {
+            const { data: ap } = await admin
+                .from('event_athlete_pricing')
+                .select('gym_name, master_name, registration_fee')
+                .eq('event_id', event_id)
+                .eq('active', true);
+            athletePricings = ap;
+        }
+
+        const normStr = (s: string | null) =>
+            (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+        const matchAthletePrice = (): number | null => {
+            if (!athletePricings || athletePricings.length === 0) return null;
+            const gym = normStr(profile.gym_name);
+            const master = normStr(profile.master_name);
+            // Prioridade: ambos > só gym > só master
+            if (gym && master) {
+                const m = athletePricings.find(ap => ap.gym_name && ap.master_name && normStr(ap.gym_name) === gym && normStr(ap.master_name) === master);
+                if (m) return Number(m.registration_fee);
+            }
+            if (gym) {
+                const m = athletePricings.find(ap => ap.gym_name && !ap.master_name && normStr(ap.gym_name) === gym);
+                if (m) return Number(m.registration_fee);
+            }
+            if (master) {
+                const m = athletePricings.find(ap => !ap.gym_name && ap.master_name && normStr(ap.master_name) === master);
+                if (m) return Number(m.registration_fee);
+            }
+            return null;
+        };
+
+        // Buscar table_id e categoria_completa de cada categoria no carrinho
         const categoryIds = [...new Set(cartItems.map(i => i.category_id))];
         const { data: categoryRows } = await admin
             .from('category_rows')
-            .select('id, table_id')
+            .select('id, table_id, categoria_completa')
             .in('id', categoryIds);
 
         const categoryTableMap = new Map(
             (categoryRows || []).map(c => [c.id, c.table_id])
         );
+        const categoryNameMap = new Map(
+            (categoryRows || []).map(c => [c.id, (c as any).categoria_completa as string | null])
+        );
+        const isAbsoluto = (catId: string) => normStr(categoryNameMap.get(catId) || '').includes('absoluto');
 
         // Validar cada item (exceto promos gratuitas e combos já validados acima)
         for (const item of cartItems) {
@@ -273,6 +312,15 @@ export async function POST(request: NextRequest) {
                     }
                 } else {
                     expectedPrice = tenantPricingData.registration_fee;
+                }
+            }
+
+            // Athlete pricing: só quando o próprio atleta paga e a categoria não é Absoluto
+            // (mesma regra do carrinho em athlete-cart-actions.ts)
+            if (payer_type === 'ATHLETE' && !isAbsoluto(item.category_id)) {
+                const athletePrice = matchAthletePrice();
+                if (athletePrice !== null) {
+                    expectedPrice = athletePrice;
                 }
             }
 
