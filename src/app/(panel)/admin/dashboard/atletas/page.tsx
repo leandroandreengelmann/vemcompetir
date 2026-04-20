@@ -17,7 +17,7 @@ export default async function AdminAthletesPage() {
     // 1. Todos os atletas
     const { data: athletesRaw } = await adminClient
         .from('profiles')
-        .select('id, full_name, cpf, phone, belt_color, weight, birth_date, sexo, gym_name, created_at, tenant_id, tenants(name)')
+        .select('id, full_name, cpf, phone, belt_color, weight, birth_date, sexo, gym_name, created_at, tenant_id, tenants!profiles_tenant_id_fkey(name)')
         .eq('role', 'atleta')
         .order('created_at', { ascending: false });
 
