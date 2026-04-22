@@ -81,7 +81,7 @@ export function AthleteRegistrationsSheet({ athleteId, athleteName, counts }: At
         setError(null);
         const result = await getAthleteRegistrationsAction(athleteId);
         if ('error' in result) {
-            setError(result.error);
+            setError(result.error ?? 'Erro ao carregar inscrições.');
         } else {
             setRegistrations(result.registrations as Registration[]);
         }
