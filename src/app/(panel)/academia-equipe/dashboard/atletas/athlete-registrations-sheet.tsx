@@ -83,7 +83,7 @@ export function AthleteRegistrationsSheet({ athleteId, athleteName, counts }: At
         if ('error' in result) {
             setError(result.error ?? 'Erro ao carregar inscrições.');
         } else {
-            setRegistrations(result.registrations as Registration[]);
+            setRegistrations(result.registrations as unknown as Registration[]);
         }
         setLoading(false);
     };
