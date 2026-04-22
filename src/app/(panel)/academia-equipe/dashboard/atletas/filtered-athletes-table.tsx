@@ -138,11 +138,11 @@ export function FilteredAthletesTable({
             {/* Barra de filtros */}
             <div className="px-6 pt-4 pb-3 border-b border-border/40 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative flex-1 min-w-[220px] max-w-md">
+                    <div className="relative flex-1 min-w-[220px] max-w-md group">
                         <MagnifyingGlassIcon
-                            size={18}
-                            weight="bold"
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            size={16}
+                            weight="duotone"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors"
                         />
                         <Input
                             value={search}
@@ -152,13 +152,14 @@ export function FilteredAthletesTable({
                                     ? 'Buscar por nome, e-mail ou academia...'
                                     : 'Buscar por nome, CPF, telefone ou mestre...'
                             }
-                            className="pl-10 pr-8 h-10"
+                            variant="lg"
+                            className="pl-11 pr-10 bg-background border-input shadow-sm"
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 <XIcon size={14} weight="bold" />
                                 <span className="sr-only">Limpar busca</span>
