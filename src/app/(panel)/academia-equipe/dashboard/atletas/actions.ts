@@ -488,6 +488,45 @@ export async function claimAthleteAction(
     return { success: true };
 }
 
+export async function getAthleteRegistrationsAction(athleteId: string) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe' && profile.role !== 'admin_geral') {
+        return { error: 'Sem permissão.' as const };
+    }
+    const isGlobalAdmin = profile.role === 'admin_geral';
+
+    const adminClient = createAdminClient();
+
+    const { data: athleteProfile } = await adminClient
+        .from('profiles')
+        .select('tenant_id, role, full_name')
+        .eq('id', athleteId)
+        .single();
+
+    if (!athleteProfile) return { error: 'Atleta não encontrado.' as const };
+    if (athleteProfile.role !== 'atleta') return { error: 'Perfil não é de atleta.' as const };
+    if (!isGlobalAdmin && athleteProfile.tenant_id !== tenant_id) {
+        return { error: 'Este atleta não pertence à sua academia.' as const };
+    }
+
+    const { data: registrations, error } = await adminClient
+        .from('event_registrations')
+        .select(`
+            id,
+            status,
+            created_at,
+            event:events ( id, title ),
+            category:category_rows ( id, categoria_completa )
+        `)
+        .eq('athlete_id', athleteId)
+        .order('created_at', { ascending: false });
+
+    if (error) return { error: 'Erro ao buscar inscrições.' as const };
+
+    return { registrations: registrations ?? [] };
+}
+
 export async function generateAthleteAccessAction(formData: FormData) {
     const { profile, tenant_id } = await requireTenantScope();
 

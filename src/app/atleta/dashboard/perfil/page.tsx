@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth-guards';
 import { Button } from "@/components/ui/button";
 import { AthleteProfileForm } from '../profile-form';
+import { CountryFlag } from '@/components/ui/country-flag';
+import { AvatarUploader } from './avatar-uploader';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -25,6 +27,26 @@ export default async function AthletePerfil() {
                     // @ts-ignore
                     beltColor={profile?.belt_color || 'branca'}
                 />
+
+                {/* @ts-ignore */}
+                {profile?.nationality && (
+                    <div className="px-2 md:pl-5 -mt-4">
+                        {/* @ts-ignore */}
+                        <CountryFlag code={profile.nationality} className="text-panel-sm font-semibold text-muted-foreground" />
+                    </div>
+                )}
+
+                {/* Avatar Uploader */}
+                <div className="py-4">
+                    <AvatarUploader
+                        // @ts-ignore
+                        currentUrl={profile?.avatar_url}
+                        // @ts-ignore
+                        fullName={profile?.full_name}
+                        // @ts-ignore
+                        beltColor={profile?.belt_color || 'branca'}
+                    />
+                </div>
 
                 {/* Form Section */}
                 <div className="mt-2 text-foreground">

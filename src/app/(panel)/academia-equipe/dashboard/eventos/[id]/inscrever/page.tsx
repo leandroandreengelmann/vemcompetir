@@ -11,11 +11,14 @@ import { getSystemSettingsMap } from '@/lib/dal/system-settings';
 
 interface SubscribePageProps {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ atleta?: string }>;
 }
 
 export default async function SubscribePage(props: SubscribePageProps) {
     const params = await props.params;
+    const searchParams = await props.searchParams;
     const { id } = params;
+    const preSelectedAthleteId = searchParams?.atleta;
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -109,6 +112,7 @@ export default async function SubscribePage(props: SubscribePageProps) {
                 athletes={athletes}
                 isOwner={isOwner}
                 adminTax={adminTax}
+                initialAthleteId={preSelectedAthleteId}
             />
         </div>
     );

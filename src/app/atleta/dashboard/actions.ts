@@ -17,6 +17,8 @@ export async function updateAthleteProfile(formData: FormData) {
     const cpf = formData.get('cpf') as string ? (formData.get('cpf') as string).replace(/\D/g, '') : null;
     const phone = formData.get('phone') as string ? (formData.get('phone') as string).replace(/\D/g, '') : null;
     const sexo = formData.get('sexo') as string | null;
+    const nationalityRaw = (formData.get('nationality') as string | null)?.toUpperCase() ?? null;
+    const nationality = nationalityRaw && /^[A-Z]{2}$/.test(nationalityRaw) ? nationalityRaw : null;
 
     // These fields are optionally filled if the user is a "community suggestion"
     // but we MUST NOT update tenant_id or master_id here for regular users.
@@ -47,6 +49,7 @@ export async function updateAthleteProfile(formData: FormData) {
             cpf,
             phone,
             sexo,
+            nationality,
         })
         .eq('id', user.id);
 
@@ -185,6 +188,76 @@ export async function signOutAction() {
     const supabase = await createClient();
     await supabase.auth.signOut();
     revalidatePath('/');
+    return { success: true };
+}
+
+const ALLOWED_AVATAR_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+export async function uploadAvatarAction(formData: FormData) {
+    const user = await requireAuth();
+    const supabase = await createClient();
+    const admin = createAdminClient();
+
+    const file = formData.get('avatar') as File | null;
+    if (!file || file.size === 0) return { error: 'Nenhuma imagem recebida.' };
+    if (!ALLOWED_AVATAR_MIME.includes(file.type)) return { error: 'Formato inválido. Use JPG, PNG ou WEBP.' };
+    if (file.size > MAX_AVATAR_BYTES) return { error: 'Imagem muito grande. Tamanho máximo: 2 MB.' };
+
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+
+    // Remove avatar antigo antes de subir o novo
+    const { data: existing } = await admin.storage.from('avatars').list(user.id);
+    if (existing && existing.length > 0) {
+        const oldPaths = existing.map(f => `${user.id}/${f.name}`);
+        await admin.storage.from('avatars').remove(oldPaths);
+    }
+
+    const { error: uploadError } = await admin.storage
+        .from('avatars')
+        .upload(path, file, { contentType: file.type, upsert: true });
+    if (uploadError) {
+        console.error('Avatar upload error:', uploadError);
+        return { error: 'Erro ao enviar a imagem.' };
+    }
+
+    const { data: urlData } = admin.storage.from('avatars').getPublicUrl(path);
+    const publicUrl = urlData.publicUrl;
+
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+    if (updateError) {
+        console.error('Avatar update profile error:', updateError);
+        return { error: 'Erro ao salvar o perfil.' };
+    }
+
+    revalidatePath('/atleta/dashboard');
+    revalidatePath('/atleta/dashboard/perfil');
+    return { success: true, url: publicUrl };
+}
+
+export async function removeAvatarAction() {
+    const user = await requireAuth();
+    const supabase = await createClient();
+    const admin = createAdminClient();
+
+    const { data: existing } = await admin.storage.from('avatars').list(user.id);
+    if (existing && existing.length > 0) {
+        const paths = existing.map(f => `${user.id}/${f.name}`);
+        await admin.storage.from('avatars').remove(paths);
+    }
+
+    const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+    if (error) {
+        console.error('Avatar remove profile error:', error);
+        return { error: 'Erro ao remover a foto.' };
+    }
+
+    revalidatePath('/atleta/dashboard');
+    revalidatePath('/atleta/dashboard/perfil');
     return { success: true };
 }
 

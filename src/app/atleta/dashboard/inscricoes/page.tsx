@@ -147,7 +147,7 @@ id,
                                     Explorar Campeonatos
                                 </Link>
                             </Button>
-                            <Button pill variant="ghost" asChild className="w-full h-12  font-bold text-muted-foreground hover:text-primary transition-all">
+                            <Button pill variant="outline" asChild className="w-full h-12 font-bold border-2">
                                 <Link href="/atleta/dashboard">
                                     Voltar ao Dashboard
                                 </Link>

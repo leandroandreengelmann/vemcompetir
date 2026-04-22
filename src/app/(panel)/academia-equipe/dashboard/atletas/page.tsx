@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { PlusIcon, PencilSimpleIcon, EyeIcon, UserCircleIcon, MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr';
+import { PlusIcon, PencilSimpleIcon, EyeIcon, UserCircleIcon, MagnifyingGlassIcon, ClipboardTextIcon } from '@phosphor-icons/react/dist/ssr';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -17,11 +17,14 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Badge } from "@/components/ui/badge";
+import { AthleteAvatarCard } from '@/components/athlete/athlete-avatar-card';
+import { CountryFlag } from '@/components/ui/country-flag';
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatCPF, formatPhone } from '@/lib/validation';
 import { GenerateAccessButton } from './generate-access-button';
 import { ClaimAthleteButton } from './claim-athlete-button';
 import { UnclaimAthleteButton } from './unclaim-athlete-button';
+import { AthleteRegistrationsSheet } from './athlete-registrations-sheet';
 
 export default async function AthleteManagementPage() {
     const supabase = await createClient();
@@ -54,6 +57,25 @@ export default async function AthleteManagementPage() {
 
     const adminClient = createAdminClient();
 
+    // Contagem agregada de inscrições por atleta (para o indicador no botão de inscrições)
+    const athleteIds = (athletesWithEmails ?? []).map((a: any) => a.id);
+    const registrationCounts = new Map<string, { total: number; pago: number; pendente: number }>();
+    if (athleteIds.length > 0) {
+        const { data: regs } = await adminClient
+            .from('event_registrations')
+            .select('athlete_id, status')
+            .in('athlete_id', athleteIds)
+            .neq('status', 'cancelado');
+
+        for (const r of regs ?? []) {
+            const entry = registrationCounts.get(r.athlete_id) ?? { total: 0, pago: 0, pendente: 0 };
+            entry.total += 1;
+            if (r.status === 'pago' || r.status === 'confirmado' || r.status === 'isento') entry.pago += 1;
+            else if (r.status === 'pendente' || r.status === 'carrinho' || r.status === 'agendado') entry.pendente += 1;
+            registrationCounts.set(r.athlete_id, entry);
+        }
+    }
+
     // --- Novas seções: vinculados e sugestões (somente para academias) ---
     let linkedAthletes: any[] = [];
     let suggestedAthletes: any[] = [];
@@ -83,7 +105,7 @@ export default async function AthleteManagementPage() {
             // Atletas que colocaram o nome exato da academia (case-insensitive) e não têm tenant_id
             const { data: linked } = await adminClient
                 .from('profiles')
-                .select('id, full_name, belt_color, gym_name, master_name, phone, cpf, created_at')
+                .select('id, full_name, belt_color, gym_name, master_name, phone, cpf, created_at, avatar_url, nationality')
                 .eq('role', 'atleta')
                 .is('tenant_id', null)
                 .ilike('gym_name', tenantName)
@@ -165,13 +187,25 @@ export default async function AthleteManagementPage() {
                                     return (
                                         <TableRow key={athlete.id}>
                                             <TableCell className="pl-6 font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    {athlete.full_name}
-                                                    {hasOwnAccount && (
-                                                        <Badge variant="secondary" className="text-xs font-normal">
-                                                            Conta própria
-                                                        </Badge>
-                                                    )}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex flex-col items-center gap-1 shrink-0">
+                                                        <AthleteAvatarCard
+                                                            fullName={athlete.full_name}
+                                                            avatarUrl={athlete.avatar_url}
+                                                            beltColor={athlete.belt_color}
+                                                        />
+                                                        {athlete.nationality && (
+                                                            <CountryFlag code={athlete.nationality} showName={false} />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {athlete.full_name}
+                                                        {hasOwnAccount && (
+                                                            <Badge variant="secondary" className="text-xs font-normal">
+                                                                Conta própria
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -213,6 +247,24 @@ export default async function AthleteManagementPage() {
                                                         </TooltipTrigger>
                                                         <TooltipContent side="top">Ver perfil completo</TooltipContent>
                                                     </Tooltip>
+                                                    <AthleteRegistrationsSheet
+                                                        athleteId={athlete.id}
+                                                        athleteName={athlete.full_name}
+                                                        counts={registrationCounts.get(athlete.id) ?? { total: 0, pago: 0, pendente: 0 }}
+                                                    />
+                                                    {isAcademy && (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button pill variant="ghost" size="icon" asChild className="text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors">
+                                                                    <Link href={`/academia-equipe/dashboard/eventos/disponiveis?atleta=${athlete.id}`}>
+                                                                        <ClipboardTextIcon size={24} weight="duotone" />
+                                                                        <span className="sr-only">Inscrever em evento</span>
+                                                                    </Link>
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top">Inscrever em evento</TooltipContent>
+                                                        </Tooltip>
+                                                    )}
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Button pill variant="ghost" size="icon" asChild className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
@@ -285,7 +337,21 @@ export default async function AthleteManagementPage() {
                                     ) : (
                                         linkedAthletes.map((athlete) => (
                                             <TableRow key={athlete.id}>
-                                                <TableCell className="pl-6 font-medium">{athlete.full_name}</TableCell>
+                                                <TableCell className="pl-6 font-medium">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex flex-col items-center gap-1 shrink-0">
+                                                            <AthleteAvatarCard
+                                                                fullName={athlete.full_name}
+                                                                avatarUrl={athlete.avatar_url}
+                                                                beltColor={athlete.belt_color}
+                                                            />
+                                                            {athlete.nationality && (
+                                                                <CountryFlag code={athlete.nationality} showName={false} />
+                                                            )}
+                                                        </div>
+                                                        <span>{athlete.full_name}</span>
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell>
                                                     <Badge
                                                         variant="outline"
@@ -353,7 +419,21 @@ export default async function AthleteManagementPage() {
                                     ) : (
                                         suggestedAthletes.map((athlete) => (
                                             <TableRow key={athlete.id}>
-                                                <TableCell className="pl-6 font-medium">{athlete.full_name}</TableCell>
+                                                <TableCell className="pl-6 font-medium">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex flex-col items-center gap-1 shrink-0">
+                                                            <AthleteAvatarCard
+                                                                fullName={athlete.full_name}
+                                                                avatarUrl={athlete.avatar_url}
+                                                                beltColor={athlete.belt_color}
+                                                            />
+                                                            {athlete.nationality && (
+                                                                <CountryFlag code={athlete.nationality} showName={false} />
+                                                            )}
+                                                        </div>
+                                                        <span>{athlete.full_name}</span>
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell>
                                                     <Badge
                                                         variant="outline"

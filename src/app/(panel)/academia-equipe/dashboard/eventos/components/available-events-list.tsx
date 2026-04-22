@@ -36,9 +36,11 @@ interface Athlete {
 interface AvailableEventsListProps {
     events: Event[];
     athletes: any[]; // Not needed anymore for this component, but keeping for interface compatibility
+    preSelectedAthleteId?: string;
 }
 
-export function AvailableEventsList({ events }: AvailableEventsListProps) {
+export function AvailableEventsList({ events, preSelectedAthleteId }: AvailableEventsListProps) {
+    const athleteQuery = preSelectedAthleteId ? `?atleta=${preSelectedAthleteId}` : '';
     return (
         <Card>
             <CardHeader>
@@ -84,7 +86,7 @@ export function AvailableEventsList({ events }: AvailableEventsListProps) {
                                                 pill
                                                 className="bg-primary hover:bg-primary/90 shadow-sm"
                                             >
-                                                <Link href={`/academia-equipe/dashboard/eventos/${event.id}/inscrever`}>
+                                                <Link href={`/academia-equipe/dashboard/eventos/${event.id}/inscrever${athleteQuery}`}>
                                                     <PlusIcon size={20} weight="duotone" className="mr-1.5" />
                                                     Inscrever Atletas
                                                 </Link>

@@ -64,10 +64,13 @@ interface RegistrationFormProps {
     athletes: Athlete[];
     isOwner: boolean;
     adminTax: number;
+    initialAthleteId?: string;
 }
 
-export function RegistrationForm({ event, athletes, isOwner, adminTax }: RegistrationFormProps) {
-    const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+export function RegistrationForm({ event, athletes, isOwner, adminTax, initialAthleteId }: RegistrationFormProps) {
+    const [selectedAthleteId, setSelectedAthleteId] = useState<string>(
+        initialAthleteId && athletes.some(a => a.id === initialAthleteId) ? initialAthleteId : ''
+    );
     const { items, addItem } = useRegistrationCart();
 
     const [allCategories, setAllCategories] = useState<any[]>([]);

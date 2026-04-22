@@ -2,6 +2,8 @@
 
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { BeltKnot } from '@/components/athlete/belt-knot';
+import { CountryFlag } from '@/components/ui/country-flag';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SignOutIcon } from '@phosphor-icons/react';
 import { signOutAction } from '../dashboard/actions';
 import { useRouter } from 'next/navigation';
@@ -11,9 +13,10 @@ interface AthleteDesktopSidebarProps {
     fullName?: string | null;
     avatarUrl?: string | null;
     beltColor?: string;
+    nationality?: string | null;
 }
 
-export function AthleteDesktopSidebar({ fullName, beltColor = 'branca' }: AthleteDesktopSidebarProps) {
+export function AthleteDesktopSidebar({ fullName, avatarUrl, beltColor = 'branca', nationality }: AthleteDesktopSidebarProps) {
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const isWhiteBelt = beltColor.toLowerCase().trim() === 'branca';
@@ -38,19 +41,38 @@ export function AthleteDesktopSidebar({ fullName, beltColor = 'branca' }: Athlet
         >
             <div className="flex-1 flex flex-col items-center justify-center gap-8">
                 {/* Nó da faixa — identidade central */}
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 relative -top-8">
+                <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 relative -top-8 flex flex-col items-center gap-2">
                     <BeltKnot beltColor={beltColor} className="w-[210px] h-[118px]" />
+                    {nationality && (
+                        <CountryFlag
+                            code={nationality}
+                            showName={false}
+                            className="[&_.fi]:!w-10 [&_.fi]:!h-[1.875rem] [&_.fi]:!rounded-none [&_.fi]:shadow-md"
+                        />
+                    )}
                 </div>
 
 
                 {/* Nome e graduação — conectados ao nó */}
-                <div className="text-center px-6">
-                    <p className={`font-bold text-panel-md leading-tight tracking-wide ${nameColor}`}>
-                        {displayName}
-                    </p>
-                    <p className={`mt-1.5 text-panel-sm uppercase tracking-[0.2em] font-semibold ${beltLabelColor}`}>
-                        Faixa {beltColor}
-                    </p>
+                <div className="flex flex-col items-center gap-3 px-6">
+                    <Avatar className={`h-20 w-20 shadow-sm ${isWhiteBelt ? 'border-2 border-brand-950/10' : 'border-2 border-white/30'}`}>
+                        {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName || 'Avatar'} />}
+                        <AvatarFallback
+                            className={`text-2xl font-bold ${
+                                isWhiteBelt ? 'bg-brand-950 text-white' : 'bg-white/15 text-white'
+                            }`}
+                        >
+                            {fullName?.trim().charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="text-center">
+                        <p className={`font-bold text-panel-md leading-tight tracking-wide ${nameColor}`}>
+                            {displayName}
+                        </p>
+                        <p className={`mt-1.5 text-panel-sm uppercase tracking-[0.2em] font-semibold ${beltLabelColor}`}>
+                            Faixa {beltColor}
+                        </p>
+                    </div>
                 </div>
             </div>
 

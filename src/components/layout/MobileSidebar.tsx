@@ -45,7 +45,13 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
             label: "Atletas",
             icon: UsersIcon,
             href: "/academia-equipe/dashboard/atletas",
-            roles: ['admin_geral', 'academia/equipe'],
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Meus Atletas",
+            icon: UsersIcon,
+            href: "/academia-equipe/dashboard/atletas",
+            roles: ['academia/equipe'],
         },
         {
             label: "Eventos Disponíveis",

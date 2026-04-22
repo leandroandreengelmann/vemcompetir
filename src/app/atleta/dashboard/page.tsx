@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { BeltKnot } from '@/components/athlete/belt-knot';
 import { InterestNotificationWrapper } from './components/interest-notification';
-import { PhoneVerificationBanner } from './components/phone-verification-banner';
+import { CountryFlag } from '@/components/ui/country-flag';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -24,7 +24,7 @@ export default async function AthleteDashboard() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('id, full_name, role, belt_color, avatar_url, weight, birth_date, gym_name, tenant_id, master_id, master_name, phone, phone_verified')
+        .select('id, full_name, role, belt_color, avatar_url, weight, birth_date, gym_name, tenant_id, master_id, master_name, phone, phone_verified, cpf, sexo, nationality')
         .eq('id', user.id)
         .single();
 
@@ -44,7 +44,7 @@ export default async function AthleteDashboard() {
         verifiedByAcademy = tenant?.name ?? null;
     }
 
-    const isProfileIncomplete = !profile?.weight || !profile?.birth_date || !profile?.belt_color || !profile?.gym_name;
+    const isProfileIncomplete = !profile?.weight || !profile?.birth_date || !profile?.belt_color || !profile?.gym_name || !profile?.sexo;
 
     // Calcular cores dinâmicas
     const beltColor = profile?.belt_color || 'branca';
@@ -76,13 +76,6 @@ export default async function AthleteDashboard() {
             className="min-h-screen md:h-screen md:overflow-hidden bg-[#FAFAFA] relative flex flex-col items-center justify-center p-4 pt-20 md:pt-8"
             style={{ '--primary': activeHsl } as React.CSSProperties}
         >
-            {/* Banner de verificação de WhatsApp */}
-            {profile?.phone && !profile?.phone_verified && (
-                <div className="absolute top-0 left-0 right-0 z-40">
-                    <PhoneVerificationBanner phone={profile.phone} />
-                </div>
-            )}
-
             {/* Header: Avatar (Left) and Belt (Right) — mobile only */}
             <div className="md:hidden absolute top-4 left-4 right-4 flex items-start justify-between">
                 {/* Left: Avatar + Greeting */}
@@ -105,8 +98,15 @@ export default async function AthleteDashboard() {
                 </div>
 
                 {/* Right: Belt Illustration */}
-                <div className="animate-in fade-in slide-in-from-top-2 duration-700">
+                <div className="animate-in fade-in slide-in-from-top-2 duration-700 flex flex-col items-center gap-1.5">
                     <BeltKnot beltColor={beltColor} />
+                    {profile?.nationality && (
+                        <CountryFlag
+                            code={profile.nationality}
+                            showName={false}
+                            className="[&_.fi]:!w-9 [&_.fi]:!h-[1.6875rem] [&_.fi]:!rounded-none [&_.fi]:shadow-md"
+                        />
+                    )}
                 </div>
             </div>
 
@@ -199,7 +199,7 @@ export default async function AthleteDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-6 md:p-8 bg-white max-h-[80vh] overflow-y-auto">
-                            <AthleteProfileForm profile={profile} user={user} belts={BELTS} phoneVerified={profile?.phone_verified ?? false} />
+                            <AthleteProfileForm profile={profile} user={user} belts={BELTS} />
                         </CardContent>
                     </Card>
                 </div>

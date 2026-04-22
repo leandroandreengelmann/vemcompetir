@@ -94,7 +94,7 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             roles: ['admin_geral'],
         },
         {
-            label: "Atletas",
+            label: "Meus Atletas",
             icon: UsersIcon,
             href: "/academia-equipe/dashboard/atletas",
             roles: ['academia/equipe'],

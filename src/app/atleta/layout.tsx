@@ -19,7 +19,7 @@ export default async function AthleteLayout({
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('belt_color, full_name, avatar_url')
+        .select('belt_color, full_name, avatar_url, nationality')
         .eq('id', user.id)
         .single();
 
@@ -30,6 +30,7 @@ export default async function AthleteLayout({
                     fullName={profile?.full_name}
                     avatarUrl={profile?.avatar_url}
                     beltColor={profile?.belt_color || 'branca'}
+                    nationality={profile?.nationality}
                 />
                 <div className="flex-1 min-w-0 md:pl-64 relative">
                     {children}

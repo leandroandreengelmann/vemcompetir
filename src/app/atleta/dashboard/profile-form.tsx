@@ -24,28 +24,33 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CheckIcon, CircleNotchIcon, XIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { updateAthleteProfile, searchGyms, searchMasters, signOutAction, sendPhoneVerificationAction, confirmPhoneVerificationAction } from './actions';
+import { updateAthleteProfile, searchGyms, searchMasters, signOutAction } from './actions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
+import { COUNTRIES } from '@/lib/countries';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { showToast } from '@/lib/toast';
 
 interface ProfileFormProps {
     profile: any;
     user: any;
     belts: string[];
-    phoneVerified?: boolean;
 }
 
-export function AthleteProfileForm({ profile, user, belts, phoneVerified = false }: ProfileFormProps) {
+export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const initialStep = searchParams.get('step') ? parseInt(searchParams.get('step') as string, 10) : 1;
 
-    const [step, setStep] = useState(initialStep);
+    const needsIdentityStep = !profile?.cpf || !profile?.birth_date;
+    const totalSteps = needsIdentityStep ? 3 : 2;
+    const vinculoStepIndex = needsIdentityStep ? 2 : 1;
+    const tecnicoStepIndex = needsIdentityStep ? 3 : 2;
+
+    const clampedInitialStep = Math.min(initialStep, totalSteps);
+    const [step, setStep] = useState(clampedInitialStep);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -89,10 +94,6 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
 
     const [cpfValue, setCpfValue] = useState(profile?.cpf ? formatCPF(profile.cpf) : '');
     const [phoneValue, setPhoneValue] = useState(profile?.phone ? formatPhone(profile.phone) : '');
-    const [isPhoneVerified, setIsPhoneVerified] = useState(phoneVerified);
-    const [verifyStep, setVerifyStep] = useState<'idle' | 'sending' | 'code' | 'confirming'>('idle');
-    const [verifyCode, setVerifyCode] = useState('');
-    const [verifyError, setVerifyError] = useState<string | null>(null);
     const [cpfError, setCpfError] = useState<string | null>(null);
     const [birthDateValue, setBirthDateValue] = useState(profile?.birth_date || '');
     const [emailValue, setEmailValue] = useState(user?.email || '');
@@ -210,22 +211,30 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
         if (!formRef.current) return false;
         const formData = new FormData(formRef.current);
 
-        if (s === 1) {
-            const sexo = formData.get('sexo') as string;
-            if (!sexo) return false;
-            if (!birthDateValue) return false;
+        if (needsIdentityStep && s === 1) {
+            if (!profile?.birth_date && !birthDateValue) return false;
             if (!profile?.cpf && !cpfValue) return false;
             if (!profile?.cpf && cpfValue && !validateCPF(cpfValue)) return false;
             return true;
         }
 
-        if (s === 2) {
+        if (s === vinculoStepIndex) {
             if (!selectedGym) return false;
-            // Master name is optional if athlete doesn't have one? 
-            // In the original form it was potentially optional. 
-            // Let's keep it required for the wizard if we want a complete profile.
-            // Actually, master is usually required for competition.
             if (!selectedMaster) return false;
+            return true;
+        }
+
+        if (s === tecnicoStepIndex) {
+            const sexo = formData.get('sexo') as string;
+            const belt = formData.get('belt_color') as string;
+            const weight = formData.get('weight') as string;
+            const nationality = formData.get('nationality') as string;
+            if (!sexo) return false;
+            if (!belt) return false;
+            if (!weight) return false;
+            if (!nationality) return false;
+            // Telefone é opcional — se preenchido, deve estar completo
+            if (phoneValue && phoneValue.length > 0 && phoneValue.length < 14) return false;
             return true;
         }
 
@@ -249,22 +258,15 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
     const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
         e?.preventDefault();
 
-        // Final validation
-        if (!validateStep(1) || !validateStep(2)) {
-            setMessage({ type: 'error', text: 'Existem campos inválidos em etapas anteriores.' });
-            return;
+        // Final validation — valida todos os passos aplicáveis
+        for (let s = 1; s <= totalSteps; s++) {
+            if (!validateStep(s)) {
+                setMessage({ type: 'error', text: 'Existem campos inválidos em etapas anteriores.' });
+                return;
+            }
         }
 
-        const formDataObj = new FormData(formRef.current!);
-        const belt = formDataObj.get('belt_color') as string;
-        const weight = formDataObj.get('weight') as string;
-
-        if (!belt || !weight || !phoneValue || phoneValue.length < 14) {
-            setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios da última etapa.' });
-            return;
-        }
-
-        if (cpfValue && !validateCPF(cpfValue)) {
+        if (!profile?.cpf && cpfValue && !validateCPF(cpfValue)) {
             setCpfError('CPF inválido.');
             setMessage({ type: 'error', text: 'Por favor, corrija o CPF informado.' });
             return;
@@ -281,8 +283,10 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
         if (selectedMaster?.id) formData.append('master_id', selectedMaster.id);
         if (selectedMaster?.name) formData.append('master_name', selectedMaster.name);
 
-        // Ensure normalized values are sent
-        formData.set('cpf', normalizeNumeric(cpfValue));
+        // Envia CPF apenas se o atleta preencheu no fallback (caso legado)
+        if (!profile?.cpf && cpfValue) {
+            formData.set('cpf', normalizeNumeric(cpfValue));
+        }
         formData.set('phone', normalizeNumeric(phoneValue));
 
         const result = await updateAthleteProfile(formData);
@@ -297,44 +301,23 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
         }
     };
 
-    const handleSendVerification = async () => {
-        const clean = normalizeNumeric(phoneValue);
-        if (clean.length < 10) { setVerifyError('Digite um telefone válido primeiro.'); return; }
-        setVerifyStep('sending');
-        setVerifyError(null);
-        const result = await sendPhoneVerificationAction(clean);
-        if (result.error) { setVerifyError(result.error); setVerifyStep('idle'); return; }
-        setVerifyStep('code');
-    };
-
-    const handleConfirmVerification = async () => {
-        setVerifyStep('confirming');
-        setVerifyError(null);
-        const clean = normalizeNumeric(phoneValue);
-        const result = await confirmPhoneVerificationAction(clean, verifyCode);
-        if (result.error) { setVerifyError(result.error); setVerifyStep('code'); return; }
-        setIsPhoneVerified(true);
-        setVerifyStep('idle');
-        setVerifyCode('');
-    };
-
     return (
         <div className="flex flex-col gap-8">
             {/* Progress Bar */}
             <div className="space-y-4 px-1">
                 <div className="flex justify-between items-center mb-1">
                     <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest">
-                        Passo {step} de 3
+                        Passo {step} de {totalSteps}
                     </span>
                     <span className="text-panel-sm font-bold text-primary uppercase">
-                        {step === 1 ? 'Identidade' : step === 2 ? 'Vínculo' : 'Técnico'}
+                        {step === vinculoStepIndex ? 'Vínculo' : step === tecnicoStepIndex ? 'Técnico' : 'Identidade'}
                     </span>
                 </div>
                 <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
                     <div
                         className="h-full rounded-full transition-all duration-700 ease-in-out relative overflow-hidden"
                         style={{
-                            width: `${(step / 3) * 100}%`,
+                            width: `${(step / totalSteps) * 100}%`,
                             background: 'linear-gradient(90deg, #10b981, #34d399)',
                         }}
                     >
@@ -361,60 +344,49 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                     </Alert>
                 )}
 
+                {/* Hidden fields enviados em qualquer passo */}
+                <input type="hidden" name="full_name" value={profile?.full_name || ''} />
+                <input type="hidden" name="email" value={emailValue} />
+                {/* Preserva CPF e birth_date existentes para não serem sobrescritos pelo update */}
+                {profile?.cpf && <input type="hidden" name="cpf" value={profile.cpf} />}
+                {profile?.birth_date && <input type="hidden" name="birth_date" value={profile.birth_date} />}
+
                 <div className="min-h-[340px]">
-                    {/* STEP 1: IDENTIDADE */}
-                    <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 1 && "hidden")}>
-                        {/* Campos já coletados no cadastro — enviados como hidden */}
-                        <input type="hidden" name="full_name" value={profile?.full_name || ''} />
-                        <input type="hidden" name="email" value={emailValue} />
+                    {/* STEP 1 (fallback): IDENTIDADE — só aparece para atletas legados sem CPF ou data de nascimento */}
+                    {needsIdentityStep && (
+                        <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 1 && "hidden")}>
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <p className="text-xs text-amber-700 font-medium">
+                                    Precisamos de alguns dados que faltaram no seu cadastro.
+                                </p>
+                            </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="sexo" className="text-panel-sm font-medium text-muted-foreground">Sexo <span className="text-red-500 ml-1">*</span></Label>
-                            <Select name="sexo" defaultValue={profile?.sexo || undefined}>
-                                <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
-                                    <SelectValue placeholder="Selecione seu sexo" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                    <SelectItem value="Masculino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Masculino</SelectItem>
-                                    <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Feminino</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                            {!profile?.birth_date && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="birth_date" className="text-panel-sm font-medium text-muted-foreground">
+                                        Data de nascimento <span className="text-red-500 ml-1">*</span>
+                                    </Label>
+                                    <Input
+                                        id="birth_date"
+                                        name="birth_date"
+                                        type="date"
+                                        value={birthDateValue}
+                                        onChange={(e) => setBirthDateValue(e.target.value)}
+                                        required
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
+                                    />
+                                    {calculatedAge !== null && (
+                                        <p className="text-panel-sm text-muted-foreground font-medium">{calculatedAge} anos</p>
+                                    )}
+                                </div>
+                            )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="birth_date" className="text-panel-sm font-medium text-muted-foreground">
-                                Data de nascimento <span className="text-red-500 ml-1">*</span>
-                            </Label>
-                            <>
-                                <Input
-                                    id="birth_date"
-                                    name="birth_date"
-                                    type="date"
-                                    value={birthDateValue}
-                                    onChange={(e) => setBirthDateValue(e.target.value)}
-                                    required
-                                    max={new Date().toISOString().split('T')[0]}
-                                    className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
-                                />
-                                {calculatedAge !== null && (
-                                    <p className="text-panel-sm text-muted-foreground font-medium">{calculatedAge} anos</p>
-                                )}
-                            </>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="cpf" className="text-panel-sm font-medium text-muted-foreground">
-                                CPF <span className="text-red-500 ml-1">*</span>
-                            </Label>
-                            {profile?.cpf ? (
-                                <>
-                                    <input type="hidden" name="cpf" value={cpfValue.replace(/\D/g, '')} />
-                                    <div className={`h-12 rounded-xl border px-3 flex items-center bg-muted/40 text-panel-sm font-medium text-muted-foreground ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
-                                        {formatCPF(profile.cpf)}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
+                            {!profile?.cpf && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="cpf" className="text-panel-sm font-medium text-muted-foreground">
+                                        CPF <span className="text-red-500 ml-1">*</span>
+                                    </Label>
                                     <Input
                                         id="cpf"
                                         name="cpf"
@@ -429,13 +401,13 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                                         className={`h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium border ${cpfError ? 'border-red-400' : isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}
                                     />
                                     {cpfError && <p className="text-panel-sm text-red-500 font-medium">{cpfError}</p>}
-                                </>
+                                </div>
                             )}
                         </div>
-                    </div>
+                    )}
 
-                    {/* STEP 2: VÍNCULO */}
-                    <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 2 && "hidden")}>
+                    {/* STEP VÍNCULO */}
+                    <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== vinculoStepIndex && "hidden")}>
                         <div className="space-y-4 relative" ref={gymRef}>
                             <div className="space-y-1">
                                 <Label className="text-panel-sm font-medium text-muted-foreground">Academia / equipe <span className="text-red-500 ml-1">*</span></Label>
@@ -605,8 +577,21 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                         </div>
                     </div>
 
-                    {/* STEP 3: TÉCNICO & CONTATO */}
-                    <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== 3 && "hidden")}>
+                    {/* STEP TÉCNICO & CONTATO */}
+                    <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== tecnicoStepIndex && "hidden")}>
+                        <div className="space-y-2">
+                            <Label htmlFor="sexo" className="text-panel-sm font-medium text-muted-foreground">Sexo <span className="text-red-500 ml-1">*</span></Label>
+                            <Select name="sexo" defaultValue={profile?.sexo || undefined}>
+                                <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
+                                    <SelectValue placeholder="Selecione seu sexo" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="Masculino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Masculino</SelectItem>
+                                    <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Feminino</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="belt_color" className="text-panel-sm font-medium text-muted-foreground">Cor da faixa <span className="text-red-500 ml-1">*</span></Label>
                             <Select
@@ -621,6 +606,29 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                                     {belts.map(belt => (
                                         <SelectItem key={belt} value={belt} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">
                                             {belt}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="nationality" className="text-panel-sm font-medium text-muted-foreground">Nacionalidade <span className="text-red-500 ml-1">*</span></Label>
+                            <Select name="nationality" defaultValue={profile?.nationality || 'BR'}>
+                                <SelectTrigger className={`h-12 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'}`}>
+                                    <SelectValue placeholder="Selecione seu país" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl max-h-64">
+                                    {COUNTRIES.map(c => (
+                                        <SelectItem key={c.code} value={c.code} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">
+                                            <span className="inline-flex items-center gap-2">
+                                                <span
+                                                    className={`fi fi-${c.code.toLowerCase()} rounded-sm shadow-sm`}
+                                                    style={{ width: '1.5em', height: '1.125em', display: 'inline-block' }}
+                                                    aria-label={c.name}
+                                                />
+                                                <span>{c.name}</span>
+                                            </span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -643,61 +651,16 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="phone" className="text-panel-sm font-medium text-muted-foreground">Telefone / WhatsApp <span className="text-red-500 ml-1">*</span></Label>
+                                <Label htmlFor="phone" className="text-panel-sm font-medium text-muted-foreground">Telefone / WhatsApp</Label>
                                 <Input
                                     id="phone"
                                     name="phone"
                                     type="tel"
                                     value={phoneValue}
-                                    onChange={(e) => { setPhoneValue(formatPhone(e.target.value)); setIsPhoneVerified(false); setVerifyStep('idle'); }}
+                                    onChange={(e) => setPhoneValue(formatPhone(e.target.value))}
                                     placeholder="(00) 00000-0000"
-                                    required
                                     className="h-12 rounded-xl shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium"
                                 />
-                                {/* Banner de verificação WhatsApp */}
-                                {phoneValue && normalizeNumeric(phoneValue).length >= 10 && (
-                                    isPhoneVerified ? (
-                                        <div className="flex items-center gap-2 text-emerald-600 text-xs font-semibold pt-1">
-                                            <CheckCircleIcon size={16} weight="fill" />
-                                            WhatsApp verificado
-                                        </div>
-                                    ) : (
-                                        <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
-                                            <div className="flex items-start gap-2">
-                                                <WarningCircleIcon size={16} weight="fill" className="text-red-500 mt-0.5 shrink-0" />
-                                                <p className="text-xs text-red-700 font-medium">Número não verificado. Confirme para receber notificações no WhatsApp.</p>
-                                            </div>
-                                            {verifyStep === 'idle' && (
-                                                <Button type="button" size="sm" variant="outline" pill className="h-7 text-xs border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800" onClick={handleSendVerification}>
-                                                    Verificar via WhatsApp
-                                                </Button>
-                                            )}
-                                            {verifyStep === 'sending' && (
-                                                <p className="text-xs text-red-600 flex items-center gap-1.5">
-                                                    <CircleNotchIcon size={13} className="animate-spin" /> Enviando código...
-                                                </p>
-                                            )}
-                                            {(verifyStep === 'code' || verifyStep === 'confirming') && (
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        value={verifyCode}
-                                                        onChange={e => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                        placeholder="000000"
-                                                        maxLength={6}
-                                                        className="h-8 w-28 text-center text-sm font-mono rounded-lg shadow-none"
-                                                    />
-                                                    <Button type="button" size="sm" pill className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white border-0" onClick={handleConfirmVerification} disabled={verifyCode.length < 6 || verifyStep === 'confirming'}>
-                                                        {verifyStep === 'confirming' ? <CircleNotchIcon size={13} className="animate-spin" /> : 'Confirmar'}
-                                                    </Button>
-                                                    <Button type="button" size="sm" variant="ghost" pill className="h-8 text-xs text-red-600 hover:text-red-800 hover:bg-red-100" onClick={handleSendVerification}>
-                                                        Reenviar
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            {verifyError && <p className="text-xs text-red-600">{verifyError}</p>}
-                                        </div>
-                                    )
-                                )}
                             </div>
                         </div>
 
@@ -722,7 +685,7 @@ export function AthleteProfileForm({ profile, user, belts, phoneVerified = false
                         </Button>
                     )}
 
-                    {step < 3 ? (
+                    {step < totalSteps ? (
                         <Button
                             type="button"
                             onClick={nextStep}

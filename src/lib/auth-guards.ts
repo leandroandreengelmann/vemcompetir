@@ -28,7 +28,7 @@ export async function requireRole(allowedRoles: UserRole | UserRole[]) {
 
     const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, role, tenant_id, full_name, gym_name, belt_color, weight, birth_date, master_name, master_id, avatar_url, cpf, phone, sexo')
+        .select('id, role, tenant_id, full_name, gym_name, belt_color, weight, birth_date, master_name, master_id, avatar_url, cpf, phone, sexo, nationality')
         .eq('id', user.id)
         .single();
 
@@ -67,6 +67,7 @@ export async function requireRole(allowedRoles: UserRole | UserRole[]) {
             cpf: null,
             phone: null,
             master_name: null,
+            nationality: null,
         }
     };
 }
