@@ -20,7 +20,15 @@ import {
     CaretLeftIcon,
     CaretRightIcon,
     FunnelIcon,
+    EyeIcon,
 } from '@phosphor-icons/react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
 import { resendLogAction } from '../actions';
 
 type LogRow = {
@@ -93,6 +101,7 @@ export function HistoricoClient({
     const [phone, setPhone] = useState(filters.phone ?? '');
     const [from, setFrom] = useState(filters.from ?? '');
     const [to, setTo] = useState(filters.to ?? '');
+    const [viewLog, setViewLog] = useState<LogRow | null>(null);
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -214,9 +223,19 @@ export function HistoricoClient({
                                                 <Badge className={st.cls}>{st.label}</Badge>
                                             </td>
                                             <td className="px-3 py-2 max-w-xs">
-                                                <span title={r.rendered_message ?? ''} className="text-xs">
-                                                    {truncate(r.rendered_message, 80)}
-                                                </span>
+                                                {r.rendered_message ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setViewLog(r)}
+                                                        className="text-xs text-left hover:text-primary hover:underline transition-colors flex items-start gap-1.5 group"
+                                                        title="Ver mensagem completa"
+                                                    >
+                                                        <EyeIcon size={14} weight="duotone" className="shrink-0 mt-0.5 text-muted-foreground group-hover:text-primary" />
+                                                        <span>{truncate(r.rendered_message, 80)}</span>
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                )}
                                             </td>
                                             <td className="px-3 py-2 max-w-xs">
                                                 {r.error ? (
@@ -244,6 +263,41 @@ export function HistoricoClient({
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={!!viewLog} onOpenChange={(o) => !o && setViewLog(null)}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <EyeIcon size={20} weight="duotone" className="text-primary" />
+                            Mensagem completa
+                        </DialogTitle>
+                        {viewLog && (
+                            <DialogDescription>
+                                <span className="font-mono">{viewLog.template_key}</span>
+                                {' • '}
+                                <span className="font-mono">{viewLog.recipient_phone}</span>
+                                {' • '}
+                                {formatDateBr(viewLog.sent_at ?? viewLog.created_at)}
+                            </DialogDescription>
+                        )}
+                    </DialogHeader>
+                    {viewLog && (
+                        <div className="space-y-3">
+                            <div className="rounded-xl border bg-muted/30 p-4 max-h-[60vh] overflow-y-auto">
+                                <pre className="text-sm whitespace-pre-wrap break-words font-sans">
+                                    {viewLog.rendered_message}
+                                </pre>
+                            </div>
+                            {viewLog.error && (
+                                <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 p-3">
+                                    <div className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Erro</div>
+                                    <div className="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">{viewLog.error}</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div>

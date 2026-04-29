@@ -39,7 +39,8 @@ export function PanelBreadcrumbs() {
 
                     // Correção para evitar 404 em segmentos de agrupamento
                     if (segment === 'academia-equipe') href = '/academia-equipe/dashboard'
-                    if (segment === 'admin' && pathSegments[index + 1] !== 'dashboard') href = '/admin/dashboard'
+                    if (segment === 'admin') href = '/admin/dashboard'
+                    if (segment === 'atleta') href = '/atleta/dashboard'
 
                     // No mobile, escondemos TUDO que não seja o último item para poupar espaço
                     const isHiddenOnMobile = !isLast;
