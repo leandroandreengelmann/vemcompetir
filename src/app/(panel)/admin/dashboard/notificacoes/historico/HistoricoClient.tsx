@@ -29,6 +29,16 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { resendLogAction } from '../actions';
 
 type LogRow = {
@@ -70,11 +80,6 @@ function formatDateBr(iso: string | null): string {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
-}
-
-function truncate(s: string | null, n = 80): string {
-    if (!s) return '—';
-    return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
 export function HistoricoClient({
@@ -189,78 +194,100 @@ export function HistoricoClient({
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                                <tr>
-                                    <th className="text-left px-3 py-2">Data</th>
-                                    <th className="text-left px-3 py-2">Template</th>
-                                    <th className="text-left px-3 py-2">Telefone</th>
-                                    <th className="text-left px-3 py-2">Status</th>
-                                    <th className="text-left px-3 py-2">Mensagem</th>
-                                    <th className="text-left px-3 py-2">Erro</th>
-                                    <th className="text-right px-3 py-2">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                                            Nenhum registro encontrado.
-                                        </td>
-                                    </tr>
-                                )}
-                                {rows.map((r) => {
-                                    const st = STATUS_LABEL[r.status] ?? { label: r.status, cls: 'bg-zinc-100 text-zinc-700' };
-                                    return (
-                                        <tr key={r.id} className="border-t">
-                                            <td className="px-3 py-2 whitespace-nowrap text-xs">{formatDateBr(r.sent_at ?? r.created_at)}</td>
-                                            <td className="px-3 py-2 font-mono text-xs">{r.template_key}</td>
-                                            <td className="px-3 py-2 font-mono text-xs">{r.recipient_phone}</td>
-                                            <td className="px-3 py-2">
-                                                <Badge className={st.cls}>{st.label}</Badge>
-                                            </td>
-                                            <td className="px-3 py-2 max-w-xs">
-                                                {r.rendered_message ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setViewLog(r)}
-                                                        className="text-xs text-left hover:text-primary hover:underline transition-colors flex items-start gap-1.5 group"
-                                                        title="Ver mensagem completa"
-                                                    >
-                                                        <EyeIcon size={20} weight="duotone" className="shrink-0 mt-0.5 text-muted-foreground group-hover:text-primary" />
-                                                        <span>{truncate(r.rendered_message, 80)}</span>
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">—</span>
-                                                )}
-                                            </td>
-                                            <td className="px-3 py-2 max-w-xs">
-                                                {r.error ? (
-                                                    <span title={r.error} className="text-xs text-red-600">
-                                                        {truncate(r.error, 60)}
-                                                    </span>
-                                                ) : '—'}
-                                            </td>
-                                            <td className="px-3 py-2 text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleResend(r.id)}
-                                                    disabled={pending}
-                                                    title="Reenviar"
+            <Card className="min-w-0 max-w-full">
+                <CardContent className="p-0 min-w-0 max-w-full">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="pl-6">Data</TableHead>
+                                <TableHead>Template</TableHead>
+                                <TableHead>Telefone</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Mensagem</TableHead>
+                                <TableHead>Erro</TableHead>
+                                <TableHead className="text-right pr-6 w-[100px]">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rows.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                        Nenhum registro encontrado.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {rows.map((r) => {
+                                const st = STATUS_LABEL[r.status] ?? { label: r.status, cls: 'bg-zinc-100 text-zinc-700' };
+                                return (
+                                    <TableRow key={r.id}>
+                                        <TableCell className="pl-6 align-middle text-panel-sm text-muted-foreground">
+                                            {formatDateBr(r.sent_at ?? r.created_at)}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-xs align-middle">
+                                            {r.template_key}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-xs align-middle">
+                                            {r.recipient_phone}
+                                        </TableCell>
+                                        <TableCell className="align-middle">
+                                            <Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', st.cls)}>
+                                                {st.label}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="align-middle !whitespace-normal max-w-[280px]">
+                                            {r.rendered_message ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setViewLog(r)}
+                                                    className="text-panel-sm text-left hover:text-primary transition-colors flex items-start gap-2 group w-full"
+                                                    title="Ver mensagem completa"
                                                 >
-                                                    <ArrowClockwiseIcon size={14} />
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                    <EyeIcon size={20} weight="duotone" className="shrink-0 mt-0.5 text-muted-foreground group-hover:text-primary" />
+                                                    <span className="break-words line-clamp-2 group-hover:underline">
+                                                        {r.rendered_message}
+                                                    </span>
+                                                </button>
+                                            ) : (
+                                                <span className="text-panel-sm text-muted-foreground">—</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="align-middle !whitespace-normal max-w-[200px]">
+                                            {r.error ? (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="text-xs text-red-600 line-clamp-2 cursor-help">
+                                                            {r.error}
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="break-words">{r.error}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ) : (
+                                                <span className="text-panel-sm text-muted-foreground">—</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6 align-middle">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleResend(r.id)}
+                                                        disabled={pending}
+                                                        className="h-9 w-9 rounded-full"
+                                                    >
+                                                        <ArrowClockwiseIcon size={18} weight="duotone" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Reenviar</TooltipContent>
+                                            </Tooltip>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
 
