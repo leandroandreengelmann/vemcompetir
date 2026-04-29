@@ -54,8 +54,21 @@ export function ConfigForm({ initialConfig }: { initialConfig: Config }) {
         }
         startSend(async () => {
             const r = await sendTestMessageAction(testPhone, '');
-            if ('error' in r && r.error) toast.error(r.error);
-            else toast.success(`Status: ${r.status}`);
+            if ('error' in r && r.error) {
+                toast.error('Falha ao enviar mensagem', { description: r.error });
+                return;
+            }
+            if (r.status === 'sent') {
+                toast.success('Mensagem enviada com sucesso!', {
+                    description: 'Confira o WhatsApp do número informado.',
+                });
+            } else if (r.status === 'skipped') {
+                toast.warning('Envio pulado', {
+                    description: 'A mensagem foi registrada mas não enviada (dry-run, rate limit ou duplicada).',
+                });
+            } else {
+                toast.info('Mensagem em fila', { description: 'Aguardando processamento.' });
+            }
         });
     }
 
