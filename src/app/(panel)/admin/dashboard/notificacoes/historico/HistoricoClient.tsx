@@ -230,7 +230,7 @@ export function HistoricoClient({
                                                         className="text-xs text-left hover:text-primary hover:underline transition-colors flex items-start gap-1.5 group"
                                                         title="Ver mensagem completa"
                                                     >
-                                                        <EyeIcon size={14} weight="duotone" className="shrink-0 mt-0.5 text-muted-foreground group-hover:text-primary" />
+                                                        <EyeIcon size={20} weight="duotone" className="shrink-0 mt-0.5 text-muted-foreground group-hover:text-primary" />
                                                         <span>{truncate(r.rendered_message, 80)}</span>
                                                     </button>
                                                 ) : (
