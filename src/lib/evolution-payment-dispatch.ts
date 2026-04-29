@@ -103,6 +103,8 @@ export async function dispatchPaymentNotifications(opts: {
         .filter(Boolean)
         .join(', ');
 
+    const valorTotal = brl(opts.confirmedValue);
+
     if (organizerPhone) {
         await dispatchNotification({
             templateKey: 'organizer_new_registration',
@@ -113,6 +115,7 @@ export async function dispatchPaymentNotifications(opts: {
                 evento: eventTitle,
                 total_inscricoes: String(total),
                 atleta: athletesList,
+                valor: valorTotal,
                 data_evento: eventDate,
                 link: APP_LINK,
             },
@@ -133,6 +136,7 @@ export async function dispatchPaymentNotifications(opts: {
                 evento: eventTitle,
                 total_inscricoes: String(total),
                 atleta: athletesList,
+                valor: valorTotal,
                 data_evento: eventDate,
                 local: eventLocation,
                 link: APP_LINK,
