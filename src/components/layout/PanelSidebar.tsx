@@ -25,6 +25,7 @@ import {
     CurrencyCircleDollarIcon,
     CoinsIcon,
     ExportIcon,
+    BellIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -80,6 +81,13 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             icon: StackSimpleIcon,
             href: "/admin/dashboard/categorias",
             roles: ['admin_geral'],
+        },
+        {
+            label: "Catálogo Jiu-Jitsu",
+            icon: StackSimpleIcon,
+            href: "/admin/dashboard/catalogo-jiu-jitsu",
+            roles: ['admin_geral'],
+            isNew: true,
         },
         {
             label: "Central V/S",
@@ -210,6 +218,12 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             label: "Integrações",
             icon: PlugIcon,
             href: "/admin/dashboard/integracoes/asaas",
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Notificações",
+            icon: BellIcon,
+            href: "/admin/dashboard/notificacoes",
             roles: ['admin_geral'],
         },
     ];

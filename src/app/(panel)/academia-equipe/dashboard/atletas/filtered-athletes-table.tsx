@@ -322,8 +322,8 @@ export function FilteredAthletesTable({
                                 const counts = registrationCounts?.[athlete.id] ?? { total: 0, pago: 0, pendente: 0 };
                                 return (
                                     <TableRow key={athlete.id}>
-                                        <TableCell className="pl-6 font-medium">
-                                            <div className="flex items-center gap-3">
+                                        <TableCell className="pl-6 font-medium !whitespace-normal align-middle">
+                                            <div className="flex items-center gap-2 min-w-0">
                                                 <div className="flex flex-col items-center gap-1 shrink-0">
                                                     <AthleteAvatarCard
                                                         fullName={athlete.full_name}
@@ -334,12 +334,15 @@ export function FilteredAthletesTable({
                                                         <CountryFlag code={athlete.nationality} showName={false} />
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    {athlete.full_name}
+                                                <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                                                    <span className="break-words">{athlete.full_name}</span>
                                                     {hasOwnAccount && (
-                                                        <Badge variant="secondary" className="text-xs font-normal">
-                                                            Conta própria
-                                                        </Badge>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <span className="shrink-0 inline-block h-2 w-2 rounded-full bg-emerald-500" aria-label="Conta própria" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top">Conta própria</TooltipContent>
+                                                        </Tooltip>
                                                     )}
                                                 </div>
                                             </div>
@@ -353,7 +356,7 @@ export function FilteredAthletesTable({
                                                 {athlete.belt_color || '-'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground">
+                                        <TableCell className="text-muted-foreground !whitespace-normal break-all align-middle">
                                             {(athlete.email || '').includes('@dummy.competir.com') ? (
                                                 <GenerateAccessButton athleteId={athlete.id} athleteName={athlete.full_name} />
                                             ) : (
@@ -361,7 +364,7 @@ export function FilteredAthletesTable({
                                             )}
                                         </TableCell>
                                         {isAdmin && (
-                                            <TableCell className="font-medium text-primary/80">
+                                            <TableCell className="font-medium text-primary/80 !whitespace-normal break-words align-middle">
                                                 {athlete.gym_name || '-'}
                                             </TableCell>
                                         )}

@@ -18,7 +18,7 @@ export function PanelLayoutClient({ sidebar, header, children }: PanelLayoutClie
                     {sidebar}
                     <div className="flex flex-col flex-1 min-w-0">
                         {header}
-                        <main className="flex-1 p-4 md:p-6 bg-muted/30">
+                        <main className="flex-1 min-w-0 p-4 md:p-6 bg-muted/30">
                             {children}
                         </main>
                     </div>

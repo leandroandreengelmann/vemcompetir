@@ -22,7 +22,7 @@ import {
     DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { CheckIcon, CircleNotchIcon, XIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon } from '@phosphor-icons/react';
+import { CheckIcon, CircleNotchIcon, XIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon, InfoIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { updateAthleteProfile, searchGyms, searchMasters, signOutAction } from './actions';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -594,6 +594,12 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
                         <div className="space-y-2">
                             <Label htmlFor="belt_color" className="text-panel-sm font-medium text-muted-foreground">Cor da faixa <span className="text-red-500 ml-1">*</span></Label>
+                            <div className="flex items-start gap-3 rounded-xl bg-amber-50 border-2 border-amber-300 px-4 py-3">
+                                <InfoIcon size={24} weight="fill" className="text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-base font-semibold text-amber-900 leading-snug">
+                                    Aqui você escolhe a faixa que usa hoje — sua <span className="font-extrabold underline decoration-2 underline-offset-2">faixa de graduação atual</span>.
+                                </p>
+                            </div>
                             <Select
                                 name="belt_color"
                                 defaultValue={belts.find(b => b.toLowerCase() === (profile?.belt_color || '').toLowerCase()) || undefined}

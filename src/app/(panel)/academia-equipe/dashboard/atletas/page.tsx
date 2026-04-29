@@ -140,11 +140,11 @@ export default async function AthleteManagementPage() {
             </div>
 
             {/* Card principal — prévia recolhida com filtros */}
-            <Card>
+            <Card className="min-w-0 max-w-full">
                 <CardHeader>
                     <CardTitle className="text-panel-md font-semibold">Lista de Atletas</CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 min-w-0 max-w-full">
                     <FilteredAthletesTable
                         variant="main"
                         athletes={athletesWithEmails ?? []}

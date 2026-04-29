@@ -27,7 +27,7 @@ export default async function AthleteCampeonatos() {
 
     return (
         <div
-            className="min-h-screen bg-[#FAFAFA] p-4 md:p-8 flex flex-col gap-6 md:max-w-5xl md:mx-auto w-full"
+            className="min-h-screen bg-[#FAFAFA] px-8 py-4 md:p-8 flex flex-col gap-6 md:max-w-5xl md:mx-auto w-full"
             style={{
                 '--primary': isWhiteBelt ? '240 10% 3.9%' : undefined // Fallback para preto se for faixa branca
             } as React.CSSProperties}

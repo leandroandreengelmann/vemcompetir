@@ -29,12 +29,6 @@ export type DashboardData = {
         academiesNegative: number;
     };
     academyRanking: AcademyRankingItem[];
-    whatsapp: {
-        openConversations: number;
-        unreadConversations: number;
-        humanMode: number;
-        aiMode: number;
-    };
     operational: {
         pendingEvents: number;
         pendingSuggestions: number;
@@ -128,27 +122,6 @@ export async function getDashboardData(): Promise<DashboardData> {
         .sort((a, b) => b.consumedThisMonth - a.consumedThisMonth)
         .slice(0, 20);
 
-    // ── WhatsApp ─────────────────────────────────────────────────────────────
-    let openConversations = 0;
-    let unreadConversations = 0;
-    let humanMode = 0;
-    let aiMode = 0;
-
-    try {
-        const { data: convData } = await adminClient
-            .from('whatsapp_conversations')
-            .select('status, unread_count, handler_mode');
-
-        for (const conv of convData ?? []) {
-            if (conv.status === 'aberta') openConversations++;
-            if ((conv.unread_count ?? 0) > 0) unreadConversations++;
-            if (conv.handler_mode === 'human') humanMode++;
-            if (conv.handler_mode === 'ai') aiMode++;
-        }
-    } catch {
-        // tabela pode não existir em todos os ambientes
-    }
-
     // ── Operacional ──────────────────────────────────────────────────────────
     const { count: pendingEvents } = await adminClient
         .from('events')
@@ -204,12 +177,6 @@ export async function getDashboardData(): Promise<DashboardData> {
             academiesNegative,
         },
         academyRanking,
-        whatsapp: {
-            openConversations,
-            unreadConversations,
-            humanMode,
-            aiMode,
-        },
         operational: {
             pendingEvents: pendingEvents ?? 0,
             pendingSuggestions: pendingSuggestions ?? 0,

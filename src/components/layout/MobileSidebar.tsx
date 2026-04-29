@@ -42,6 +42,12 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
             roles: ['admin_geral'],
         },
         {
+            label: "Catálogo Jiu-Jitsu",
+            icon: StackSimpleIcon,
+            href: "/admin/dashboard/catalogo-jiu-jitsu",
+            roles: ['admin_geral'],
+        },
+        {
             label: "Atletas",
             icon: UsersIcon,
             href: "/academia-equipe/dashboard/atletas",

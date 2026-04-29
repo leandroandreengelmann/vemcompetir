@@ -1,28 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { WhatsappLogoIcon, HeadsetIcon, QuestionIcon } from '@phosphor-icons/react';
 
+const SUPPORT_PHONE = '556696766283';
+
 export function WhatsAppFloatingButton() {
     const pathname = usePathname();
-    const [phone, setPhone] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetch('/api/whatsapp/support-phone')
-            .then(r => r.json())
-            .then(d => { if (d.phone) setPhone(d.phone); })
-            .catch(() => {});
-    }, []);
-
-    if (!phone) return null;
     if (pathname?.includes('/admin') || pathname?.includes('/dashboard')) return null;
 
     function buildLink(type: 'suporte' | 'duvida') {
         const text = type === 'suporte'
             ? 'SUPORTE: Olá! Preciso de ajuda com o Vem Competir.'
             : 'DÚVIDA: Olá! Tenho uma dúvida sobre o Vem Competir.';
-        return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+        return `https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(text)}`;
     }
 
     return (
@@ -45,9 +37,15 @@ export function WhatsAppFloatingButton() {
                 <QuestionIcon size={16} weight="duotone" />
                 Dúvida
             </a>
-            <div className="size-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-xl">
+            <a
+                href={buildLink('suporte')}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Abrir WhatsApp do suporte"
+                className="size-14 rounded-full bg-[#25D366] hover:bg-[#1ebe5a] flex items-center justify-center shadow-xl transition-colors"
+            >
                 <WhatsappLogoIcon size={30} weight="fill" className="text-white" />
-            </div>
+            </a>
         </div>
     );
 }

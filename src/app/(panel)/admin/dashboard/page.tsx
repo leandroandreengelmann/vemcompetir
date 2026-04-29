@@ -18,15 +18,10 @@ import {
     ArrowDownIcon,
     WarningIcon,
     XCircleIcon,
-    ChatCircleTextIcon,
-    BellIcon,
-    UserIcon,
-    RobotIcon,
     CalendarDotsIcon,
     UsersIcon,
     GearIcon,
     PlugsConnectedIcon,
-    WhatsappLogoIcon,
     TicketIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -115,58 +110,7 @@ export default async function AdminDashboard() {
                 </div>
             </section>
 
-            {/* ── Bloco 2: WhatsApp ───────────────────────────────────────── */}
-            <section className="space-y-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                    WhatsApp Inbox
-                </h2>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Conversas abertas</CardTitle>
-                            <ChatCircleTextIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.whatsapp.openConversations)}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className={data.whatsapp.unreadConversations > 0 ? "border-orange-400" : ""}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Não lidas</CardTitle>
-                            <BellIcon
-                                className={`h-6 w-6 ${data.whatsapp.unreadConversations > 0 ? "text-orange-500" : "text-muted-foreground"}`}
-                                weight="duotone"
-                            />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.whatsapp.unreadConversations)}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Modo humano</CardTitle>
-                            <UserIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.whatsapp.humanMode)}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Modo IA</CardTitle>
-                            <RobotIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.whatsapp.aiMode)}</p>
-                        </CardContent>
-                    </Card>
-                </div>
-            </section>
-
-            {/* ── Bloco 3: Falhas de pagamento ────────────────────────────── */}
+            {/* ── Bloco 2: Falhas de pagamento ────────────────────────────── */}
             <section className="space-y-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     Falhas de Pagamento — últimas 24h
@@ -345,10 +289,10 @@ export default async function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {[
                         {
-                            label: "Central V/S (WhatsApp)",
+                            label: "Central de Atletas",
                             href: "/admin/dashboard/atletas",
-                            icon: WhatsappLogoIcon,
-                            description: "Atletas e conversas",
+                            icon: UsersIcon,
+                            description: "Atletas cadastrados",
                         },
                         {
                             label: "Gestão de Tokens",

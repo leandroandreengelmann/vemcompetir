@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { decrypt, hashToken } from '@/lib/crypto';
 import { auditLog } from '@/lib/audit-log';
 import { consumeTokens, refundTokens } from '@/lib/token-utils';
+import { dispatchPaymentNotifications } from '@/lib/evolution-payment-dispatch';
 
 async function getAsaasConfig() {
     const admin = createAdminClient();
@@ -278,6 +279,20 @@ export async function POST(request: NextRequest) {
             }
 
             auditLog('WEBHOOK_PAYMENT_CONFIRMED', { payment_id: paymentRecord.id, asaas_payment_id: asaasPaymentId, value: confirmedValue, net_value: confirmedNetValue });
+
+            try {
+                await dispatchPaymentNotifications({
+                    paymentId: paymentRecord.id,
+                    eventId: paymentRecord.event_id,
+                    organizerTenantId: paymentRecord.tenant_id_organizer,
+                    confirmedValue: confirmedValue ?? 0,
+                });
+            } catch (notifyErr) {
+                auditLog('WEBHOOK_NOTIFICATION_DISPATCH_ERROR', {
+                    payment_id: paymentRecord.id,
+                    error: notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+                }, 'warn');
+            }
         }
 
         // Handle PARTIALLY_RECEIVED — log only, no action (Asaas will send RECEIVED when complete)

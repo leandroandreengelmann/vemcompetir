@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +11,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-    Sheet, SheetContent, SheetHeader, SheetTitle,
+    Sheet, SheetContent, SheetTitle,
 } from '@/components/ui/sheet';
 import {
     UsersIcon,
@@ -22,7 +20,6 @@ import {
     ClockIcon,
     MagnifyingGlassIcon,
     CheckCircleIcon,
-    XCircleIcon,
     CopyIcon,
     EnvelopeSimpleIcon,
     PhoneIcon,
@@ -31,30 +28,11 @@ import {
     CalendarBlankIcon,
     GenderIntersexIcon,
     BuildingsIcon,
-    SealCheckIcon,
-    FileTextIcon,
     UserCircleIcon,
     BabyIcon,
-    WhatsappLogoIcon,
-    ChatTeardropTextIcon,
-    PaperPlaneTiltIcon,
-    GearIcon,
-    SpinnerGapIcon,
-    RobotIcon,
-    BellIcon,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatCategoryTitle } from '@/lib/category-utils';
-import { WhatsAppInbox } from './whatsapp/WhatsAppInbox';
-import { ensureConversation } from './whatsapp/actions';
-import { WhatsAppTemplates } from './whatsapp/WhatsAppTemplates';
-import { WhatsAppConfig } from './whatsapp/WhatsAppConfig';
-import { WhatsAppDisparos } from './whatsapp/WhatsAppDisparos';
-import { WhatsAppAIConfig } from './whatsapp/WhatsAppAIConfig';
-import { WhatsAppNotificacoes } from './whatsapp/WhatsAppNotificacoes';
-
-type MainTab = 'atletas' | 'whatsapp';
-type WhatsAppTab = 'inbox' | 'notificacoes' | 'disparos' | 'templates' | 'ia' | 'config';
 
 interface Registration {
     id: string;
@@ -177,50 +155,12 @@ function copyToClipboard(value: string, label: string) {
     toast.success(`${label} copiado!`);
 }
 
-export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [] }: { athletes: Athlete[]; athleteIdsWithConversations?: string[] }) {
-    const convSet = useMemo(() => new Set(athleteIdsWithConversations), [athleteIdsWithConversations]);
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-
-    const mainTab = (searchParams.get('tab') as MainTab) ?? 'atletas';
-    const whatsappTab = (searchParams.get('wtab') as WhatsAppTab) ?? 'inbox';
-
-    function setMainTab(tab: MainTab) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('tab', tab);
-        if (tab !== 'whatsapp') params.delete('wtab');
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }
-
-    function setWhatsappTab(tab: WhatsAppTab) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('wtab', tab);
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }
-    const [whatsappConvId, setWhatsappConvId] = useState<string | undefined>();
-    const [openingChat, setOpeningChat] = useState(false);
-
+export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
     const [tab, setTab] = useState<FilterTab>('todos');
     const [search, setSearch] = useState('');
     const [selected, setSelected] = useState<Athlete | null>(null);
     const [page, setPage] = useState(1);
     const [beltFilter, setBeltFilter] = useState<string | null>(null);
-
-    async function openWhatsApp(phone: string, name: string, athleteId: string) {
-        setOpeningChat(true);
-        try {
-            const convId = await ensureConversation(phone, name, athleteId);
-            setWhatsappConvId(convId);
-            setMainTab('whatsapp');
-            setWhatsappTab('inbox');
-            setSelected(null);
-        } catch {
-            toast.error('Erro ao abrir conversa.');
-        } finally {
-            setOpeningChat(false);
-        }
-    }
 
     const availableBelts = useMemo(() => {
         // key normalizada (lowercase) → { label original capitalizado, count }
@@ -282,82 +222,13 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
 
     return (
         <div className="space-y-6">
-            {/* Header + tabs principais */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <h1 className="text-panel-lg font-black tracking-tight">Central V/S</h1>
-                    <p className="text-panel-sm text-muted-foreground mt-1">
-                        Visão completa de cadastros, inscrições e comunicação.
-                    </p>
-                </div>
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border w-fit">
-                    <button
-                        onClick={() => setMainTab('atletas')}
-                        className={cn(
-                            'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-panel-sm font-semibold transition-all',
-                            mainTab === 'atletas'
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                        )}
-                    >
-                        <UsersIcon size={16} weight="duotone" />
-                        Atletas
-                    </button>
-                    <button
-                        onClick={() => setMainTab('whatsapp')}
-                        className={cn(
-                            'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-panel-sm font-semibold transition-all',
-                            mainTab === 'whatsapp'
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                        )}
-                    >
-                        <WhatsappLogoIcon size={16} weight="duotone" />
-                        WhatsApp
-                    </button>
-                </div>
+            {/* Header */}
+            <div>
+                <h1 className="text-panel-lg font-black tracking-tight">Central de Atletas</h1>
+                <p className="text-panel-sm text-muted-foreground mt-1">
+                    Visão completa de cadastros e inscrições.
+                </p>
             </div>
-
-            {/* ── ABA WHATSAPP ── */}
-            {mainTab === 'whatsapp' && (
-                <div className="space-y-4">
-                    {/* Sub-tabs */}
-                    <div className="flex gap-1 border-b">
-                        {([
-                            { key: 'inbox',         label: 'Inbox',          icon: ChatTeardropTextIcon },
-                            { key: 'notificacoes',  label: 'Notificações',   icon: BellIcon },
-                            { key: 'disparos',      label: 'Disparos',       icon: PaperPlaneTiltIcon },
-                            { key: 'templates',     label: 'Templates',      icon: FileTextIcon },
-                            { key: 'ia',            label: 'IA',             icon: RobotIcon },
-                            { key: 'config',        label: 'Config',         icon: GearIcon },
-                        ] as { key: WhatsAppTab; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
-                            <button
-                                key={key}
-                                onClick={() => setWhatsappTab(key)}
-                                className={cn(
-                                    'inline-flex items-center gap-2 px-4 py-2.5 text-panel-sm font-semibold border-b-2 -mb-px transition-all',
-                                    whatsappTab === key
-                                        ? 'border-foreground text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                                )}
-                            >
-                                <Icon size={16} weight="duotone" />
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {whatsappTab === 'inbox' && <WhatsAppInbox key={whatsappConvId ?? 'default'} initialConvId={whatsappConvId} />}
-                    {whatsappTab === 'notificacoes' && <WhatsAppNotificacoes />}
-                    {whatsappTab === 'disparos' && <WhatsAppDisparos />}
-                    {whatsappTab === 'templates' && <WhatsAppTemplates />}
-                    {whatsappTab === 'ia' && <WhatsAppAIConfig />}
-                    {whatsappTab === 'config' && <WhatsAppConfig />}
-                </div>
-            )}
-
-            {/* ── ABA ATLETAS ── */}
-            {mainTab === 'atletas' && (<>
 
             {/* KPIs */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -481,10 +352,10 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                 <TableHead className="text-panel-sm font-semibold">Atleta</TableHead>
                                 <TableHead className="text-panel-sm font-semibold">Contato</TableHead>
                                 <TableHead className="text-panel-sm font-semibold text-center">Cadastro</TableHead>
-                                <TableHead className="text-panel-sm font-semibold text-center">Conta</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-center hidden">Conta</TableHead>
                                 <TableHead className="text-panel-sm font-semibold text-center">Inscrições</TableHead>
-                                <TableHead className="text-panel-sm font-semibold">Academia</TableHead>
-                                <TableHead className="text-panel-sm font-semibold text-right pr-6">Desde</TableHead>
+                                <TableHead className="text-panel-sm font-semibold hidden">Academia</TableHead>
+                                <TableHead className="text-panel-sm font-semibold text-right pr-6 hidden">Desde</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -504,11 +375,6 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                         <div className="flex flex-col gap-0.5">
                                             <span className="flex items-center gap-2">
                                                 <span className="text-panel-sm font-semibold">{athlete.full_name}</span>
-                                                {convSet.has(athlete.id) && (
-                                                    <span title="Conversa WhatsApp ativa" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-panel-sm font-bold bg-green-500/10 text-green-700 dark:text-green-400">
-                                                        <WhatsappLogoIcon size={16} weight="fill" />
-                                                    </span>
-                                                )}
                                                 {isMinor(athlete.birth_date) && (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-panel-sm font-bold bg-pink-500/10 text-pink-700 dark:text-pink-400">
                                                         <BabyIcon size={16} weight="duotone" />
@@ -547,7 +413,7 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                         )}
                                     </TableCell>
 
-                                    <TableCell className="text-center">
+                                    <TableCell className="text-center hidden">
                                         {athlete.has_own_account ? (
                                             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400">
                                                 <UserCircleIcon size={16} weight="duotone" />
@@ -562,7 +428,7 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                     </TableCell>
 
                                     <TableCell className="text-center">
-                                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                                        <div className="flex flex-col items-center gap-1">
                                             {athlete.counts.pago > 0 && (
                                                 <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-panel-sm font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 tabular-nums">
                                                     <CheckCircleIcon size={16} weight="duotone" />
@@ -587,14 +453,14 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                         </div>
                                     </TableCell>
 
-                                    <TableCell className="text-panel-sm">
+                                    <TableCell className="text-panel-sm hidden">
                                         {athlete.tenant_name ?? athlete.gym_name
                                             ? <span className="font-medium">{athlete.tenant_name ?? athlete.gym_name}</span>
                                             : <span className="text-muted-foreground italic">Sem academia</span>
                                         }
                                     </TableCell>
 
-                                    <TableCell className="text-right pr-6">
+                                    <TableCell className="text-right pr-6 hidden">
                                         <div className="flex flex-col items-end gap-0.5">
                                             <span className="text-panel-sm font-medium">
                                                 {format(new Date(athlete.created_at), 'dd/MM/yyyy', { locale: ptBR })}
@@ -721,22 +587,9 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                                                 <span className="text-panel-sm">{formatPhone(selected.phone) ?? <span className="italic text-muted-foreground">Sem telefone</span>}</span>
                                             </div>
                                             {selected.phone && (
-                                                <div className="flex items-center gap-1 ml-2 shrink-0">
-                                                    <button
-                                                        onClick={() => openWhatsApp(selected.phone!, selected.full_name, selected.id)}
-                                                        disabled={openingChat}
-                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors text-panel-sm font-semibold disabled:opacity-60"
-                                                    >
-                                                        {openingChat
-                                                            ? <SpinnerGapIcon size={16} weight="bold" className="animate-spin" />
-                                                            : <WhatsappLogoIcon size={16} weight="duotone" />
-                                                        }
-                                                        Conversar
-                                                    </button>
-                                                    <button onClick={() => copyToClipboard(selected.phone!, 'Telefone')} className="text-muted-foreground hover:text-foreground transition-colors">
-                                                        <CopyIcon size={18} weight="duotone" />
-                                                    </button>
-                                                </div>
+                                                <button onClick={() => copyToClipboard(selected.phone!, 'Telefone')} className="text-muted-foreground hover:text-foreground transition-colors ml-2 shrink-0">
+                                                    <CopyIcon size={18} weight="duotone" />
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -838,7 +691,6 @@ export function CentralAtletasClient({ athletes, athleteIdsWithConversations = [
                     )}
                 </SheetContent>
             </Sheet>
-            </>)}
         </div>
     );
 }

@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getAuthErrorMessage } from '@/lib/auth-errors';
 import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
-import { getGuardianTemplateContentAction } from './actions';
+import { getGuardianTemplateContentAction, sendWelcomeNotificationAction } from './actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -189,6 +189,16 @@ export default function RegisterPage() {
             if (signUpError) throw signUpError;
 
             if (data.user) {
+                const welcomePhone = isMinor
+                    ? normalizeNumeric(formData.guardian_phone)
+                    : normalizeNumeric(formData.phone);
+                if (welcomePhone) {
+                    sendWelcomeNotificationAction({
+                        userId: data.user.id,
+                        name: formData.nome,
+                        phone: welcomePhone,
+                    }).catch(() => { });
+                }
                 setSuccess('Conta criada com sucesso! Verifique seu e-mail para confirmar a conta.');
                 setTimeout(() => router.push('/login'), 4000);
             }
