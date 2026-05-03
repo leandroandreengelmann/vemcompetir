@@ -43,16 +43,16 @@ export default async function Home() {
       <PublicHeader />
 
       {/* Hero Section */}
-      <section className="bg-primary text-primary-foreground pt-[calc(var(--header-height,90px)+4rem)] pb-20 md:pb-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-3xl space-y-6">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-foreground/40">
+      <section className="bg-primary text-primary-foreground pt-[calc(4rem+1.5rem)] pb-10 sm:pt-[calc(var(--header-height,90px)+4rem)] sm:pb-20 md:pb-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="max-w-3xl space-y-3 sm:space-y-6">
+            <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] sm:tracking-[0.3em] text-primary-foreground/40">
               Próximos Eventos
             </p>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter leading-[1.05]">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight sm:tracking-tighter leading-tight sm:leading-[1.05]">
               Encontre sua próxima competição.
             </h1>
-            <p className="text-lg text-primary-foreground/50 max-w-xl leading-relaxed">
+            <p className="text-sm sm:text-lg text-primary-foreground/50 max-w-xl leading-relaxed">
               Confira as próximas competições e garanta sua inscrição nos maiores eventos de combate da região.
             </p>
           </div>
@@ -60,14 +60,14 @@ export default async function Home() {
       </section>
 
       {/* Events Grid */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 md:py-24 w-full">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16 md:py-24 w-full">
         {events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-muted rounded-[7px]">
-            <p className="text-muted-foreground font-medium">Nenhum evento publicado no momento.</p>
+          <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center border-2 border-dashed border-muted rounded-[7px]">
+            <p className="text-sm sm:text-base text-muted-foreground font-medium">Nenhum evento publicado no momento.</p>
             <p className="text-caption text-muted-foreground/60 mt-1">Fique de olho, novas competições surgem em breve!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
