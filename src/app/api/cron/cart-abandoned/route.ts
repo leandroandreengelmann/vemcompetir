@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
         const { data: regs } = await admin
             .from('event_registrations')
-            .select('id, athlete_id, event_id, updated_at, created_at')
+            .select('id, athlete_id, event_id, price, updated_at, created_at')
             .eq('status', 'carrinho')
             .lte('updated_at', olderThan.toISOString())
             .gte('updated_at', newerThan.toISOString());
@@ -27,12 +27,13 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'No abandoned carts', processed: 0 });
         }
 
-        const byAthlete = new Map<string, { athleteId: string; eventIds: Set<string>; itemCount: number }>();
+        const byAthlete = new Map<string, { athleteId: string; eventIds: Set<string>; itemCount: number; total: number }>();
         for (const r of regs) {
             if (!r.athlete_id) continue;
-            const cur = byAthlete.get(r.athlete_id) ?? { athleteId: r.athlete_id, eventIds: new Set(), itemCount: 0 };
+            const cur = byAthlete.get(r.athlete_id) ?? { athleteId: r.athlete_id, eventIds: new Set(), itemCount: 0, total: 0 };
             if (r.event_id) cur.eventIds.add(r.event_id);
             cur.itemCount++;
+            cur.total += Number(r.price ?? 0);
             byAthlete.set(r.athlete_id, cur);
         }
 
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
                     atleta: athlete.full_name ?? 'Atleta',
                     evento: eventTitles || 'seu evento',
                     total_inscricoes: String(info.itemCount),
+                    valor: info.total.toFixed(2).replace('.', ','),
                     link: 'https://vemcompetir.com.br/atleta/dashboard/cesta',
                 },
                 relatedEntityType: 'profile',
