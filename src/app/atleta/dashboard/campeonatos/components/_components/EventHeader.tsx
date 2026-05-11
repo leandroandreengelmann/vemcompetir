@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { TrophyIcon } from '@phosphor-icons/react';
+import { TrophyIcon, HourglassMediumIcon } from '@phosphor-icons/react';
 
 interface EventHeaderProps {
     title: string;
@@ -37,17 +37,16 @@ export function EventHeader({ title, imagePath, eventDate }: EventHeaderProps) {
 
             {/* 2) Titulo removido por duplicidade (handled by AthletePageHeader) */}
 
-            {/* 3) Badge de status */}
-            <div className="px-1">
-                {isEndingSoon ? (
-                    <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
-                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                        Lote termina em breve
-                    </span>
-                ) : (
-                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Inscrições Abertas
+            {/* 3) Badge de status + selo "últimos dias" (≤14 dias do evento) */}
+            <div className="px-1 flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Inscrições Abertas
+                </span>
+                {isEndingSoon && (
+                    <span className="inline-flex items-center gap-1.5 bg-amber-100 border-2 border-amber-500 text-amber-800 text-panel-sm font-black uppercase tracking-widest rounded-md px-2.5 py-1 shadow-sm -rotate-3 ring-1 ring-amber-300 ring-offset-1 ring-offset-amber-50">
+                        <HourglassMediumIcon size={14} weight="duotone" className="animate-pulse" />
+                        Últimos Dias
                     </span>
                 )}
             </div>

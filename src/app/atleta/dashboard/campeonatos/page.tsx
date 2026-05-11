@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth-guards';
 import Link from 'next/link';
-import { TrophyIcon, CalendarIcon, MapPinIcon, MagnifyingGlassIcon, CaretRightIcon } from '@phosphor-icons/react/dist/ssr';
+import { TrophyIcon, CalendarIcon, MapPinIcon, MagnifyingGlassIcon, CaretRightIcon, HourglassMediumIcon } from '@phosphor-icons/react/dist/ssr';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,23 +81,22 @@ export default async function AthleteCampeonatos() {
                                             <TrophyIcon size={48} weight="duotone" className="text-primary/10" />
                                         </div>
                                     )}
-                                    <div className="absolute top-4 right-4 text-white">
+                                    <div className="absolute top-4 right-4 text-white flex flex-col items-end gap-2">
+                                        <span className="inline-flex items-center gap-1.5 bg-emerald-50/90 backdrop-blur-sm border border-emerald-200 text-emerald-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            Inscrições Abertas
+                                        </span>
                                         {(() => {
                                             const eventDate = new Date(event.event_date);
                                             const today = new Date();
                                             const diffTime = eventDate.getTime() - today.getTime();
                                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                                             const isEndingSoon = diffDays > 0 && diffDays <= 14;
-
-                                            return isEndingSoon ? (
-                                                <span className="inline-flex items-center gap-1.5 bg-amber-50/90 backdrop-blur-sm border border-amber-200 text-amber-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                                    Lote termina em breve
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 bg-emerald-50/90 backdrop-blur-sm border border-emerald-200 text-emerald-700 text-panel-sm font-bold uppercase tracking-widest rounded-full px-3 py-1.5">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                    Inscrições Abertas
+                                            if (!isEndingSoon) return null;
+                                            return (
+                                                <span className="inline-flex items-center gap-1.5 bg-amber-100 border-2 border-amber-500 text-amber-800 text-panel-sm font-black uppercase tracking-widest rounded-md px-2.5 py-1 shadow-md -rotate-3 ring-1 ring-amber-300 ring-offset-1 ring-offset-amber-50">
+                                                    <HourglassMediumIcon size={14} weight="duotone" className="animate-pulse" />
+                                                    Últimos Dias
                                                 </span>
                                             );
                                         })()}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { HourglassMediumIcon } from '@phosphor-icons/react';
 
 interface EventSummaryProps {
     date: string;
@@ -55,11 +56,13 @@ export function EventSummary({ date, endDate, location, city }: EventSummaryProp
             </div>
 
             {isEndingSoon && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                    <p className="text-panel-sm font-bold text-amber-700 uppercase tracking-tighter">
-                        Últimos dias para inscrição! Lote termina em breve.
-                    </p>
+                <div className="flex justify-center pt-1">
+                    <div className="inline-flex items-center gap-2.5 bg-amber-100 border-2 border-amber-500 rounded-md px-4 py-2 shadow-md -rotate-2 ring-2 ring-amber-300 ring-offset-2 ring-offset-amber-50 animate-in fade-in zoom-in-95 duration-500">
+                        <HourglassMediumIcon size={20} weight="duotone" className="text-amber-700 animate-pulse" />
+                        <p className="text-panel-sm font-black text-amber-800 uppercase tracking-widest leading-none">
+                            Últimos dias de inscrição
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
