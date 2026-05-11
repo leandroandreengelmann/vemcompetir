@@ -393,6 +393,7 @@ export async function getEligibleCategories(eventId: string) {
             .from('category_rows')
             .select('*')
             .in('table_id', tableIds)
+            .order('id', { ascending: true })
             .range(page * pageSize, (page + 1) * pageSize - 1);
 
         if (error || !batch || batch.length === 0) {
