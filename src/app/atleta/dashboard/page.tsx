@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { BeltKnot } from '@/components/athlete/belt-knot';
 import { InterestNotificationWrapper } from './components/interest-notification';
+import { CategoryChangeNotificationWrapper } from './components/category-change-notification';
 import { CountryFlag } from '@/components/ui/country-flag';
 
 const BELTS = [
@@ -114,6 +115,9 @@ export default async function AthleteDashboard() {
             {/* We'll fetch this from a client component or pass it as prop if we had the event data here. 
                 For now, let's inject a server-side check. */}
             <InterestNotificationWrapper beltColor={beltColor} />
+
+            {/* Aviso pulsante: trocar categoria (1 card por inscrição com prazo ativo) */}
+            <CategoryChangeNotificationWrapper />
 
 
             {/* Badge verificado — desktop (abaixo do header mobile que é hidden) */}
