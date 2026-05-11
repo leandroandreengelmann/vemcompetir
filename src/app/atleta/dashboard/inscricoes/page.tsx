@@ -13,6 +13,8 @@ import { ReactivatePaymentButton } from './ReactivatePaymentButton';
 import { CancelRegistrationWrapper } from './CancelRegistrationWrapper';
 import { PassportButton } from './PassportButton';
 import { ChangeCategoryButton } from './ChangeCategoryButton';
+import { EnrolledAthletesPreview } from './EnrolledAthletesPreview';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -38,7 +40,7 @@ id,
     created_at,
     registration_number,
     event: events(id, title, event_date, location, image_path, category_change_deadline_days),
-        category: category_rows(categoria_completa, faixa, categoria_peso)
+        category: category_rows(id, categoria_completa, faixa, categoria_peso)
         `)
         .eq('athlete_id', user.id)
         .neq('status', 'carrinho')
@@ -49,6 +51,37 @@ id,
     }
 
     const inscricoes = inscricoesData || [];
+
+    // Contagem + previews dos atletas confirmados em cada (evento, categoria) das inscrições atuais.
+    // Usa admin client porque profiles podem estar em tenants diferentes (RLS bloqueia o atleta).
+    const eventCategoryPairs = inscricoes
+        .map((i: any) => ({ eventId: i.event?.id, categoryId: i.category?.id }))
+        .filter((p: any) => p.eventId && p.categoryId);
+
+    const enrolledByKey = new Map<string, { count: number; previewNames: string[] }>();
+    if (eventCategoryPairs.length > 0) {
+        const adminClient = createAdminClient();
+        const eventIds = Array.from(new Set(eventCategoryPairs.map((p: any) => p.eventId as string)));
+        const categoryIds = Array.from(new Set(eventCategoryPairs.map((p: any) => p.categoryId as string)));
+
+        const { data: peers } = await adminClient
+            .from('event_registrations')
+            .select('event_id, category_id, athlete:profiles!athlete_id(full_name)')
+            .in('event_id', eventIds)
+            .in('category_id', categoryIds)
+            .in('status', ['pago', 'isento', 'confirmado'])
+            .order('created_at', { ascending: true });
+
+        peers?.forEach((row: any) => {
+            const key = `${row.event_id}-${row.category_id}`;
+            const entry = enrolledByKey.get(key) || { count: 0, previewNames: [] };
+            entry.count += 1;
+            if (entry.previewNames.length < 3) {
+                entry.previewNames.push(row.athlete?.full_name || 'Competidor');
+            }
+            enrolledByKey.set(key, entry);
+        });
+    }
 
     const isProfileIncomplete = !profile?.weight || !profile?.belt_color || !profile?.gym_name;
 
@@ -210,6 +243,20 @@ id,
                                                         {inscricao.category.faixa}
                                                     </span>
                                                 )}
+                                                {inscricao.event?.id && inscricao.category?.id && ['pago', 'confirmado', 'isento'].includes(inscricao.status) && (() => {
+                                                    const key = `${inscricao.event.id}-${inscricao.category.id}`;
+                                                    const entry = enrolledByKey.get(key);
+                                                    if (!entry || entry.count <= 0) return null;
+                                                    return (
+                                                        <EnrolledAthletesPreview
+                                                            eventId={inscricao.event.id}
+                                                            categoryId={inscricao.category.id}
+                                                            currentAthleteId={user.id}
+                                                            initialCount={entry.count}
+                                                            initialPreviewNames={entry.previewNames}
+                                                        />
+                                                    );
+                                                })()}
                                             </div>
 
                                             {/* Botões de ação */}
