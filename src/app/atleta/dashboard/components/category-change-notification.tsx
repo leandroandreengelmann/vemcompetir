@@ -61,33 +61,36 @@ export async function CategoryChangeNotificationWrapper() {
                     className="block group"
                 >
                     <div
-                        className="relative rounded-2xl border-2 border-red-500/50 bg-red-50 p-3.5 flex items-center justify-between gap-3 shadow-[0_0_24px_rgba(239,68,68,0.15)] hover:bg-red-100 hover:border-red-600 transition-all"
+                        className="relative rounded-2xl border-2 border-orange-500/50 bg-orange-50 p-4 flex items-center justify-between gap-4 shadow-[0_0_24px_rgba(249,115,22,0.15)] hover:bg-orange-100 hover:border-orange-600 transition-all"
                     >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="relative shrink-0 h-9 w-9">
-                                <span className="absolute inset-0 rounded-full bg-red-500 opacity-60 motion-safe:animate-ping" />
-                                <div className="relative h-9 w-9 rounded-full flex items-center justify-center bg-red-600">
-                                    <ArrowsClockwiseIcon size={18} weight="duotone" className="text-white" />
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <div className="relative shrink-0 h-12 w-12">
+                                <span className="absolute inset-0 rounded-full bg-orange-500 opacity-60 motion-safe:animate-ping" />
+                                <div className="relative h-12 w-12 rounded-full flex items-center justify-center bg-orange-600">
+                                    <ArrowsClockwiseIcon size={24} weight="duotone" className="text-white" />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col min-w-0 flex-1">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-red-600">
-                                    Trocar Categoria
+                            <div className="flex flex-col min-w-0 flex-1 gap-1">
+                                <span className="text-xs font-black uppercase tracking-widest text-orange-600">
+                                    Checagem Liberada
                                 </span>
-                                <span className="text-panel-sm font-bold text-natural-800 truncate">
+                                <span className="text-base font-bold text-natural-800 truncate leading-tight">
                                     {item.eventTitle}
                                 </span>
-                                <span className="text-[11px] font-semibold text-muted-foreground mt-0.5">
-                                    Prazo: <span className="text-red-600 font-bold">{item.deadlineLabel}</span>
+                                <span className="text-sm font-medium text-muted-foreground leading-snug">
+                                    Se quiser, você pode trocar de categoria ou fazer checagem.
+                                </span>
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                    Prazo: <span className="text-orange-600 font-bold">{item.deadlineLabel}</span>
                                 </span>
                             </div>
                         </div>
 
                         <ArrowRightIcon
-                            size={22}
+                            size={26}
                             weight="duotone"
-                            className="shrink-0 transition-transform group-hover:translate-x-1 text-red-600"
+                            className="shrink-0 transition-transform group-hover:translate-x-1 text-orange-600"
                         />
                     </div>
                 </Link>
