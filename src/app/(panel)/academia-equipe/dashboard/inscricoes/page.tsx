@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getAcademyInscriptions, getAcademyEventsList } from '../actions/academy-inscriptions';
+import { useEffect, useState, useTransition } from 'react';
+import { getAcademyInscriptions, getAcademyEventsList, exportAcademyInscriptions } from '../actions/academy-inscriptions';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,8 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MagnifyingGlassIcon, CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon, CaretLeftIcon, CaretRightIcon, FilePdfIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { pdf } from '@react-pdf/renderer';
+import { InscricoesPDF } from './InscricoesPDF';
+import { toast } from 'sonner';
 
 function formatCPF(cpf?: string) {
     if (!cpf) return '';
@@ -34,6 +37,50 @@ export default function AcademyInscricoesPage() {
     const [eventId, setEventId] = useState('todos');
     const [page, setPage] = useState(1);
     const [events, setEvents] = useState<any[]>([]);
+    const [isExporting, startExport] = useTransition();
+
+    const handleExportPDF = () => {
+        startExport(async () => {
+            try {
+                const res = await exportAcademyInscriptions({
+                    search,
+                    eventId: eventId === 'todos' ? undefined : eventId,
+                });
+                if (!res.inscricoes || res.inscricoes.length === 0) {
+                    toast.error('Nenhuma inscrição confirmada para exportar.');
+                    return;
+                }
+                const eventoFiltrado = eventId !== 'todos'
+                    ? (() => {
+                        const ev = events.find(e => e.id === eventId);
+                        return ev ? { title: ev.title, event_date: ev.event_date } : null;
+                    })()
+                    : null;
+                const blob = await pdf(
+                    <InscricoesPDF
+                        academia={res.academia}
+                        inscricoes={res.inscricoes}
+                        totals={res.totals}
+                        eventoFiltrado={eventoFiltrado}
+                    />
+                ).toBlob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const dataStr = new Date().toISOString().slice(0, 10);
+                const slug = eventoFiltrado
+                    ? eventoFiltrado.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
+                    : 'geral';
+                a.href = url;
+                a.download = `inscricoes-${slug}-${dataStr}.pdf`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                toast.success('PDF gerado.');
+            } catch (err: any) {
+                console.error(err);
+                toast.error('Falha ao gerar PDF.');
+            }
+        });
+    };
 
     useEffect(() => {
         getAcademyEventsList().then((list: any) => setEvents(list));
@@ -179,10 +226,21 @@ export default function AcademyInscricoesPage() {
 
     return (
         <div className="space-y-6">
-            <SectionHeader
-                title="Inscrições dos Atletas"
-                description="Consulte todas as inscrições dos atletas da sua academia em todos os eventos."
-            />
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <SectionHeader
+                    title="Inscrições dos Atletas"
+                    description="Consulte todas as inscrições dos atletas da sua academia em todos os eventos."
+                />
+                <Button
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    pill
+                    className="h-10 gap-2 self-start md:self-auto text-panel-sm font-semibold bg-primary text-white hover:bg-primary/90"
+                >
+                    <FilePdfIcon size={16} weight="duotone" />
+                    {isExporting ? 'Gerando PDF...' : 'Exportar PDF'}
+                </Button>
+            </div>
 
             <Card className="border-none shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardContent className="p-6">

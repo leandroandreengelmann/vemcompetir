@@ -60,7 +60,10 @@ image.png
 # etc...
 
 # Claude Code settings (contém tokens)
-.claude/settings.local.json
+.claude/
+
+# Backups locais
+_backups/
 
 # Supabase
 supabase/migrations/
