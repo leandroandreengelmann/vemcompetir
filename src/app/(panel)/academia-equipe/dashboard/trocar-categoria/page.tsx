@@ -84,8 +84,8 @@ export default async function CheckagemPage() {
         : [{ data: [] }, { data: [] }];
 
     const otherRegsMap = new Map<string, any>();
-    for (const r of otherByRegistration.data || []) otherRegsMap.set(r.id, r);
-    for (const r of otherByAthleteProfile.data || []) otherRegsMap.set(r.id, r);
+    for (const r of (otherByRegistration.data as any[] | null) || []) otherRegsMap.set(r.id, r);
+    for (const r of (otherByAthleteProfile.data as any[] | null) || []) otherRegsMap.set(r.id, r);
     const otherRegs = Array.from(otherRegsMap.values());
 
     const allRegistrations = [...(ownedRegs || []), ...otherRegs];
