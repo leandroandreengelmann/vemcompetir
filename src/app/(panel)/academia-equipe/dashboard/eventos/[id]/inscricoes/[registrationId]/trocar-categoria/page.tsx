@@ -63,7 +63,8 @@ export default async function TrocarCategoriaPage(props: Props) {
                 birth_date,
                 weight,
                 phone,
-                cpf
+                cpf,
+                tenant_id
             ),
             category:category_rows!category_id (
                 id,
@@ -90,11 +91,14 @@ export default async function TrocarCategoriaPage(props: Props) {
 
     if (!event) notFound();
 
+    const athlete = Array.isArray(reg.athlete) ? reg.athlete[0] : reg.athlete;
+
     const isRegistrationTenant = reg.tenant_id === tenant_id;
     const isOrganizer = event.tenant_id === tenant_id;
-    if (!isRegistrationTenant && !isOrganizer) redirect('/academia-equipe/dashboard/trocar-categoria');
-
-    const athlete = Array.isArray(reg.athlete) ? reg.athlete[0] : reg.athlete;
+    const isAthleteOfTenant = athlete?.tenant_id === tenant_id;
+    if (!isRegistrationTenant && !isOrganizer && !isAthleteOfTenant) {
+        redirect('/academia-equipe/dashboard/trocar-categoria');
+    }
     const category = Array.isArray(reg.category) ? reg.category[0] : reg.category;
 
     const age = athlete?.birth_date
