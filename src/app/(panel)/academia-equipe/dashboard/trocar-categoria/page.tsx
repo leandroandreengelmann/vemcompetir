@@ -57,18 +57,38 @@ export default async function CheckagemPage() {
             .order('event_id')
         : { data: [] };
 
-    // Eventos de outros: apenas atletas da academia
-    const { data: otherRegs } = otherEventIds.length > 0
-        ? await adminClient
-            .from('event_registrations')
-            .select(SELECT_FIELDS)
-            .in('event_id', otherEventIds)
-            .eq('tenant_id', tenant_id)
-            .in('status', STATUSES)
-            .order('event_id')
-        : { data: [] };
+    // Eventos de outros: atletas inscritos pela academia (registration.tenant_id)
+    // OU atletas vinculados à academia mesmo que tenham se inscrito por conta própria (profile.tenant_id)
+    const SELECT_FIELDS_INNER = SELECT_FIELDS.replace(
+        'athlete:profiles!athlete_id',
+        'athlete:profiles!athlete_id!inner',
+    );
 
-    const allRegistrations = [...(ownedRegs || []), ...(otherRegs || [])];
+    const [otherByRegistration, otherByAthleteProfile] = otherEventIds.length > 0
+        ? await Promise.all([
+            adminClient
+                .from('event_registrations')
+                .select(SELECT_FIELDS)
+                .in('event_id', otherEventIds)
+                .eq('tenant_id', tenant_id)
+                .in('status', STATUSES)
+                .order('event_id'),
+            adminClient
+                .from('event_registrations')
+                .select(SELECT_FIELDS_INNER)
+                .in('event_id', otherEventIds)
+                .eq('athlete.tenant_id', tenant_id)
+                .in('status', STATUSES)
+                .order('event_id'),
+        ])
+        : [{ data: [] }, { data: [] }];
+
+    const otherRegsMap = new Map<string, any>();
+    for (const r of otherByRegistration.data || []) otherRegsMap.set(r.id, r);
+    for (const r of otherByAthleteProfile.data || []) otherRegsMap.set(r.id, r);
+    const otherRegs = Array.from(otherRegsMap.values());
+
+    const allRegistrations = [...(ownedRegs || []), ...otherRegs];
 
     const eventMap = Object.fromEntries(eligibleEvents.map((e) => [e.id, e]));
 
