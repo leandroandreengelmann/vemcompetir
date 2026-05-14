@@ -7,17 +7,27 @@ Demo isolada do super admin em `/admin/dashboard/catalogo-jiu-jitsu/preview`. N�
 ```
 catalogo-jiu-jitsu/
 ├── lib/
-│   ├── adulto-masculino.ts     # Adulto M+F · Gi+No-Gi · 5 faixas · 9M+8F pesos
-│   ├── master.ts               # 7 grupos Master · M+F · Gi+No-Gi · 5 faixas
-│   ├── juvenil.ts              # Juvenil I/II (16-17) · M+F · Gi+No-Gi · 3 faixas
-│   ├── infantil.ts             # Infantil Gi · 12 idades (4-15) · 13 faixas · 9 pesos sem nome
-│   └── infantil-nogi.ts        # Infantil No-Gi · 6 grupos pareados · 6 faixas · 12 pesos com nome
+│   ├── adulto-masculino.ts     # IBJJF Adulto M+F · Gi+No-Gi · 5 faixas · 9M+8F pesos
+│   ├── master.ts               # IBJJF · 7 grupos Master · M+F · Gi+No-Gi · 5 faixas
+│   ├── juvenil.ts              # IBJJF Juvenil I/II (16-17) · M+F · Gi+No-Gi · 3 faixas
+│   ├── infantil.ts             # IBJJF Infantil Gi · 12 idades (4-15) · 13 faixas · 9 pesos sem nome
+│   ├── infantil-nogi.ts        # IBJJF Infantil No-Gi · 6 grupos pareados · 6 faixas · 12 pesos com nome
+│   ├── aamep-adulto.ts         # AAMEP Adulto M+F · só Gi · 5 faixas · 9M+8F pesos
+│   ├── aamep-juvenil.ts        # AAMEP Juvenil (14-17) · M+F · só Gi · 3 faixas (até Roxa)
+│   ├── aamep-master.ts         # AAMEP Master · só Masculino · 2 grupos (M1/M2) · 3 pesos
+│   ├── aamep-kids.ts           # AAMEP Kids · 5 grupos pareados (6-15) · 6 faixas simples · 9 pesos
+│   └── aamep-absolutos.ts      # AAMEP Absolutos · tabela própria · independente de faixa
 └── components/
-    ├── preview-tabs.tsx        # 8 modos: cada categoria × admin/atleta
-    ├── adulto-preview.tsx + adulto-athlete-view.tsx
-    ├── master-preview.tsx + master-athlete-view.tsx
-    ├── juvenil-preview.tsx + juvenil-athlete-view.tsx
-    └── kids-preview.tsx + kids-athlete-view.tsx   (Gi/No-Gi toggle interno)
+    ├── preview-tabs.tsx        # Toggle IBJJF/AAMEP + modos por categoria × admin/atleta
+    ├── adulto-preview.tsx + adulto-athlete-view.tsx          (IBJJF)
+    ├── master-preview.tsx + master-athlete-view.tsx          (IBJJF)
+    ├── juvenil-preview.tsx + juvenil-athlete-view.tsx        (IBJJF)
+    ├── kids-preview.tsx + kids-athlete-view.tsx              (IBJJF, Gi/No-Gi toggle interno)
+    ├── aamep-adulto-preview.tsx + aamep-adulto-athlete-view.tsx
+    ├── aamep-juvenil-preview.tsx + aamep-juvenil-athlete-view.tsx
+    ├── aamep-master-preview.tsx + aamep-master-athlete-view.tsx
+    ├── aamep-kids-preview.tsx + aamep-kids-athlete-view.tsx
+    └── aamep-absolutos-preview.tsx + aamep-absolutos-athlete-view.tsx
 ```
 
 ## Os 5 eixos do jiu-jitsu
@@ -88,13 +98,63 @@ Cada categoria tem **dois componentes** com mesma estrutura:
 - Sticky bottom card mostrando contagem da sacola
 - Limite de 60 itens visíveis
 
+## Categorias e regras (AAMEP)
+
+Federação paralela ao IBJJF/CBJJ. Estrutura mais condensada e exclusivamente Gi.
+
+### Adulto AAMEP (18+)
+- 5 faixas: Branca, Azul, Roxa, Marrom, Preta
+- M: 9 pesos (Galo 57.5 → Pesadíssimo 100.5+)
+- F: 8 pesos (Galo 48.5 → Super Pesado 79.3+, sem Pesadíssimo)
+- Tempo de luta: 6 min · sem No-Gi
+
+### Juvenil AAMEP (14-17)
+- Faixa etária mais ampla que IBJJF (que usa só 16-17)
+- 3 faixas: Branca, Azul, Roxa (Marrom só aos 18, Preta aos 19 — mesma regra do IBJJF)
+- M: 9 pesos · F: 8 pesos · Tempo: 5 min
+
+### Master AAMEP (30+)
+- Apenas Masculino (AAMEP não modela Master Feminino)
+- Apenas 2 grupos: M1 (30-40), M2 (40+) — bem mais condensado que IBJJF (M1-M7)
+- 5 faixas (igual IBJJF Master)
+- Apenas 3 pesos por grupo: Pluma, Médio, Pesado (livre)
+  - M1: Pluma 0-64 · Médio 64-74 · Pesado 74+
+  - M2: Pluma 0-70 · Médio 70-80 · Pesado 80+
+- Tempo: 5 min
+
+### Kids AAMEP (6-15)
+- 5 grupos pareados por ano de nascimento (M+F):
+  - Mirim (6-7, 2019/2020) — 2 faixas, 2 min
+  - Infantil A (8-9, 2017/2018) — 3 faixas, 3 min
+  - Infantil B (10-11, 2015/2016) — 4 faixas, 3,5 min
+  - Inf. Juvenil A (12-13, 2013/2014) — 5 faixas, 4 min
+  - Inf. Juvenil B (14-15, 2011/2012) — 6 faixas, 4 min
+- 6 faixas simples (Branca, Cinza, Amarela, Laranja, Verde, Azul) — **sem variantes ponta-preta/ponta-branca** (decisão do produto)
+- 9 pesos com nome (Galo → Pesadíssimo) por idade × gênero
+
+### Absolutos AAMEP
+- Tabela própria, separada da grade de pesos
+- Independem de faixa
+- Adulto M/F: Absoluto Livre (6 min)
+- Juvenil M: até 65 / até 82 kg · Juvenil F: até 60 / até 80 kg (5 min)
+- Master M: Absoluto Livre (5 min) · sem Master F
+
 ## `preview-tabs.tsx`
 
-8 modos organizados em 4 grupos:
-- Adulto (UserCircleIcon): admin + atleta
+Toggle de federação no topo (IBJJF/CBJJ vs AAMEP) + grupos de categorias por federação:
+
+**IBJJF (8 modos)**
+- Adulto (BarbellIcon): admin + atleta
 - Master (TrophyIcon): admin + atleta
 - Juvenil (StudentIcon): admin + atleta
 - Infantil (BabyIcon): admin + atleta
+
+**AAMEP (10 modos)**
+- Adulto (BarbellIcon): admin + atleta
+- Juvenil (StudentIcon): admin + atleta
+- Master (TrophyIcon): admin + atleta — só Masculino
+- Kids (BabyIcon): admin + atleta
+- Absolutos (MedalIcon): admin + atleta — tabela própria
 
 ## Helpers compartilhados
 
@@ -122,15 +182,25 @@ Cada categoria tem **dois componentes** com mesma estrutura:
   - Gi: `Categoria • idade anos • Gênero • Faixa • Peso N (range) • Kimono`
   - No-Gi: `Categoria • idade anos • Gênero • Faixa • NomePeso (range) • Sem kimono`
 - **Não compartilhar shapes**: o Infantil Gi e No-Gi têm tipos distintos (`KidsBeltKey` vs `KidsNogiBeltKey`, etc.) porque a estrutura real da federação é diferente.
-- **Federações**: IBJJF/CBJJ é a base. Outras federações (AJP, JJIF, etc.) usam estruturas próprias e NÃO estão modeladas aqui.
+- **Federações**: IBJJF/CBJJ é a base. AAMEP foi adicionada como federação paralela com tipos próprios (`AamepWeight`, `AamepKidsBeltKey`, etc.) — não compartilha shape com IBJJF. Outras federações (AJP, JJIF, etc.) ainda não estão modeladas.
+- **AAMEP é só Gi**: a federação não modela No-Gi nas tabelas oficiais — todos os componentes AAMEP omitem o toggle Gi/No-Gi.
+- **Cart IDs AAMEP**: prefixados por `aamep-{categoria}-...` para não colidir com IDs IBJJF.
 
-## Estado atual (2026-04-26)
+## Estado atual (2026-05-04)
 
+**IBJJF/CBJJ**
 - ✅ Adulto Gi+No-Gi
 - ✅ Master Gi+No-Gi (todos os 7 grupos)
 - ✅ Juvenil Gi+No-Gi (valores oficiais IBJJF, não aproximação)
 - ✅ Infantil Gi (`lib/infantil.ts`)
 - ✅ Infantil No-Gi (`lib/infantil-nogi.ts`) com toggle Gi/No-Gi nos componentes kids
+
+**AAMEP**
+- ✅ Adulto (M+F) — `lib/aamep-adulto.ts`
+- ✅ Juvenil (M+F, até Roxa) — `lib/aamep-juvenil.ts`
+- ✅ Master (só Masculino, M1/M2, 3 pesos) — `lib/aamep-master.ts`
+- ✅ Kids (5 grupos pareados, faixas simples) — `lib/aamep-kids.ts`
+- ✅ Absolutos (tabela própria) — `lib/aamep-absolutos.ts`
 
 ## Possíveis próximos passos
 
