@@ -26,6 +26,7 @@ import {
     CoinsIcon,
     ExportIcon,
     BellIcon,
+    TrophyIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -134,6 +135,13 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             roles: ['academia/equipe'] as string[],
             isNew: true,
             isExclusive: true,
+        }] : []),
+        ...(hasOwnedEvents ? [{
+            label: "Gestão de Evento",
+            icon: TrophyIcon,
+            href: "/academia-equipe/dashboard/gestao-evento",
+            roles: ['academia/equipe'] as string[],
+            isNew: true,
         }] : []),
         ...(hasOwnedEvents ? [{
             label: "Pacotes de Inscrição",
