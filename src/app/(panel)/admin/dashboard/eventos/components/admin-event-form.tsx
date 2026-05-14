@@ -1,25 +1,43 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, SpinnerGapIcon } from '@phosphor-icons/react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SectionHeader } from "@/components/layout/SectionHeader";
-import { cn } from "@/lib/utils";
+import {
+    ArrowLeftIcon,
+    SpinnerGapIcon,
+    BuildingsIcon,
+    CalendarBlankIcon,
+    MapPinIcon,
+    ImageIcon,
+    EyeIcon,
+    TrashIcon,
+    UploadSimpleIcon,
+    XIcon,
+} from '@phosphor-icons/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { createAdminEventAction, updateAdminEventAction, deleteAdminEventAction, approveAdminEventAction, publishAdminEventAction, unpublishAdminEventAction } from '../actions';
+} from '@/components/ui/select';
+import {
+    createAdminEventAction,
+    updateAdminEventAction,
+    deleteAdminEventAction,
+    approveAdminEventAction,
+    publishAdminEventAction,
+    unpublishAdminEventAction,
+} from '../actions';
 import { confirmAsync } from '@/components/panel/ConfirmDialog';
 import { showToast } from '@/lib/toast';
-import { Badge } from "@/components/ui/badge";
-import { DeleteConfirmationDialog } from "@/components/panel/DeleteConfirmationDialog";
+import { DeleteConfirmationDialog } from '@/components/panel/DeleteConfirmationDialog';
+import { EventoTabs } from '@/components/eventos/EventoTabs';
 
 interface Academy {
     id: string;
@@ -52,6 +70,30 @@ interface AdminEventFormProps {
     academies: Academy[];
 }
 
+type StatusKey = 'pendente' | 'aprovado' | 'publicado' | 'rascunho' | 'desconhecido';
+
+const STATUS_META: Record<StatusKey, { label: string; variant: 'pending' | 'info' | 'success' | 'secondary' | 'outline' }> = {
+    pendente: { label: 'Pendente', variant: 'pending' },
+    aprovado: { label: 'Aprovado', variant: 'info' },
+    publicado: { label: 'Publicado', variant: 'success' },
+    rascunho: { label: 'Rascunho', variant: 'secondary' },
+    desconhecido: { label: 'Sem status', variant: 'outline' },
+};
+
+function resolveStatus(s?: string): StatusKey {
+    if (!s) return 'desconhecido';
+    if (s === 'pendente' || s === 'aprovado' || s === 'publicado' || s === 'rascunho') return s;
+    return 'desconhecido';
+}
+
+function formatDateBR(iso?: string | null) {
+    if (!iso) return null;
+    try {
+        const d = new Date(iso);
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch { return null; }
+}
+
 export default function AdminEventForm({ initialData, academies }: AdminEventFormProps) {
     const router = useRouter();
     const isEdit = !!initialData;
@@ -61,12 +103,34 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
     const [imagePreview, setImagePreview] = useState<string | null>(
         initialData?.image_path
             ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${initialData.image_path}`
-            : null
+            : null,
     );
     const [resizedImage, setResizedImage] = useState<Blob | null>(null);
     const [removeImage, setRemoveImage] = useState(false);
     const [selectedTenantId, setSelectedTenantId] = useState(initialData?.tenant_id || '');
+    const [imageMeta, setImageMeta] = useState<{ w: number; h: number; sizeKB: number } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const status = resolveStatus(initialData?.status);
+    const statusMeta = STATUS_META[status];
+
+    const academiaSelecionada = useMemo(
+        () => academies.find((a) => a.tenant_id === selectedTenantId),
+        [academies, selectedTenantId],
+    );
+
+    const headerSubtitle = useMemo(() => {
+        if (!isEdit || !initialData) return null;
+        const partes: string[] = [];
+        const data = formatDateBR(initialData.event_date);
+        if (data) partes.push(data);
+        if (initialData.address_city && initialData.address_state) {
+            partes.push(`${initialData.address_city} — ${initialData.address_state}`);
+        }
+        const academyName = academiaSelecionada?.gym_name || academiaSelecionada?.full_name;
+        if (academyName) partes.push(academyName);
+        return partes.join(' · ');
+    }, [isEdit, initialData, academiaSelecionada]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -85,7 +149,11 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                 if (ctx) {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     canvas.toBlob((blob) => {
-                        if (blob) { setResizedImage(blob); setImagePreview(URL.createObjectURL(blob)); }
+                        if (blob) {
+                            setResizedImage(blob);
+                            setImagePreview(URL.createObjectURL(blob));
+                            setImageMeta({ w: canvas.width, h: canvas.height, sizeKB: Math.round(blob.size / 1024) });
+                        }
                     }, 'image/jpeg', 0.92);
                 }
             };
@@ -97,13 +165,13 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
     const handleRemoveImage = () => {
         setImagePreview(null);
         setResizedImage(null);
+        setImageMeta(null);
         setRemoveImage(true);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleDelete = async () => {
         if (!initialData?.id) return;
-
         setLoading(true);
         const result = await deleteAdminEventAction(initialData.id);
         if (result.error) {
@@ -138,19 +206,16 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
 
     const handlePublish = async () => {
         if (!initialData?.id || loading) return;
-
         setLoading(true);
         setError(null);
-
         try {
             const result = await publishAdminEventAction(initialData.id);
-            if (result.error) {
-                setError(result.error);
-            } else if (result.success) {
+            if (result.error) setError(result.error);
+            else if (result.success) {
                 showToast.success('Evento publicado', 'Agora ele está visível na página inicial.');
                 router.refresh();
             }
-        } catch (err) {
+        } catch {
             setError('Falha ao publicar o evento.');
         } finally {
             setLoading(false);
@@ -159,7 +224,6 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
 
     const handleUnpublish = async () => {
         if (!initialData?.id || loading) return;
-
         const ok = await confirmAsync({
             variant: 'warning',
             title: 'Despublicar evento?',
@@ -167,19 +231,16 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
             confirmLabel: 'Despublicar',
         });
         if (!ok) return;
-
         setLoading(true);
         setError(null);
-
         try {
             const result = await unpublishAdminEventAction(initialData.id);
-            if (result.error) {
-                setError(result.error);
-            } else if (result.success) {
+            if (result.error) setError(result.error);
+            else if (result.success) {
                 showToast.success('Evento despublicado');
                 router.refresh();
             }
-        } catch (err) {
+        } catch {
             setError('Falha ao despublicar o evento.');
         } finally {
             setLoading(false);
@@ -190,123 +251,143 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
         e.preventDefault();
         setLoading(true);
         setError(null);
-
         try {
             const formData = new FormData(e.currentTarget);
             formData.set('tenant_id', selectedTenantId);
-
-            if (resizedImage) {
-                formData.set('image', resizedImage, 'thumb.jpg');
-            }
-            if (removeImage) {
-                formData.set('remove_image', 'true');
-            }
-
+            if (resizedImage) formData.set('image', resizedImage, 'thumb.jpg');
+            if (removeImage) formData.set('remove_image', 'true');
             const action = isEdit ? updateAdminEventAction : createAdminEventAction;
             const result = await action(formData);
-
             if (result?.error) {
                 setError(result.error);
                 setLoading(false);
                 return;
             }
-
-            router.push(`/admin/dashboard/eventos`);
+            router.push('/admin/dashboard/eventos');
             router.refresh();
-        } catch (err) {
+        } catch {
             setError('Ocorreu um erro ao processar o evento.');
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 relative">
-            <div className="w-full max-w-2xl space-y-10">
-                <div className="space-y-6">
-                    <Link
-                        href="/admin/dashboard/eventos"
-                        className="text-panel-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
-                    >
-                        <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
-                        Voltar
-                    </Link>
+        <div className="w-full max-w-5xl mx-auto px-4 py-8 space-y-6">
+            {/* Voltar */}
+            <Link
+                href="/admin/dashboard/eventos"
+                className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center w-fit"
+            >
+                <ArrowLeftIcon size={20} weight="duotone" className="mr-2" />
+                Voltar para Eventos
+            </Link>
 
-                    <SectionHeader
-                        title={isEdit ? "Editar Evento" : "Novo Evento"}
-                        description={isEdit ? "Atualize as informações do evento acadêmico." : "Preencha os dados para criar um novo evento administrativo."}
-                        className="text-center md:flex-col md:items-center"
-                    />
+            {/* Header com status */}
+            <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                        {isEdit ? initialData!.title : 'Novo Evento'}
+                    </h1>
+                    {isEdit && (
+                        <Badge variant={statusMeta.variant} className="text-sm px-3 py-1 rounded-full">
+                            {statusMeta.label}
+                        </Badge>
+                    )}
                 </div>
-
-                {error && (
-                    <div className="p-3 bg-destructive/15 text-destructive text-panel-sm rounded-lg text-center">
-                        {error}
-                    </div>
+                {isEdit && headerSubtitle && (
+                    <p className="text-base text-muted-foreground">{headerSubtitle}</p>
                 )}
+                {!isEdit && (
+                    <p className="text-base text-muted-foreground">
+                        Preencha os dados para criar um novo evento administrativo.
+                    </p>
+                )}
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {isEdit && <input type="hidden" name="id" value={initialData.id} />}
+            {/* Tabs (apenas em edição) */}
+            {isEdit && initialData && <EventoTabs eventId={initialData.id} />}
 
-                    <div className="grid gap-8 md:grid-cols-2">
-                        {/* Informações Básicas */}
-                        <div className="space-y-6">
-                            <h3 className="text-panel-md font-semibold border-b pb-2">
-                                Dados do Evento
-                            </h3>
+            {error && (
+                <div className="p-3 bg-destructive/15 text-destructive text-base rounded-lg text-center">
+                    {error}
+                </div>
+            )}
 
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-panel-sm font-medium leading-none">
-                                        Academia / Equipe Vinculada *
-                                    </label>
-                                    <Select
-                                        disabled={loading}
-                                        onValueChange={setSelectedTenantId}
-                                        value={selectedTenantId}
-                                    >
-                                        <SelectTrigger className="h-12 border-input bg-transparent rounded-xl shadow-xs focus:ring-1 focus:ring-ring">
-                                            <SelectValue placeholder="Selecione a academia" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {academies.map((academy) => (
-                                                <SelectItem key={academy.tenant_id} value={academy.tenant_id}>
-                                                    {academy.gym_name || academy.full_name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {isEdit && <input type="hidden" name="id" value={initialData!.id} />}
 
-                                <div className="space-y-2">
-                                    <label htmlFor="title" className="text-panel-sm font-medium leading-none">
-                                        Título do Evento *
-                                    </label>
-                                    <Input
-                                        id="title"
-                                        name="title"
-                                        defaultValue={initialData?.title}
-                                        placeholder="Ex: Copa de Inverno"
-                                        variant="lg"
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
+                <div className="grid gap-8 md:grid-cols-2">
+                    {/* SEÇÃO 1 — Identificação */}
+                    <div className="space-y-6">
+                        <h3 className="text-panel-md font-semibold border-b pb-2 flex items-center gap-2">
+                            <BuildingsIcon size={20} weight="duotone" className="text-primary" />
+                            Identificação
+                        </h3>
 
-                                <div className="space-y-2">
-                                    <label htmlFor="event_date" className="text-panel-sm font-medium leading-none">
-                                        Data do Evento *
-                                    </label>
-                                    <Input
-                                        id="event_date"
-                                        name="event_date"
-                                        type="datetime-local"
-                                        defaultValue={initialData?.event_date ? new Date(initialData.event_date).toISOString().slice(0, 16) : ''}
-                                        variant="lg"
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-panel-sm font-medium leading-none">
+                                    Academia / Equipe Vinculada *
+                                </label>
+                                <Select
+                                    disabled={loading}
+                                    onValueChange={setSelectedTenantId}
+                                    value={selectedTenantId}
+                                >
+                                    <SelectTrigger className="h-12 border-input bg-transparent rounded-xl shadow-xs focus:ring-1 focus:ring-ring">
+                                        <SelectValue placeholder="Selecione a academia" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {academies.map((a) => (
+                                            <SelectItem key={a.tenant_id} value={a.tenant_id}>
+                                                {a.gym_name || a.full_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
+                            <div className="space-y-2">
+                                <label htmlFor="title" className="text-panel-sm font-medium leading-none">
+                                    Título do Evento *
+                                </label>
+                                <Input
+                                    id="title"
+                                    name="title"
+                                    defaultValue={initialData?.title}
+                                    placeholder="Ex: Copa de Inverno"
+                                    variant="lg"
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SEÇÃO 2 — Quando */}
+                    <div className="space-y-6">
+                        <h3 className="text-panel-md font-semibold border-b pb-2 flex items-center gap-2">
+                            <CalendarBlankIcon size={20} weight="duotone" className="text-primary" />
+                            Quando
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label htmlFor="event_date" className="text-panel-sm font-medium leading-none">
+                                    Data do Evento *
+                                </label>
+                                <Input
+                                    id="event_date"
+                                    name="event_date"
+                                    type="datetime-local"
+                                    defaultValue={initialData?.event_date ? new Date(initialData.event_date).toISOString().slice(0, 16) : ''}
+                                    variant="lg"
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <label htmlFor="event_end_date" className="text-panel-sm font-medium leading-none">
                                         Data de Término
@@ -320,10 +401,9 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                         disabled={loading}
                                     />
                                 </div>
-
                                 <div className="space-y-2">
                                     <label htmlFor="registration_end_date" className="text-panel-sm font-medium leading-none">
-                                        Prazo de Inscrições
+                                        Prazo Inscrições
                                     </label>
                                     <Input
                                         id="registration_end_date"
@@ -334,115 +414,178 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                         disabled={loading}
                                     />
                                 </div>
+                            </div>
 
-                                <div className="space-y-2">
-                                    <label htmlFor="category_change_deadline_days" className="text-panel-sm font-medium leading-none">
-                                        Prazo para Troca de Categoria
-                                    </label>
-                                    <div className="flex items-center gap-3">
-                                        <Input
-                                            id="category_change_deadline_days"
-                                            name="category_change_deadline_days"
-                                            type="number"
-                                            min="0"
-                                            defaultValue={initialData?.category_change_deadline_days ?? 0}
-                                            variant="lg"
-                                            disabled={loading}
-                                            className="max-w-[120px]"
-                                        />
-                                        <span className="text-panel-sm text-muted-foreground">dias antes do evento (0 = não permite)</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label htmlFor="location" className="text-panel-sm font-medium leading-none">
-                                        Local (Nome da Arena/Ginásio)
-                                    </label>
+                            <div className="space-y-2">
+                                <label htmlFor="category_change_deadline_days" className="text-panel-sm font-medium leading-none">
+                                    Prazo para Troca de Categoria
+                                </label>
+                                <div className="flex items-center gap-3">
                                     <Input
-                                        id="location"
-                                        name="location"
-                                        defaultValue={initialData?.location}
-                                        placeholder="Ex: Ginásio Municipal"
+                                        id="category_change_deadline_days"
+                                        name="category_change_deadline_days"
+                                        type="number"
+                                        min="0"
+                                        defaultValue={initialData?.category_change_deadline_days ?? 0}
                                         variant="lg"
                                         disabled={loading}
+                                        className="max-w-[120px]"
                                     />
+                                    <span className="text-panel-sm text-muted-foreground">
+                                        dias antes (0 = não permite)
+                                    </span>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Endereço e Imagem */}
-                        <div className="space-y-6">
-                            <h3 className="text-panel-md font-semibold border-b pb-2">
-                                Endereço
-                            </h3>
-
-                            <div className="grid gap-4">
-                                <div className="grid grid-cols-4 gap-4">
-                                    <div className="col-span-3 space-y-2">
-                                        <label htmlFor="address_street" className="text-panel-sm font-medium leading-none"> Rua * </label>
-                                        <Input id="address_street" name="address_street" defaultValue={initialData?.address_street} variant="lg" required disabled={loading} placeholder="Rua..." />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="address_number" className="text-panel-sm font-medium leading-none"> Nº </label>
-                                        <Input id="address_number" name="address_number" defaultValue={initialData?.address_number} variant="lg" disabled={loading} placeholder="123" />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label htmlFor="address_neighborhood" className="text-panel-sm font-medium leading-none"> Bairro </label>
-                                        <Input id="address_neighborhood" name="address_neighborhood" defaultValue={initialData?.address_neighborhood} variant="lg" disabled={loading} placeholder="Centro" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="address_zip" className="text-panel-sm font-medium leading-none"> CEP </label>
-                                        <Input id="address_zip" name="address_zip" defaultValue={initialData?.address_zip} variant="lg" disabled={loading} placeholder="00000-000" />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="col-span-2 space-y-2">
-                                        <label htmlFor="address_city" className="text-panel-sm font-medium leading-none"> Cidade * </label>
-                                        <Input id="address_city" name="address_city" defaultValue={initialData?.address_city} variant="lg" required disabled={loading} placeholder="Cidade" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="address_state" className="text-panel-sm font-medium leading-none"> UF * </label>
-                                        <Input id="address_state" name="address_state" defaultValue={initialData?.address_state} variant="lg" required disabled={loading} placeholder="UF" maxLength={2} className="uppercase" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4">
-                                <h3 className="text-panel-md font-semibold border-b pb-2"> Imagem Principal </h3>
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className={cn("relative size-[260px] sm:size-[320px] rounded-2xl border flex flex-col items-center justify-center p-1 bg-muted/10 transition-all overflow-hidden cursor-pointer hover:bg-muted/20", imagePreview ? "border-primary/20" : "border-dashed border-input")} onClick={() => !imagePreview && fileInputRef.current?.click()} >
-                                        {imagePreview ? (
-                                            <>
-                                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
-                                                <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 px-3 py-1 bg-destructive text-white text-xs uppercase tracking-wider rounded-full hover:scale-105 transition-transform shadow-lg" > Remover </button>
-                                            </>
-                                        ) : (
-                                            <div className="flex flex-col items-center transition-opacity">
-                                                <span className="text-xs uppercase tracking-wider opacity-60">ENVIAR IMAGEM</span>
-                                                <span className="text-xs mt-1 opacity-40">Recomendado: 1000×1000</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} disabled={loading} />
-                                </div>
-                            </div>
-
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-4 pt-8 border-t w-full">
-                        <Button
-                            type="submit"
-                            pill
-                            className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white transition-all shadow-lg shadow-primary/20"
-                            disabled={loading || !selectedTenantId}
-                        >
-                            {loading ? <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> : isEdit ? 'Salvar Alterações' : 'Criar Evento'}
-                        </Button>
+                    {/* SEÇÃO 3 — Onde */}
+                    <div className="space-y-6 md:col-span-2">
+                        <h3 className="text-panel-md font-semibold border-b pb-2 flex items-center gap-2">
+                            <MapPinIcon size={20} weight="duotone" className="text-primary" />
+                            Onde
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label htmlFor="location" className="text-panel-sm font-medium leading-none">
+                                    Local (Nome da Arena/Ginásio)
+                                </label>
+                                <Input
+                                    id="location"
+                                    name="location"
+                                    defaultValue={initialData?.location}
+                                    placeholder="Ex: Ginásio Municipal"
+                                    variant="lg"
+                                    disabled={loading}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                <div className="sm:col-span-3 space-y-2">
+                                    <label htmlFor="address_street" className="text-panel-sm font-medium leading-none">Rua *</label>
+                                    <Input id="address_street" name="address_street" defaultValue={initialData?.address_street} variant="lg" required disabled={loading} placeholder="Rua..." />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="address_number" className="text-panel-sm font-medium leading-none">Nº</label>
+                                    <Input id="address_number" name="address_number" defaultValue={initialData?.address_number} variant="lg" disabled={loading} placeholder="123" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label htmlFor="address_neighborhood" className="text-panel-sm font-medium leading-none">Bairro</label>
+                                    <Input id="address_neighborhood" name="address_neighborhood" defaultValue={initialData?.address_neighborhood} variant="lg" disabled={loading} placeholder="Centro" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="address_zip" className="text-panel-sm font-medium leading-none">CEP</label>
+                                    <Input id="address_zip" name="address_zip" defaultValue={initialData?.address_zip} variant="lg" disabled={loading} placeholder="00000-000" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="sm:col-span-2 space-y-2">
+                                    <label htmlFor="address_city" className="text-panel-sm font-medium leading-none">Cidade *</label>
+                                    <Input id="address_city" name="address_city" defaultValue={initialData?.address_city} variant="lg" required disabled={loading} placeholder="Cidade" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="address_state" className="text-panel-sm font-medium leading-none">UF *</label>
+                                    <Input id="address_state" name="address_state" defaultValue={initialData?.address_state} variant="lg" required disabled={loading} placeholder="UF" maxLength={2} className="uppercase" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SEÇÃO 4 — Imagem principal */}
+                    <div className="space-y-6 md:col-span-2">
+                        <h3 className="text-panel-md font-semibold border-b pb-2 flex items-center gap-2">
+                            <ImageIcon size={20} weight="duotone" className="text-primary" />
+                            Imagem Principal
+                        </h3>
+
+                        <div className="flex flex-col md:flex-row items-center gap-6">
+                            <div
+                                className={cn(
+                                    'relative size-[240px] sm:size-[280px] rounded-2xl border flex flex-col items-center justify-center bg-muted/10 transition-all overflow-hidden cursor-pointer hover:bg-muted/20 shrink-0',
+                                    imagePreview ? 'border-primary/20' : 'border-dashed border-input',
+                                )}
+                                onClick={() => !imagePreview && fileInputRef.current?.click()}
+                            >
+                                {imagePreview ? (
+                                    <>
+                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveImage}
+                                            className="absolute top-2 right-2 inline-flex items-center gap-1 px-3 py-1 bg-destructive text-white text-xs uppercase tracking-wider rounded-full hover:scale-105 transition-transform shadow-lg"
+                                        >
+                                            <XIcon size={14} weight="bold" /> Remover
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 px-4 text-center">
+                                        <UploadSimpleIcon size={32} weight="duotone" className="text-muted-foreground" />
+                                        <span className="text-panel-sm font-semibold text-foreground">Enviar imagem</span>
+                                        <span className="text-xs text-muted-foreground">1000×1000 recomendado</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 w-full space-y-3">
+                                <p className="text-panel-sm text-muted-foreground">
+                                    A imagem aparece em destaque na página do evento e na listagem pública.
+                                    Idealmente <strong>quadrada</strong>, com pelo menos <strong>1000×1000px</strong>.
+                                    Vamos comprimir e redimensionar automaticamente.
+                                </p>
+                                {imageMeta && (
+                                    <div className="flex flex-wrap gap-2">
+                                        <Badge variant="outline">{imageMeta.w}×{imageMeta.h}px</Badge>
+                                        <Badge variant="outline">{imageMeta.sizeKB} KB</Badge>
+                                        <Badge variant="success">JPEG otimizado</Badge>
+                                    </div>
+                                )}
+                                {imagePreview && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        pill
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="h-10"
+                                    >
+                                        <UploadSimpleIcon size={16} weight="duotone" />
+                                        Trocar imagem
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            disabled={loading}
+                        />
+                    </div>
+                </div>
+
+                {/* Rodapé enxuto: 4 ações principais */}
+                <div className="sticky bottom-4 z-10">
+                    <div className="flex flex-wrap items-center justify-end gap-3 p-4 rounded-2xl border bg-background/95 backdrop-blur shadow-lg">
+                        {isEdit && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                pill
+                                asChild
+                                className="h-12 px-5 text-base font-semibold"
+                            >
+                                <Link href={`/eventos/${initialData!.id}`} target="_blank">
+                                    <EyeIcon size={18} weight="duotone" />
+                                    Visualizar prévia
+                                </Link>
+                            </Button>
+                        )}
 
                         {isEdit && initialData?.status === 'pendente' && (
                             <Button
@@ -450,10 +593,10 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 variant="default"
                                 pill
                                 onClick={handleApprove}
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
+                                className="h-12 px-5 text-base font-bold text-white shadow-lg shadow-primary/20"
                                 disabled={loading}
                             >
-                                {loading ? <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> : 'Aprovar Evento'}
+                                {loading ? <SpinnerGapIcon size={18} weight="bold" className="animate-spin" /> : 'Aprovar Evento'}
                             </Button>
                         )}
 
@@ -464,107 +607,16 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 pill
                                 onClick={initialData.status === 'publicado' ? handleUnpublish : handlePublish}
                                 className={cn(
-                                    "w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold shadow-lg transition-all",
+                                    'h-12 px-5 text-base font-bold transition-all',
                                     initialData.status === 'publicado'
-                                        ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-none"
-                                        : "text-white shadow-primary/20"
+                                        ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/30 shadow-none'
+                                        : 'text-white shadow-lg shadow-primary/20',
                                 )}
                                 disabled={loading}
                             >
-                                {loading ? <SpinnerGapIcon size={20} weight="bold" className="mr-2 animate-spin" /> : initialData.status === 'publicado' ? 'Despublicar Evento' : 'Publicar'}
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
-                            >
-                                <Link href={`/eventos/${initialData.id}`} target="_blank">
-                                    Visualizar Prévia
-                                </Link>
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
-                            >
-                                <Link href={`/admin/dashboard/eventos/${initialData.id}/categorias`}>
-                                    Categorias
-                                </Link>
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
-                            >
-                                <Link href={`/admin/dashboard/eventos/${initialData.id}/informacoes-gerais`}>
-                                    Infos Gerais
-                                </Link>
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
-                            >
-                                <Link href={`/admin/dashboard/eventos/${initialData.id}/imagens`}>
-                                    Imagens
-                                </Link>
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white shadow-lg shadow-primary/20"
-                            >
-                                <Link href={`/admin/dashboard/eventos/${initialData.id}/passaporte`}>
-                                    Passaporte
-                                </Link>
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                variant="secondary"
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold shadow-lg shadow-primary/10"
-                            >
-                                <Link href={`/admin/dashboard/eventos/${initialData.id}/precos-academias`}>
-                                    Preços por Academia
-                                </Link>
-                            </Button>
-                        )}
-
-                        {isEdit && (
-                            <Button
-                                type="button"
-                                pill
-                                asChild
-                                variant="secondary"
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold shadow-lg shadow-primary/10"
-                            >
-                                <Link href={`/admin/dashboard/eventos/${initialData.id}/precos-atletas`}>
-                                    Preços por Atleta
-                                </Link>
+                                {loading ? (
+                                    <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+                                ) : initialData.status === 'publicado' ? 'Despublicar' : 'Publicar'}
                             </Button>
                         )}
 
@@ -574,27 +626,39 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 variant="destructive"
                                 pill
                                 onClick={() => setIsDeleteDialogOpen(true)}
-                                className="w-full sm:w-fit min-w-[200px] h-12 text-panel-sm font-bold text-white transition-all shadow-lg shadow-destructive/20"
+                                className="h-12 px-5 text-base font-bold text-white shadow-lg shadow-destructive/20"
                                 disabled={loading}
                             >
-                                Excluir Evento
+                                <TrashIcon size={18} weight="duotone" />
+                                Excluir
                             </Button>
                         )}
-                    </div>
-                </form>
 
-                {initialData && (
-                    <DeleteConfirmationDialog
-                        isOpen={isDeleteDialogOpen}
-                        onClose={() => setIsDeleteDialogOpen(false)}
-                        onConfirm={handleDelete}
-                        title="Excluir Evento"
-                        description={`Esta ação é irreversível.\nTodos os dados vinculados a este evento serão removidos.`}
-                        itemName={initialData.title}
-                        loading={loading}
-                    />
-                )}
-            </div>
+                        <Button
+                            type="submit"
+                            pill
+                            className="h-12 px-6 text-base font-bold text-white shadow-lg shadow-primary/30 min-w-[180px]"
+                            disabled={loading || !selectedTenantId}
+                        >
+                            {loading ? (
+                                <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+                            ) : isEdit ? 'Salvar Alterações' : 'Criar Evento'}
+                        </Button>
+                    </div>
+                </div>
+            </form>
+
+            {initialData && (
+                <DeleteConfirmationDialog
+                    isOpen={isDeleteDialogOpen}
+                    onClose={() => setIsDeleteDialogOpen(false)}
+                    onConfirm={handleDelete}
+                    title="Excluir Evento"
+                    description={`Esta ação é irreversível.\nTodos os dados vinculados a este evento serão removidos.`}
+                    itemName={initialData.title}
+                    loading={loading}
+                />
+            )}
         </div>
     );
 }
