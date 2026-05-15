@@ -84,7 +84,7 @@ export async function listCategoriasComContagem(eventId: string) {
     const { event } = await assertEventOwner(eventId);
     const adminSupabase = createAdminClient();
 
-    const [{ data: regs, error: regsErr }, juntadasRes] = await Promise.all([
+    const [{ data: regs, error: regsErr }, juntadasRes, chavesRes] = await Promise.all([
         adminSupabase
             .from('event_registrations')
             .select(`status, category:category_rows!category_id(categoria_completa, peso_min_kg, peso_max_kg)`)
@@ -93,6 +93,10 @@ export async function listCategoriasComContagem(eventId: string) {
         adminSupabase
             .from('ge_categorias_juntadas')
             .select('id, display_name, ge_categorias_juntadas_itens(category_name)')
+            .eq('event_id', eventId),
+        adminSupabase
+            .from('ge_chaves_oficiais')
+            .select('category_name, status')
             .eq('event_id', eventId),
     ]);
 
@@ -130,6 +134,11 @@ export async function listCategoriasComContagem(eventId: string) {
         }
     }
 
+    const chaveByName = new Map<string, string>();
+    for (const c of (chavesRes.data || []) as Array<{ category_name: string; status: string }>) {
+        chaveByName.set(c.category_name, c.status);
+    }
+
     const list: Array<{
         name: string;
         count: number;
@@ -138,16 +147,21 @@ export async function listCategoriasComContagem(eventId: string) {
         isMerged: boolean;
         mergedId?: string;
         mergedItems?: string[];
+        chaveGerada: boolean;
+        chaveStatus: string | null;
     }> = [];
 
     for (const [name, v] of baseMap.entries()) {
         if (memberToJuntadaId.has(name)) continue;
+        const chaveStatus = chaveByName.get(name) ?? null;
         list.push({
             name,
             count: v.count,
             peso_min_kg: v.peso_min_kg,
             peso_max_kg: v.peso_max_kg,
             isMerged: false,
+            chaveGerada: chaveStatus !== null,
+            chaveStatus,
         });
     }
 
@@ -163,6 +177,7 @@ export async function listCategoriasComContagem(eventId: string) {
             if (s.peso_min_kg != null) minKg = minKg == null ? s.peso_min_kg : Math.min(minKg, s.peso_min_kg);
             if (s.peso_max_kg != null) maxKg = maxKg == null ? s.peso_max_kg : Math.max(maxKg, s.peso_max_kg);
         }
+        const chaveStatus = chaveByName.get(j.display_name) ?? null;
         list.push({
             name: j.display_name,
             count,
@@ -171,6 +186,8 @@ export async function listCategoriasComContagem(eventId: string) {
             isMerged: true,
             mergedId: j.id,
             mergedItems: items,
+            chaveGerada: chaveStatus !== null,
+            chaveStatus,
         });
     }
 

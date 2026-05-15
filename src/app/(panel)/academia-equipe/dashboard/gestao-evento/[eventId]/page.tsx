@@ -58,6 +58,8 @@ type Categoria = {
     isMerged?: boolean;
     mergedId?: string;
     mergedItems?: string[];
+    chaveGerada?: boolean;
+    chaveStatus?: string | null;
 };
 type Bucket = 'all' | 'wo' | 'final' | 'rr' | 'elim';
 
@@ -612,6 +614,15 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                     Juntada
                                                 </Badge>
                                             )}
+                                            {cat.chaveGerada && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border-emerald-500/40 text-emerald-700 bg-emerald-500/10 shrink-0 inline-flex items-center gap-1"
+                                                >
+                                                    <KeyIcon size={11} weight="fill" />
+                                                    Chave gerada
+                                                </Badge>
+                                            )}
                                         </div>
                                         {isMerged && cat.mergedItems && cat.mergedItems.length > 0 && (
                                             <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
@@ -663,12 +674,21 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                     Desfazer
                                                 </Button>
                                             )}
-                                            <Button asChild pill variant="outline" className="font-semibold gap-2">
+                                            <Button
+                                                asChild
+                                                pill
+                                                variant="outline"
+                                                className={
+                                                    cat.chaveGerada
+                                                        ? 'font-semibold gap-2 bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:text-white hover:border-emerald-700 shadow-md shadow-emerald-600/20'
+                                                        : 'font-semibold gap-2'
+                                                }
+                                            >
                                                 <Link
                                                     href={`/academia-equipe/dashboard/gestao-evento/${eventId}/chaveamento/${encodeURIComponent(cat.name)}`}
                                                 >
-                                                    <KeyIcon size={14} weight="duotone" />
-                                                    Ver chave
+                                                    <KeyIcon size={14} weight={cat.chaveGerada ? 'fill' : 'duotone'} />
+                                                    {cat.chaveGerada ? 'Abrir chave' : 'Ver chave'}
                                                 </Link>
                                             </Button>
                                         </div>
