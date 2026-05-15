@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, MapPin, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PublicEvent } from '../_data/events';
@@ -36,32 +36,79 @@ export function EventCard({ event }: EventCardProps) {
                                 <Calendar className="h-10 w-10 text-muted-foreground/20" />
                             </div>
                         )}
+                        {event.inscricoes_encerradas && (
+                            <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/75 backdrop-blur text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-lg">
+                                <Lock className="h-3 w-3" />
+                                Inscrições encerradas
+                            </div>
+                        )}
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-4 sm:p-5 flex-1 space-y-3 sm:space-y-4">
-                    <h3 className="text-base sm:text-h2 font-semibold text-foreground line-clamp-2 sm:min-h-[4rem] group-hover:text-primary transition-colors duration-300">
+                <CardContent
+                    className={
+                        event.inscricoes_encerradas
+                            ? 'p-4 sm:p-5 flex-1 flex flex-col items-center justify-center text-center space-y-4 sm:space-y-5'
+                            : 'p-4 sm:p-5 flex-1 space-y-3 sm:space-y-4'
+                    }
+                >
+                    <h3
+                        className={
+                            event.inscricoes_encerradas
+                                ? 'text-lg sm:text-2xl font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors duration-300'
+                                : 'text-base sm:text-h2 font-semibold text-foreground line-clamp-2 sm:min-h-[4rem] group-hover:text-primary transition-colors duration-300'
+                        }
+                    >
                         {event.title}
                     </h3>
 
-                    <div className="space-y-1 sm:space-y-1.5 sm:pt-2">
-                        <p className="text-xs sm:text-ui text-muted-foreground font-medium uppercase tracking-tight">
+                    <div
+                        className={
+                            event.inscricoes_encerradas
+                                ? 'space-y-2 sm:space-y-3'
+                                : 'space-y-1 sm:space-y-1.5 sm:pt-2'
+                        }
+                    >
+                        <p
+                            className={
+                                event.inscricoes_encerradas
+                                    ? 'text-base sm:text-xl text-foreground font-bold uppercase tracking-wide'
+                                    : 'text-xs sm:text-ui text-muted-foreground font-medium uppercase tracking-tight'
+                            }
+                        >
                             {event.starts_at ? format(new Date(event.starts_at), "dd 'de' MMMM", { locale: ptBR }) : 'Data a definir'}
                         </p>
-                        <p className="text-xs sm:text-ui text-muted-foreground font-medium truncate">
+                        <p
+                            className={
+                                event.inscricoes_encerradas
+                                    ? 'text-base sm:text-lg text-muted-foreground font-medium'
+                                    : 'text-xs sm:text-ui text-muted-foreground font-medium truncate'
+                            }
+                        >
                             {event.city ? `${event.city}, ${event.state}` : (event.venue_name || 'Local a definir')}
                         </p>
                     </div>
                 </CardContent>
 
                 <CardFooter className="p-4 pt-0 sm:p-5 sm:pt-0">
-                    <Button
-                        variant="default"
-                        pill
-                        className="h-10 sm:h-12 text-sm sm:text-ui font-bold text-white shadow-lg shadow-primary/20 w-full group-hover:bg-primary/90 transition-all"
-                    >
-                        Ver Detalhes
-                    </Button>
+                    {event.inscricoes_encerradas ? (
+                        <Button
+                            variant="outline"
+                            pill
+                            className="h-10 sm:h-12 text-sm sm:text-ui font-bold w-full bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:text-rose-800 hover:border-rose-300 shadow-sm transition-colors"
+                        >
+                            <Lock className="h-4 w-4" />
+                            Inscrições encerradas
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="default"
+                            pill
+                            className="h-10 sm:h-12 text-sm sm:text-ui font-bold text-white shadow-lg shadow-primary/20 w-full group-hover:bg-primary/90 transition-all"
+                        >
+                            Ver Detalhes
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         </Link>

@@ -307,7 +307,7 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                     <div className="flex flex-col sm:flex-row items-center gap-12 w-full sm:w-auto">
                                         <div className="transition-transform duration-300 group-hover:scale-[1.02]">
                                             {event.inscricoes_encerradas ? (
-                                            <div className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-muted text-muted-foreground border border-border/50 text-ui font-bold uppercase tracking-wide">
+                                            <div className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-ui font-bold uppercase tracking-wide shadow-sm">
                                                 <Lock className="h-4 w-4" />
                                                 Inscrições encerradas
                                             </div>
@@ -486,7 +486,7 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                             <p className="text-body text-muted-foreground mx-auto">Garanta sua vaga agora mesmo e comece sua preparação.</p>
                         </div>
                         {event.inscricoes_encerradas ? (
-                                            <div className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-muted text-muted-foreground border border-border/50 text-ui font-bold uppercase tracking-wide">
+                                            <div className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-ui font-bold uppercase tracking-wide shadow-sm">
                                                 <Lock className="h-4 w-4" />
                                                 Inscrições encerradas
                                             </div>
