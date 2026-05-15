@@ -41,16 +41,29 @@ describe('formatWeightRange', () => {
 // ---------------------------------------------------------------------------
 
 describe('formatCategoryTitle', () => {
-    it('formats a regular category removing bullets and Kimono', () => {
+    it('formats a regular Kimono category and surfaces modalidade as suffix', () => {
         const cat = {
-            categoria_completa: 'Adulto • Masculino • Branca • Kimono • Médio',
+            categoria_completa: 'Adulto • Masculino • Branca • Médio • Kimono',
             faixa: 'Branca',
             categoria_peso: 'Médio',
             peso: 'Médio',
         };
         const result = formatCategoryTitle(cat);
-        expect(result).not.toContain('Kimono');
-        expect(result).not.toContain('•');
+        expect(result).toContain('Kimono');
+        expect(result).toMatch(/• Kimono$/);
+    });
+
+    it('surfaces "No-Gi" suffix for No-Gi categories', () => {
+        const cat = {
+            categoria_completa: 'Adulto • Masculino • Roxa • Médio • No-Gi (sem kimono)',
+            faixa: 'Roxa',
+            categoria_peso: 'Médio',
+            peso: 'Médio',
+        };
+        const result = formatCategoryTitle(cat);
+        expect(result).toMatch(/• No-Gi$/);
+        expect(result).not.toContain('kimono');
+        expect(result).not.toContain('Sem');
     });
 
     it('formats an Absoluto category with clean belt and gender', () => {

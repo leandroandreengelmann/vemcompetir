@@ -34,14 +34,26 @@ export function formatWeightRange(cat: CategoryLike) {
 }
 
 /**
+ * Detecta a modalidade ("Kimono" ou "No-Gi") a partir da categoria_completa.
+ * Aceita variações: "Kimono", "No-Gi", "No Gi", "Nogi", "Sem Kimono", "No-Gi (sem kimono)".
+ */
+function detectModalidade(title: string): 'Kimono' | 'No-Gi' | null {
+    const lower = title.toLowerCase();
+    if (/(no[\s-]?gi|sem\s+kimono)/.test(lower)) return 'No-Gi';
+    if (/\bkimono\b/.test(lower)) return 'Kimono';
+    return null;
+}
+
+/**
  * Formata o título da categoria de forma limpa e fluida.
- * Remove pontos, termo "Kimono" e redundâncias.
+ * Remove pontos e redundâncias e acrescenta a modalidade (Kimono / No-Gi) ao final.
  * Trata categorias "Absoluto" separadamente.
  */
 export function formatCategoryTitle(cat: CategoryLike) {
     const title = cat?.categoria_completa || '';
     const pesoInfo = cat?.peso || '';
     const isAbsolute = pesoInfo.toLowerCase().includes('absoluto') || title.toLowerCase().includes('absoluto');
+    const modalidade = detectModalidade(title);
 
     if (isAbsolute) {
         // Formata a faixa: "AZUL E ROXA" -> "Azul e Roxa"
@@ -80,18 +92,21 @@ export function formatCategoryTitle(cat: CategoryLike) {
         return `Absoluto ${cleanFaixa}${gender ? ` ${gender}` : ''}${uniforme ? ` • ${uniforme}` : ''}`.trim();
     }
 
-    // Para categorias regulares: Remover pontos, "Kimono" e o nome do peso
+    // Para categorias regulares: Remover pontos, modalidade (vai voltar como sufixo) e o nome do peso
     const pesoName = cat.categoria_peso || cat.peso?.split(':')[0]?.trim() || '';
 
     let cleanTitle = title
         .replace(/•/g, ' ')
-        .replace(/Kimono/gi, '')
+        .replace(/no[\s-]?gi\s*\(sem\s+kimono\)/gi, '')
+        .replace(/sem\s+kimono/gi, '')
+        .replace(/no[\s-]?gi/gi, '')
+        .replace(/\bkimono\b/gi, '')
         .replace(/\s*\(\d+\)\s*/g, ' ')
         .replace(new RegExp(`\\b${pesoName}\\b`, 'gi'), '')
         .replace(/\s+/g, ' ')
         .trim();
 
-    return cleanTitle;
+    return modalidade ? `${cleanTitle} • ${modalidade}` : cleanTitle;
 }
 
 /**
