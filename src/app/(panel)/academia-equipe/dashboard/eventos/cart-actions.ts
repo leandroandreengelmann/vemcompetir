@@ -41,9 +41,13 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
 
     const { data: event } = await supabase
         .from('events')
-        .select('tenant_id')
+        .select('tenant_id, inscricoes_encerradas')
         .eq('id', item.eventId)
         .single();
+
+    if (event?.inscricoes_encerradas) {
+        return { error: 'As inscrições para este evento foram encerradas.' };
+    }
 
     const isOwnEvent = event?.tenant_id === tenant_id;
 

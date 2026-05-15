@@ -12,7 +12,7 @@ import { PublicHeader } from '@/components/layout/PublicHeader';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { SubscribeButton } from '../_components/subscribe-button';
 import { ShareLink } from '../_components/share-link';
-import { Eye } from 'lucide-react';
+import { Eye, Lock } from 'lucide-react';
 import {
     Accordion,
     AccordionContent,
@@ -306,7 +306,14 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                                 <div className="p-10 rounded-[7px] bg-muted/30 border border-border/50 flex flex-col sm:flex-row items-center gap-12 group transition-all hover:bg-muted/40 hover:border-border/80">
                                     <div className="flex flex-col sm:flex-row items-center gap-12 w-full sm:w-auto">
                                         <div className="transition-transform duration-300 group-hover:scale-[1.02]">
+                                            {event.inscricoes_encerradas ? (
+                                            <div className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-muted text-muted-foreground border border-border/50 text-ui font-bold uppercase tracking-wide">
+                                                <Lock className="h-4 w-4" />
+                                                Inscrições encerradas
+                                            </div>
+                                        ) : (
                                             <SubscribeButton eventId={event.id} isLoggedIn={!!user} />
+                                        )}
                                         </div>
 
                                     </div>
@@ -478,7 +485,14 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
                             <h2 className="text-2xl font-black tracking-tight uppercase">Pronto para competir?</h2>
                             <p className="text-body text-muted-foreground mx-auto">Garanta sua vaga agora mesmo e comece sua preparação.</p>
                         </div>
-                        <SubscribeButton eventId={event.id} isLoggedIn={!!user} />
+                        {event.inscricoes_encerradas ? (
+                                            <div className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-muted text-muted-foreground border border-border/50 text-ui font-bold uppercase tracking-wide">
+                                                <Lock className="h-4 w-4" />
+                                                Inscrições encerradas
+                                            </div>
+                                        ) : (
+                                            <SubscribeButton eventId={event.id} isLoggedIn={!!user} />
+                                        )}
                     </div>
                 </div>
             </main>

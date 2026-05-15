@@ -12,6 +12,7 @@ export interface PublicEvent {
     secondary_image_1_path?: string | null;
     secondary_image_2_path?: string | null;
     status: string;
+    inscricoes_encerradas?: boolean;
     // Mapings for UI
     starts_at?: string;
     venue_name?: string;

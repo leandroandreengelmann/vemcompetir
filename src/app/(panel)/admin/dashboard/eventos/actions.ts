@@ -349,3 +349,25 @@ export async function unpublishAdminEventAction(id: string) {
     revalidatePath('/', 'layout');
     return { success: true };
 }
+
+export async function setRegistrationsClosedAction(id: string, closed: boolean) {
+    if (!(await checkAdmin())) return { error: 'Não autorizado.' };
+
+    const adminClient = createAdminClient();
+    const { error } = await adminClient
+        .from('events')
+        .update({ inscricoes_encerradas: closed })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Erro ao alterar status de inscrições:', error);
+        return { error: 'Erro ao alterar status de inscrições.' };
+    }
+
+    revalidatePath('/admin/dashboard/eventos', 'page');
+    revalidatePath('/admin/dashboard/eventos/[id]/editar', 'page');
+    revalidatePath('/admin/dashboard/eventos/[id]/preview', 'page');
+    revalidatePath(`/eventos/${id}`, 'page');
+    revalidatePath('/', 'layout');
+    return { success: true };
+}

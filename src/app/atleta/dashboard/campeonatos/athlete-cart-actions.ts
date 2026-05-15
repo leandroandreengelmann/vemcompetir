@@ -32,6 +32,17 @@ export async function addToAthleteCartAction(item: {
         throw new Error('Apenas atletas podem se inscrever diretamente.');
     }
 
+    // Block if registrations are closed
+    const { data: eventRow } = await supabase
+        .from('events')
+        .select('inscricoes_encerradas')
+        .eq('id', item.eventId)
+        .single();
+
+    if (eventRow?.inscricoes_encerradas) {
+        throw new Error('As inscrições para este evento foram encerradas.');
+    }
+
     // Check for duplicate
     const { data: existing } = await supabase
         .from('event_registrations')

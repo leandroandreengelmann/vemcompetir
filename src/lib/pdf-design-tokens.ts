@@ -25,10 +25,6 @@ export const PDF_COLORS = {
     medalBronzeBorder:'#A0673A',
     medalBronzeText:  '#7C2D12',
 
-    medal4thBg:       '#F3F4F6',
-    medal4thBorder:   '#6B7280',
-    medal4thText:     '#374151',
-
     // Text scale
     textDark:  '#0F1623',
     textMid:   '#4B5563',
@@ -40,11 +36,10 @@ export const PDF_COLORS = {
     border:  '#E4E7EC',
 } as const;
 
-export type MedalKey = 'OURO' | 'PRATA' | 'BRONZE' | '4 LUGAR';
+export type MedalKey = 'OURO' | 'PRATA' | 'BRONZE';
 
 export const MEDAL_STYLES: Record<MedalKey, { bg: string; border: string; text: string; label: string }> = {
     'OURO':    { bg: PDF_COLORS.medalGoldBg,   border: PDF_COLORS.medalGoldBorder,   text: PDF_COLORS.medalGoldText,   label: 'OURO' },
     'PRATA':   { bg: PDF_COLORS.medalSilverBg, border: PDF_COLORS.medalSilverBorder, text: PDF_COLORS.medalSilverText, label: 'PRATA' },
     'BRONZE':  { bg: PDF_COLORS.medalBronzeBg, border: PDF_COLORS.medalBronzeBorder, text: PDF_COLORS.medalBronzeText, label: 'BRONZE' },
-    '4 LUGAR': { bg: PDF_COLORS.medal4thBg,    border: PDF_COLORS.medal4thBorder,    text: PDF_COLORS.medal4thText,    label: '4. LUGAR' },
 };

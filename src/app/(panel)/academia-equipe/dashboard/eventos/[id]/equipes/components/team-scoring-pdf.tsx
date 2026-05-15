@@ -122,11 +122,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     medalHeaderTitle: {
-        fontSize: 9,
+        fontSize: 14,
         fontFamily: 'Helvetica-Bold',
     },
     medalHeaderPts: {
-        fontSize: 8,
+        fontSize: 12,
     },
     // ── Name rows ──
     columnsRow: {
@@ -142,18 +142,18 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     lineNumber: {
-        width: 16,
-        fontSize: 7,
+        width: 24,
+        fontSize: 13,
         color: C.textFaint,
     },
     nameLine: {
         flex: 1,
         borderBottom: `0.5 solid ${C.border}`,
-        height: 13,
+        height: 20,
     },
     ptsLabel: {
-        width: 36,
-        fontSize: 7,
+        width: 54,
+        fontSize: 13,
         textAlign: 'right',
         color: C.textMid,
         marginLeft: 3,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     subtotalLabel: {
-        fontSize: 8,
+        fontSize: 13,
         fontFamily: 'Helvetica-Bold',
         color: C.textMid,
     },
@@ -298,9 +298,7 @@ function TeamSheet({ team, idx, medals, eventTitle, linesPerColumn, logoUrl }: {
             {/* ── Legend summary bar ── */}
             <View style={styles.legendRow}>
                 {medals.map(medal => {
-                    const mc = MEDAL_STYLES[medal.label as MedalKey] ?? {
-                        bg: C.medal4thBg, border: C.medal4thBorder, text: C.medal4thText, label: medal.label,
-                    };
+                    const mc = MEDAL_STYLES[medal.label as MedalKey];
                     return (
                         <View key={medal.label} style={styles.legendItem}>
                             <View style={[styles.legendDot, { backgroundColor: mc.border }]} />
@@ -313,9 +311,7 @@ function TeamSheet({ team, idx, medals, eventTitle, linesPerColumn, logoUrl }: {
 
             {/* ── Medal sections ── */}
             {medals.map(medal => {
-                const mc = MEDAL_STYLES[medal.label as MedalKey] ?? {
-                    bg: C.medal4thBg, border: C.medal4thBorder, text: C.medal4thText, label: medal.label,
-                };
+                const mc = MEDAL_STYLES[medal.label as MedalKey];
                 return (
                     <View key={medal.label} style={styles.medalSection} wrap={false}>
                         {/* Color-coded header */}
@@ -379,7 +375,6 @@ export function TeamScoringPDF({ eventTitle, teams, config, logoUrl }: TeamScori
         { label: 'OURO',    pts: config.gold },
         { label: 'PRATA',   pts: config.silver },
         { label: 'BRONZE',  pts: config.bronze },
-        ...(config.fourth > 0 ? [{ label: '4 LUGAR', pts: config.fourth }] : []),
     ];
 
     return (

@@ -14,6 +14,8 @@ import {
     TrashIcon,
     UploadSimpleIcon,
     XIcon,
+    LockSimpleIcon,
+    LockSimpleOpenIcon,
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +35,7 @@ import {
     approveAdminEventAction,
     publishAdminEventAction,
     unpublishAdminEventAction,
+    setRegistrationsClosedAction,
 } from '../actions';
 import { confirmAsync } from '@/components/panel/ConfirmDialog';
 import { showToast } from '@/lib/toast';
@@ -66,6 +69,7 @@ interface AdminEventFormProps {
         status?: string;
         registration_end_date?: string | null;
         category_change_deadline_days?: number | null;
+        inscricoes_encerradas?: boolean;
     };
     academies: Academy[];
 }
@@ -217,6 +221,34 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
             }
         } catch {
             setError('Falha ao publicar o evento.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleRegistrations = async () => {
+        if (!initialData?.id || loading) return;
+        const isClosed = !!initialData.inscricoes_encerradas;
+        const ok = await confirmAsync({
+            variant: isClosed ? 'default' : 'warning',
+            title: isClosed ? 'Reabrir inscrições?' : 'Encerrar inscrições?',
+            description: isClosed
+                ? 'O botão de inscrição voltará a aparecer na página pública do evento.'
+                : 'O botão de inscrição será substituído por "Inscrições encerradas" na página pública. Atletas já inscritos não são afetados.',
+            confirmLabel: isClosed ? 'Reabrir' : 'Encerrar',
+        });
+        if (!ok) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await setRegistrationsClosedAction(initialData.id, !isClosed);
+            if (result.error) setError(result.error);
+            else if (result.success) {
+                showToast.success(isClosed ? 'Inscrições reabertas' : 'Inscrições encerradas');
+                router.refresh();
+            }
+        } catch {
+            setError('Falha ao alterar status das inscrições.');
         } finally {
             setLoading(false);
         }
@@ -617,6 +649,36 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
                                 {loading ? (
                                     <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
                                 ) : initialData.status === 'publicado' ? 'Despublicar' : 'Publicar'}
+                            </Button>
+                        )}
+
+                        {isEdit && initialData?.status === 'publicado' && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                pill
+                                onClick={handleToggleRegistrations}
+                                className={cn(
+                                    'h-12 px-5 text-base font-bold transition-all',
+                                    initialData.inscricoes_encerradas
+                                        ? 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border-amber-500/40'
+                                        : 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/40',
+                                )}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+                                ) : initialData.inscricoes_encerradas ? (
+                                    <>
+                                        <LockSimpleOpenIcon size={18} weight="duotone" />
+                                        Reabrir Inscrições
+                                    </>
+                                ) : (
+                                    <>
+                                        <LockSimpleIcon size={18} weight="duotone" />
+                                        Encerrar Inscrições
+                                    </>
+                                )}
                             </Button>
                         )}
 

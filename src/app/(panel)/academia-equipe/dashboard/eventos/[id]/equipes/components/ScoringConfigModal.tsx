@@ -28,7 +28,7 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState<ScoringConfig>(
-        initialConfig ?? { gold: 12, silver: 5, bronze: 3, fourth: 0, lines_per_column: 10 }
+        initialConfig ?? { gold: 12, silver: 5, bronze: 3, lines_per_column: 10 }
     );
 
     const handleChange = (field: keyof ScoringConfig, value: string) => {
@@ -88,13 +88,12 @@ export function ScoringConfigModal({ eventId, eventTitle, teams, initialConfig }
                     </DialogHeader>
 
                     {/* Medal point values */}
-                    <div className="grid grid-cols-2 gap-4 py-2">
+                    <div className="grid grid-cols-3 gap-4 py-2">
                         {(
                             [
                                 { key: 'gold', label: 'Ouro', iconClass: 'text-amber-500' },
                                 { key: 'silver', label: 'Prata', iconClass: 'text-slate-400' },
                                 { key: 'bronze', label: 'Bronze', iconClass: 'text-orange-700' },
-                                { key: 'fourth', label: '4º Lugar (0 = não usar)', iconClass: 'text-muted-foreground' },
                             ] as { key: keyof ScoringConfig; label: string; iconClass: string }[]
                         ).map(({ key, label, iconClass }) => (
                             <div key={key} className="space-y-1">

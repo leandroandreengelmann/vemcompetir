@@ -8,7 +8,6 @@ export interface ScoringConfig {
     gold: number;
     silver: number;
     bronze: number;
-    fourth: number;
     lines_per_column: number;
 }
 
@@ -280,6 +279,5 @@ export async function getScoringConfigAction(eventId: string): Promise<ScoringCo
         gold: 12,
         silver: 5,
         bronze: 3,
-        fourth: 1,
     };
 }
