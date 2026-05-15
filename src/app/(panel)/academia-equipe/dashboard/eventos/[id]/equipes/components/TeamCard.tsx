@@ -1,19 +1,59 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { UsersIcon, StarIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { UsersIcon, StarIcon, CaretRightIcon, FilePdfIcon, SpinnerIcon } from '@phosphor-icons/react';
+import { pdf } from '@react-pdf/renderer';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TeamSummary } from '../../../equipes-actions';
+import { TeamSummary, getAthletesByTeamAction } from '../../../equipes-actions';
+import { TeamAthletesPDF } from './team-athletes-pdf';
 
 interface TeamCardProps {
     team: TeamSummary;
     eventId: string;
+    eventTitle: string;
 }
 
-export function TeamCard({ team, eventId }: TeamCardProps) {
+export function TeamCard({ team, eventId, eventTitle }: TeamCardProps) {
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownloadPdf = async () => {
+        if (downloading) return;
+        setDownloading(true);
+        try {
+            const athletes = await getAthletesByTeamAction(eventId, team.team_slug);
+
+            const logoUrl = typeof window !== 'undefined'
+                ? `${window.location.origin}/logo-white.png`
+                : undefined;
+
+            const blob = await pdf(
+                <TeamAthletesPDF
+                    eventTitle={eventTitle}
+                    teamName={team.team_name}
+                    masterName={team.master_name}
+                    athletes={athletes}
+                    logoUrl={logoUrl}
+                />
+            ).toBlob();
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeTeam = team.team_slug.replace(/[^a-z0-9-]/gi, '-');
+            a.download = `atletas-${safeTeam}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Erro ao gerar PDF de atletas', err);
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     return (
         <Card className={`border transition-all duration-200 hover:shadow-md ${team.is_organizer ? 'border-primary/30 bg-primary/5' : 'bg-background'}`}>
             <CardContent className="p-5 flex items-center gap-4">
@@ -42,7 +82,7 @@ export function TeamCard({ team, eventId }: TeamCardProps) {
                     )}
                 </div>
 
-                {/* Athlete count + action */}
+                {/* Athlete count + actions */}
                 <div className="flex-shrink-0 flex items-center gap-3">
                     <div className="text-center">
                         <div className="text-panel-md font-bold font-bold tabular-nums">{team.total_athletes}</div>
@@ -50,6 +90,25 @@ export function TeamCard({ team, eventId }: TeamCardProps) {
                             {team.total_athletes === 1 ? 'atleta' : 'atletas'}
                         </div>
                     </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                pill
+                                onClick={handleDownloadPdf}
+                                disabled={downloading || team.total_athletes === 0}
+                                className="h-16 w-16 text-rose-700 hover:bg-rose-50 hover:text-rose-800 transition-colors"
+                            >
+                                {downloading
+                                    ? <SpinnerIcon weight="duotone" className="size-10 animate-spin" />
+                                    : <FilePdfIcon weight="duotone" className="size-10" />
+                                }
+                                <span className="sr-only">Baixar PDF detalhado dos atletas</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left">Baixar PDF detalhado dos atletas</TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" asChild pill className="h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">

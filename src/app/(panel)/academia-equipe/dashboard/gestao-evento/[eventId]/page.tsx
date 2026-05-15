@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronDown } from 'lucide-react';
 import {
     ArrowLeftIcon,
@@ -111,6 +112,54 @@ function formatBracketHint(count: number): { label: string; tone: 'wo' | 'final'
     return { label: `Eliminatória`, tone: 'elim' };
 }
 
+type CategoriaParaSugerir = {
+    name: string;
+    count: number;
+    peso_min_kg: number | null;
+    peso_max_kg: number | null;
+    isMerged?: boolean;
+    chaveGerada?: boolean;
+    parsed: ReturnType<typeof parseCategoria>;
+    superDivisao: SuperDivisao;
+    modalidadeKey: ModalidadeKey;
+};
+
+function findMergeCandidates(
+    target: CategoriaParaSugerir,
+    all: CategoriaParaSugerir[],
+): CategoriaParaSugerir[] {
+    if (target.count < 1 || target.count > 3) return [];
+    if (target.isMerged) return [];
+    if (target.chaveGerada) return [];
+    const candidates = all.filter((c) => {
+        if (c.name === target.name) return false;
+        if (c.isMerged) return false;
+        if (c.chaveGerada) return false;
+        if (c.count < 1) return false;
+        if (c.parsed.genero !== target.parsed.genero) return false;
+        if (c.modalidadeKey !== target.modalidadeKey) return false;
+        if (c.parsed.faixa !== target.parsed.faixa) return false;
+        if (c.superDivisao !== target.superDivisao) return false;
+        return true;
+    });
+    return candidates
+        .map((c) => {
+            const aMid =
+                target.peso_min_kg != null && target.peso_max_kg != null
+                    ? (target.peso_min_kg + target.peso_max_kg) / 2
+                    : target.peso_min_kg ?? target.peso_max_kg;
+            const bMid =
+                c.peso_min_kg != null && c.peso_max_kg != null
+                    ? (c.peso_min_kg + c.peso_max_kg) / 2
+                    : c.peso_min_kg ?? c.peso_max_kg;
+            const dist = aMid != null && bMid != null ? Math.abs(aMid - bMid) : 999;
+            return { c, dist };
+        })
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 5)
+        .map((x) => x.c);
+}
+
 function matchesBucket(count: number, bucket: Bucket): boolean {
     if (bucket === 'all') return true;
     if (bucket === 'wo') return count === 1;
@@ -140,6 +189,7 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
     const [confirmDesfazer, setConfirmDesfazer] = useState<{ id: string; name: string } | null>(null);
     const [desfazendo, setDesfazendo] = useState(false);
     const [desfazerError, setDesfazerError] = useState<string | null>(null);
+    const [chipSelecoes, setChipSelecoes] = useState<Map<string, Set<string>>>(new Map());
 
     async function load() {
         try {
@@ -288,6 +338,56 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
         () => detectMergeWarnings(Array.from(selected)),
         [selected],
     );
+
+    const sugestoesPorCategoria = useMemo(() => {
+        const map = new Map<string, CategoriaParaSugerir[]>();
+        for (const c of categoriasParsed) {
+            const sugs = findMergeCandidates(c, categoriasParsed);
+            if (sugs.length > 0) map.set(c.name, sugs);
+        }
+        return map;
+    }, [categoriasParsed]);
+
+    function openSuggestedMerge(catA: string, catB: string) {
+        const names = [catA, catB];
+        setSelectMode(true);
+        setSelected(new Set(names));
+        setMergeName(suggestMergedName(names));
+        setMergeError(null);
+        setShowMergeModal(true);
+    }
+
+    function toggleChipSelecao(catName: string, sugName: string) {
+        setChipSelecoes((prev) => {
+            const next = new Map(prev);
+            const current = new Set(next.get(catName) || []);
+            if (current.has(sugName)) current.delete(sugName);
+            else current.add(sugName);
+            if (current.size === 0) next.delete(catName);
+            else next.set(catName, current);
+            return next;
+        });
+    }
+
+    function openMultiSuggestedMerge(catName: string) {
+        const sugs = chipSelecoes.get(catName);
+        if (!sugs || sugs.size === 0) return;
+        const names = [catName, ...Array.from(sugs)];
+        setSelectMode(true);
+        setSelected(new Set(names));
+        setMergeName(suggestMergedName(names));
+        setMergeError(null);
+        setShowMergeModal(true);
+    }
+
+    function formatChipKgRange(min: number | null, max: number | null): string | null {
+        if (min == null && max == null) return null;
+        const fmt = (v: number) => (Number.isInteger(v) ? `${v}` : v.toString().replace('.', ','));
+        if (min != null && max != null) return `${fmt(min)}–${fmt(max)}kg`;
+        if (max != null) return `até ${fmt(max)}kg`;
+        if (min != null) return `+${fmt(min)}kg`;
+        return null;
+    }
 
     function openMergeModal() {
         const names = Array.from(selected);
@@ -657,6 +757,128 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                 {cat.count === 1 ? 'atleta' : 'atletas'}
                                             </span>
                                         </div>
+                                        {!selectMode && sugestoesPorCategoria.get(cat.name) && (() => {
+                                            const sugs = sugestoesPorCategoria.get(cat.name)!;
+                                            const sel = chipSelecoes.get(cat.name) || new Set<string>();
+                                            const selCount = sel.size;
+                                            const totalAtletasMerge =
+                                                cat.count +
+                                                sugs.filter((s) => sel.has(s.name)).reduce((acc, s) => acc + s.count, 0);
+                                            return (
+                                                <div className="mt-3 space-y-2 rounded-lg border border-amber-200/60 bg-amber-50/50 p-3">
+                                                    <div className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wider text-amber-800">
+                                                        <LinkSimpleIcon size={16} weight="fill" />
+                                                        Pode juntar com (toque para selecionar):
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <TooltipProvider delayDuration={150}>
+                                                            {sugs.map((sug) => {
+                                                                const isSel = sel.has(sug.name);
+                                                                const range = formatChipKgRange(
+                                                                    sug.peso_min_kg,
+                                                                    sug.peso_max_kg,
+                                                                );
+                                                                return (
+                                                                    <Tooltip key={sug.name}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    toggleChipSelecao(cat.name, sug.name);
+                                                                                }}
+                                                                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 text-sm font-bold transition-all ${
+                                                                                    isSel
+                                                                                        ? 'border-amber-600 bg-amber-500 text-white shadow-md'
+                                                                                        : 'border-amber-400/60 bg-white text-amber-900 hover:bg-amber-100'
+                                                                                }`}
+                                                                            >
+                                                                                <span
+                                                                                    className={`inline-flex items-center justify-center h-4 w-4 rounded border-2 ${
+                                                                                        isSel
+                                                                                            ? 'border-white bg-white text-amber-700'
+                                                                                            : 'border-amber-500 bg-white'
+                                                                                    }`}
+                                                                                >
+                                                                                    {isSel && (
+                                                                                        <svg viewBox="0 0 16 16" className="h-3 w-3">
+                                                                                            <path
+                                                                                                d="M3 8l3 3 7-7"
+                                                                                                fill="none"
+                                                                                                stroke="currentColor"
+                                                                                                strokeWidth="2.5"
+                                                                                                strokeLinecap="round"
+                                                                                                strokeLinejoin="round"
+                                                                                            />
+                                                                                        </svg>
+                                                                                    )}
+                                                                                </span>
+                                                                                <span className="uppercase tracking-wide">
+                                                                                    {sug.parsed.peso || sug.name}
+                                                                                </span>
+                                                                                {range && (
+                                                                                    <span
+                                                                                        className={`normal-case font-semibold ${
+                                                                                            isSel ? 'text-amber-50' : 'text-amber-700'
+                                                                                        }`}
+                                                                                    >
+                                                                                        {range}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span
+                                                                                    className={`inline-flex items-center gap-1 normal-case font-semibold ${
+                                                                                        isSel ? 'text-amber-50' : 'text-amber-700'
+                                                                                    }`}
+                                                                                >
+                                                                                    · {sug.count} {sug.count === 1 ? 'atleta' : 'atletas'}
+                                                                                </span>
+                                                                            </button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent
+                                                                            side="top"
+                                                                            className="max-w-sm font-medium space-y-1 px-4 py-3 text-sm"
+                                                                        >
+                                                                            <div className="text-base font-bold">{sug.name}</div>
+                                                                            {range && (
+                                                                                <div className="text-sm opacity-80">
+                                                                                    Peso: {range}
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="text-sm opacity-80">
+                                                                                {sug.count} {sug.count === 1 ? 'atleta' : 'atletas'}
+                                                                            </div>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                );
+                                                            })}
+                                                        </TooltipProvider>
+                                                    </div>
+                                                    {selCount > 0 && (
+                                                        <div className="flex items-center justify-between pt-1">
+                                                            <span className="text-sm text-amber-800 font-semibold">
+                                                                {selCount === 1
+                                                                    ? '1 categoria selecionada'
+                                                                    : `${selCount} categorias selecionadas`}
+                                                                {' · '}
+                                                                <span className="tabular-nums">{totalAtletasMerge}</span>{' '}
+                                                                atletas no total
+                                                            </span>
+                                                            <Button
+                                                                pill
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openMultiSuggestedMerge(cat.name);
+                                                                }}
+                                                                className="gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                                            >
+                                                                <LinkSimpleIcon size={14} weight="fill" />
+                                                                Juntar selecionadas
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                     {!selectMode && (
                                         <div className="flex items-center gap-2 shrink-0">

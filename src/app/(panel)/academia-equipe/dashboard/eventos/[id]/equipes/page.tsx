@@ -96,7 +96,7 @@ export default async function EventTeamsPage(props: TeamsPageProps) {
             {teams.length > 0 && (
                 <div className="flex flex-col gap-3">
                     {teams.map((team) => (
-                        <TeamCard key={team.team_slug} team={team} eventId={id} />
+                        <TeamCard key={team.team_slug} team={team} eventId={id} eventTitle={event.title} />
                     ))}
                 </div>
             )}
