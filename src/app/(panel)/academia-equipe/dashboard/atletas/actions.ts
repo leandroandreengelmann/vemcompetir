@@ -192,6 +192,9 @@ export async function updateAthleteAction(formData: FormData) {
     // Mestres não são mestres de si mesmos
     const master_id = is_master ? null : (formData.get('master_id') as string || null);
     const master_name = is_master ? null : (formData.get('master_name') as string || null);
+    // Equipe enviada pelo form (super admin pode trocar; academia/equipe respeita o atual)
+    const form_tenant_id = formData.get('tenant_id') as string | null;
+    const form_gym_name = formData.get('gym_name') as string | null;
 
     const has_guardian = formData.get('has_guardian') === 'on';
     const guardian_name = has_guardian ? (formData.get('guardian_name') as string || null) : null;
@@ -218,12 +221,18 @@ export async function updateAthleteAction(formData: FormData) {
         return { error: 'Você não tem permissão para editar este atleta.' };
     }
 
-    const resolvedTenantId = isGlobalAdmin ? (athleteProfile?.tenant_id || tenant_id) : tenant_id;
+    // Super admin pode trocar a equipe livremente; academia/equipe sempre preserva o tenant atual
+    const resolvedTenantId = isGlobalAdmin
+        ? (form_tenant_id || athleteProfile?.tenant_id || null)
+        : tenant_id;
 
-    // Buscar gym_name da academia editora (não sobrescreve com null se admin global)
-    // Usa tenant.name como fallback se gym_name não estiver preenchido no perfil
+    // Resolver gym_name:
+    // - Super admin: usa o valor enviado pelo form (oficial ou comunidade)
+    // - Academia/equipe: mantém o nome da própria academia (gym_name do perfil do organizador, fallback tenant.name)
     let gym_name: string | null = null;
-    if (!isGlobalAdmin) {
+    if (isGlobalAdmin) {
+        gym_name = form_gym_name || null;
+    } else {
         const [{ data: organizerProfile }, { data: tenant }] = await Promise.all([
             supabase.from('profiles').select('gym_name').eq('id', profile.id).single(),
             supabase.from('tenants').select('name').eq('id', tenant_id).single(),
@@ -272,8 +281,12 @@ export async function updateAthleteAction(formData: FormData) {
         guardian_cpf,
         guardian_relationship,
     };
-    // Só atualiza gym_name se não for admin global (admin global não deve sobrescrever)
-    if (!isGlobalAdmin && gym_name !== null) {
+    if (isGlobalAdmin) {
+        // Super admin: o que veio do form prevalece (pode trocar equipe e nome)
+        profileUpdateData.tenant_id = resolvedTenantId;
+        profileUpdateData.gym_name = gym_name;
+    } else if (gym_name !== null) {
+        // Academia/equipe: tenant_id permanece o atual; gym_name sempre é o oficial da academia editora
         profileUpdateData.gym_name = gym_name;
     }
 

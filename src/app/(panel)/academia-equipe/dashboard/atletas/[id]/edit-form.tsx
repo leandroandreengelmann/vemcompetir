@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, SpinnerGapIcon, TrashIcon, CheckCircleIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, SpinnerGapIcon, TrashIcon, CheckCircleIcon, WarningCircleIcon, CircleNotchIcon, XIcon } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +24,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { updateAthleteAction, deleteAthleteAction, unlinkSuggestedMasterAction } from '../actions';
+import { searchGyms, searchMasters } from '@/app/atleta/dashboard/actions';
+import { useDebounce } from '@/hooks/use-debounce';
 import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
 import { toast } from 'sonner';
 import { showToast } from '@/lib/toast';
@@ -49,6 +51,8 @@ interface EditAthleteFormProps {
         is_responsible?: boolean;
         is_master?: boolean;
         phone?: string | null;
+        tenant_id?: string | null;
+        gym_name?: string | null;
         master_id?: string | null;
         master_name?: string | null;
         cpf?: string | null;
@@ -59,7 +63,6 @@ interface EditAthleteFormProps {
         guardian_cpf?: string | null;
         guardian_relationship?: string | null;
     };
-    masters: { id: string; full_name: string }[];
     suggestedMasters: string[];
     linkedSuggestions: string[];
     isGlobalAdmin?: boolean;
@@ -77,12 +80,11 @@ function normalizeBeltColor(value: string | null | undefined): string | undefine
     return BELTS.find(b => b.toLowerCase() === value.toLowerCase()) ?? undefined;
 }
 
-export default function EditAthleteForm({ athlete, masters, suggestedMasters = [], linkedSuggestions = [], isGlobalAdmin = false }: EditAthleteFormProps) {
+export default function EditAthleteForm({ athlete, suggestedMasters = [], linkedSuggestions = [], isGlobalAdmin = false }: EditAthleteFormProps) {
     const router = useRouter();
     const [isPendingUnlink, startUnlink] = useTransition();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isManualMaster, setIsManualMaster] = useState(!!athlete.master_name && !athlete.master_id);
     const [isMasterChecked, setIsMasterChecked] = useState(!!athlete.is_master);
     const [isResponsibleChecked, setIsResponsibleChecked] = useState(!!athlete.is_responsible);
     const [selectedSuggestedMasterName, setSelectedSuggestedMasterName] = useState<string>('');
@@ -94,6 +96,100 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
     const [hasGuardian, setHasGuardian] = useState(!!athlete.has_guardian);
     const [guardianCpfValue, setGuardianCpfValue] = useState(athlete.guardian_cpf ? formatCPF(athlete.guardian_cpf) : '');
     const [guardianPhoneValue, setGuardianPhoneValue] = useState(athlete.guardian_phone ? formatPhone(athlete.guardian_phone) : '');
+
+    // Busca de Equipe (só super admin) e Mestre (todos)
+    const [gymQuery, setGymQuery] = useState(athlete.gym_name || '');
+    const [gymResults, setGymResults] = useState<{ official: any[]; community: string[] }>({ official: [], community: [] });
+    const [showGymResults, setShowGymResults] = useState(false);
+    const [isFetchingGyms, setIsFetchingGyms] = useState(false);
+    const [selectedGym, setSelectedGym] = useState<{ id?: string; name: string } | null>(
+        athlete.tenant_id ? { id: athlete.tenant_id, name: athlete.gym_name || '' }
+            : athlete.gym_name ? { name: athlete.gym_name } : null
+    );
+
+    const [masterQuery, setMasterQuery] = useState(athlete.master_name || '');
+    const [masterResults, setMasterResults] = useState<{ official: any[]; community: string[] }>({ official: [], community: [] });
+    const [showMasterResults, setShowMasterResults] = useState(false);
+    const [isFetchingMasters, setIsFetchingMasters] = useState(false);
+    const [selectedMaster, setSelectedMaster] = useState<{ id?: string; name: string } | null>(
+        athlete.master_id ? { id: athlete.master_id, name: athlete.master_name || '' }
+            : athlete.master_name ? { name: athlete.master_name } : null
+    );
+
+    const debouncedGymQuery = useDebounce(gymQuery, 300);
+    const debouncedMasterQuery = useDebounce(masterQuery, 300);
+
+    const gymRef = useRef<HTMLDivElement>(null);
+    const masterRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (gymRef.current && !gymRef.current.contains(event.target as Node)) setShowGymResults(false);
+            if (masterRef.current && !masterRef.current.contains(event.target as Node)) setShowMasterResults(false);
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Busca de equipes (só roda quando há query e nenhuma equipe selecionada)
+    useEffect(() => {
+        if (!isGlobalAdmin) return;
+        if (debouncedGymQuery.length > 1 && !selectedGym) {
+            setIsFetchingGyms(true);
+            searchGyms(debouncedGymQuery)
+                .then((results) => {
+                    setGymResults(results);
+                    setShowGymResults(true);
+                })
+                .finally(() => setIsFetchingGyms(false));
+        } else {
+            setGymResults({ official: [], community: [] });
+            setShowGymResults(false);
+        }
+    }, [debouncedGymQuery, selectedGym, isGlobalAdmin]);
+
+    // Busca de mestres (filtrada pela equipe selecionada)
+    useEffect(() => {
+        const shouldSearch = selectedGym && (debouncedMasterQuery.length > 1 || debouncedMasterQuery.length === 0);
+        if (shouldSearch && !selectedMaster) {
+            setIsFetchingMasters(true);
+            searchMasters(debouncedMasterQuery, selectedGym?.id, selectedGym?.id ? undefined : selectedGym?.name)
+                .then((results) => {
+                    setMasterResults(results);
+                    setShowMasterResults(true);
+                })
+                .finally(() => setIsFetchingMasters(false));
+        } else if (!selectedGym) {
+            setMasterResults({ official: [], community: [] });
+            setShowMasterResults(false);
+        }
+    }, [debouncedMasterQuery, selectedMaster, selectedGym]);
+
+    const handleGymSelect = (gym: { id?: string; name: string }) => {
+        setSelectedGym(gym);
+        setGymQuery(gym.name);
+        setShowGymResults(false);
+        setSelectedMaster(null);
+        setMasterQuery('');
+    };
+
+    const handleMasterSelect = (master: { id?: string; name: string }) => {
+        setSelectedMaster(master);
+        setMasterQuery(master.name);
+        setShowMasterResults(false);
+    };
+
+    const clearGym = () => {
+        setSelectedGym(null);
+        setGymQuery('');
+        setSelectedMaster(null);
+        setMasterQuery('');
+    };
+
+    const clearMaster = () => {
+        setSelectedMaster(null);
+        setMasterQuery('');
+    };
 
     const isMinor = isUnder18(birthDateValue);
 
@@ -114,6 +210,14 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
             formData.append('id', athlete.id);
             formData.set('cpf', normalizeNumeric(cpfValue));
             formData.set('phone', normalizeNumeric(phoneValue));
+
+            // Equipe e mestre vindos da busca (super admin pode alterar equipe; academia/equipe envia o mestre)
+            if (selectedGym?.id) formData.set('tenant_id', selectedGym.id);
+            if (selectedGym?.name) formData.set('gym_name', selectedGym.name);
+            if (!isMasterChecked) {
+                if (selectedMaster?.id) formData.set('master_id', selectedMaster.id);
+                if (selectedMaster?.name) formData.set('master_name', selectedMaster.name);
+            }
 
             const result = await updateAthleteAction(formData);
 
@@ -180,52 +284,119 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Linha 1: Mestre (full width) */}
+                    {/* Equipe / Academia — apenas super admin pode editar */}
+                    {isGlobalAdmin && (
+                        <div className="space-y-2 relative animate-in slide-in-from-top-2 duration-300" ref={gymRef}>
+                            <label className="text-panel-sm font-semibold text-muted-foreground">
+                                Equipe / Academia
+                            </label>
+                            <div className="relative">
+                                <Input variant="lg"
+                                    placeholder="Busque a equipe / academia..."
+                                    value={gymQuery}
+                                    onChange={(e) => {
+                                        setGymQuery(e.target.value);
+                                        if (selectedGym) setSelectedGym(null);
+                                    }}
+                                    className="bg-background pr-10"
+                                    autoComplete="off"
+                                    disabled={loading}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    {isFetchingGyms && <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />}
+                                    {selectedGym && (
+                                        <button type="button" onClick={clearGym} className="text-muted-foreground hover:text-foreground" aria-label="Limpar equipe">
+                                            <XIcon size={20} weight="duotone" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {showGymResults && gymQuery.length > 1 && (
+                                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                    <div className="max-h-60 overflow-y-auto p-1">
+                                        <div className="flex flex-wrap gap-2 p-3">
+                                            {gymResults?.official?.map((g) => (
+                                                <button key={g.id} type="button" onClick={() => handleGymSelect({ id: g.id, name: g.name })} className="transition-transform active:scale-95">
+                                                    <Badge variant="outline" className="h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full border-primary bg-primary/10 text-primary hover:bg-primary/20">
+                                                        {g.name}
+                                                    </Badge>
+                                                </button>
+                                            ))}
+                                            {gymResults?.community?.map((name) => (
+                                                <button key={name} type="button" onClick={() => handleGymSelect({ name })} className="transition-transform active:scale-95">
+                                                    <Badge variant="outline" className="h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full border-muted-foreground/30 bg-muted/50 text-foreground hover:bg-muted">
+                                                        {name}
+                                                    </Badge>
+                                                </button>
+                                            ))}
+                                            {(!gymResults?.official?.length && !gymResults?.community?.length) && (
+                                                <p className="w-full py-4 text-panel-sm text-center text-muted-foreground">Nenhuma equipe encontrada.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Mestre / Professor Responsável — busca com chips */}
                     {!isMasterChecked && (
-                        <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                        <div
+                            className={`space-y-2 relative animate-in slide-in-from-top-2 duration-300 ${isGlobalAdmin && !selectedGym ? 'opacity-50 pointer-events-none' : ''}`}
+                            ref={masterRef}
+                        >
                             <label className="text-panel-sm font-semibold text-muted-foreground">
                                 Mestre / Professor Responsável
                             </label>
-                            {!isManualMaster && masters.length > 0 ? (
-                                <Select
-                                    name="master_id"
-                                    defaultValue={athlete.master_id || undefined}
-                                    disabled={loading}
-                                    onValueChange={(value) => {
-                                        if (value === 'manual') setIsManualMaster(true);
+                            <div className="relative">
+                                <Input variant="lg"
+                                    placeholder="Quem é o mestre?"
+                                    value={masterQuery}
+                                    onChange={(e) => {
+                                        setMasterQuery(e.target.value);
+                                        if (selectedMaster) setSelectedMaster(null);
                                     }}
-                                >
-                                    <SelectTrigger className="bg-background h-12 rounded-xl focus:ring-0 focus:ring-offset-0 transition-all">
-                                        <SelectValue placeholder="Selecione o mestre" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        <SelectItem value="none">Sem mestre definido</SelectItem>
-                                        {masters.map((m) => (
-                                            <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                                        ))}
-                                        <SelectItem value="manual" className="font-semibold text-primary">Meu mestre não está na lista</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <div className="space-y-2">
-                                    <Input variant="lg"
-                                        name="master_name"
-                                        defaultValue={athlete.master_name || ''}
-                                        placeholder="Digite o nome do mestre"
-                                        aria-label="Introduza o nome do mestre"
-                                        className="bg-background"
-                                        required={isManualMaster}
-                                        disabled={loading}
-                                    />
-                                    {masters.length > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsManualMaster(false)}
-                                            className="text-panel-sm font-semibold text-primary hover:underline"
-                                        >
-                                            Voltar para a lista
+                                    onFocus={() => {
+                                        if (selectedGym && !selectedMaster) setShowMasterResults(true);
+                                    }}
+                                    className="bg-background pr-10"
+                                    autoComplete="off"
+                                    disabled={loading}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    {isFetchingMasters && <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />}
+                                    {selectedMaster && (
+                                        <button type="button" onClick={clearMaster} className="text-muted-foreground hover:text-foreground" aria-label="Limpar mestre">
+                                            <XIcon size={20} weight="duotone" />
                                         </button>
                                     )}
+                                </div>
+                            </div>
+
+                            {showMasterResults && (debouncedMasterQuery.length > 1 || debouncedMasterQuery.length === 0) && (
+                                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                    <div className="max-h-60 overflow-y-auto p-1">
+                                        <div className="flex flex-wrap gap-2 p-3">
+                                            {masterResults?.official?.map((m) => (
+                                                <button key={m.id} type="button" onClick={() => handleMasterSelect({ id: m.id, name: m.full_name })} className="transition-transform active:scale-95">
+                                                    <Badge variant="outline" className="h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full border-primary bg-primary/10 text-primary hover:bg-primary/20">
+                                                        {m.full_name}
+                                                    </Badge>
+                                                </button>
+                                            ))}
+                                            {masterResults?.community?.map((name) => (
+                                                <button key={name} type="button" onClick={() => handleMasterSelect({ name })} className="transition-transform active:scale-95">
+                                                    <Badge variant="outline" className="h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full border-muted-foreground/30 bg-muted/50 text-foreground hover:bg-muted">
+                                                        {name}
+                                                    </Badge>
+                                                </button>
+                                            ))}
+                                            {(!masterResults?.official?.length && !masterResults?.community?.length) && (
+                                                <p className="w-full py-4 text-panel-sm text-center text-muted-foreground">Nenhum mestre encontrado.</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -498,8 +669,6 @@ export default function EditAthleteForm({ athlete, masters, suggestedMasters = [
                                 )}
                                 {athlete.is_responsible && <input type="hidden" name="is_responsible" value="on" />}
                                 {athlete.is_master && <input type="hidden" name="is_master" value="on" />}
-                                {athlete.master_id && <input type="hidden" name="master_id" value={athlete.master_id} />}
-                                {athlete.master_name && <input type="hidden" name="master_name" value={athlete.master_name} />}
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-4">

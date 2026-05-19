@@ -58,14 +58,6 @@ export default async function EditAthletePage(props: EditAthletePageProps) {
         console.error("Auth user not found for profile:", id);
     }
 
-    // Fetch masters for selection
-    const { data: masters } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .eq('tenant_id', orgProfile.tenant_id)
-        .eq('is_master', true)
-        .order('full_name');
-
     // Fetch suggested master names from athletes of the same academy who haven't been linked yet
     const { data: suggestedData } = await supabase
         .from('profiles')
@@ -97,6 +89,8 @@ export default async function EditAthletePage(props: EditAthletePageProps) {
     const athleteData = {
         ...athleteProfile,
         email: authUser?.email,
+        tenant_id: athleteProfile.tenant_id,
+        gym_name: athleteProfile.gym_name,
         master_id: athleteProfile.master_id,
         master_name: athleteProfile.master_name,
         cpf: athleteProfile.cpf,
@@ -105,7 +99,6 @@ export default async function EditAthletePage(props: EditAthletePageProps) {
 
     return <EditAthleteForm
         athlete={athleteData}
-        masters={masters || []}
         suggestedMasters={uniqueSuggestedMasters}
         linkedSuggestions={uniqueLinkedSuggestions}
         isGlobalAdmin={isGlobalAdmin}
