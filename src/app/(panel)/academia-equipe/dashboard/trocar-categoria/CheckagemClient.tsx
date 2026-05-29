@@ -196,7 +196,7 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
 
                                 {/* Tabela de atletas */}
                                 <div className="overflow-x-auto">
-                                    <Table className="min-w-[500px]">
+                                    <Table className="w-full">
                                         <TableHeader className="bg-muted/10">
                                             <TableRow className="hover:bg-transparent">
                                                 <TableHead className="pl-6 text-caption font-semibold">Atleta</TableHead>
@@ -213,13 +213,13 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                                                 const catAthletes = reg.category_id ? (athletesByCategory[reg.category_id] || []) : [];
                                                 return (
                                                     <TableRow key={reg.id} className="hover:bg-muted/10 transition-colors">
-                                                        <TableCell className="pl-6 py-3.5 font-bold text-ui">
+                                                        <TableCell className="pl-6 py-3.5 font-bold text-ui whitespace-normal break-words">
                                                             {reg.athlete?.full_name}
                                                         </TableCell>
                                                         <TableCell className="py-3.5">
                                                             <BeltBadge belt={reg.athlete?.belt_color} />
                                                         </TableCell>
-                                                        <TableCell className="py-3.5">
+                                                        <TableCell className="py-3.5 whitespace-normal">
                                                             <div className="flex flex-col gap-1.5">
                                                                 <p className="text-ui font-semibold text-foreground">
                                                                     {reg.category ? formatFullCategoryName(reg.category) : '—'}
@@ -237,7 +237,7 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                                                             </div>
                                                         </TableCell>
                                                         {isOwnEvent && filter === 'todos' && (
-                                                            <TableCell className="py-3.5 text-caption text-muted-foreground">
+                                                            <TableCell className="py-3.5 text-caption text-muted-foreground whitespace-normal break-words">
                                                                 {reg.registered_by_profile?.gym_name || reg.registered_by_profile?.full_name || '—'}
                                                             </TableCell>
                                                         )}
