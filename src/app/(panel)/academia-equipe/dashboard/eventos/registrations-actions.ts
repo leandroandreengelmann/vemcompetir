@@ -235,23 +235,33 @@ export async function getEligibleCategoriesAction(
 ) {
     const { tenant_id } = await requireTenantScope();
     const supabase = await createClient();
+    const supabaseAdminAuth = createAdminClient();
 
-    // 1. Fetch Athlete Profile — only fields needed for eligibility, scoped to caller's tenant
-    const { data: athlete } = await supabase
+    // 2. Fetch Event (for date and ownership check)
+    const { data: event } = await supabaseAdminAuth
+        .from('events')
+        .select('event_date, tenant_id')
+        .eq('id', eventId)
+        .single();
+
+    if (!event) return { error: 'Evento não encontrado' };
+
+    const isOrganizer = event.tenant_id === tenant_id;
+
+    // 1. Fetch Athlete Profile — admin client to allow organizers to load
+    // athletes from other academies registered in their event.
+    const { data: athlete } = await supabaseAdminAuth
         .from('profiles')
         .select('id, sexo, belt_color, birth_date, weight, tenant_id')
         .eq('id', athleteId)
-        .eq('tenant_id', tenant_id)
         .single();
 
     if (!athlete) return { error: 'Atleta não encontrado' };
 
-    // 2. Fetch Event (for date)
-    const { data: event } = await supabase
-        .from('events')
-        .select('event_date')
-        .eq('id', eventId)
-        .single();
+    // Authorization: caller must own the athlete OR be the event organizer.
+    if (athlete.tenant_id !== tenant_id && !isOrganizer) {
+        return { error: 'Atleta não encontrado' };
+    }
 
     // 3. Fetch all categories for this event
     const { data: linkedTables } = await supabase
