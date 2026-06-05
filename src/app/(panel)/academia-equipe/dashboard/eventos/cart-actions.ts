@@ -594,7 +594,7 @@ export async function checkoutOwnEventAction(
         total_inscricoes_snapshot: totalAmount,
         fee_unit_snapshot: 0,
         fee_saas_gross_snapshot: 0,
-        fee_source: 'none',
+        fee_source: 'NONE',
         asaas_payment_id: `own_event_${paymentId}`,
         payment_method: 'PIX',
         status: 'PAID',
