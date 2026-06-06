@@ -520,7 +520,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right text-panel-sm font-bold">
-                                                {formatCurrency(Number(reg.price || 0))}
+                                                {formatCurrency(Number(reg.manual_amount ?? reg.price ?? 0))}
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <Tooltip>
