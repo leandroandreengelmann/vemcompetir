@@ -90,6 +90,34 @@ export default async function CheckagemPage() {
 
     const allRegistrations = [...(ownedRegs || []), ...otherRegs];
 
+    // Contagem e preview de inscritos por categoria (TODAS as academias),
+    // para alimentar o "Ver inscritos" igual ao lado do atleta.
+    const displayedEventIds = Array.from(new Set(allRegistrations.map((r: any) => r.event_id)));
+    const ENROLLED_STATUSES = ['pago', 'isento', 'confirmado'];
+
+    const { data: countRows } = displayedEventIds.length > 0
+        ? await adminClient
+            .from('event_registrations')
+            .select('category_id, athlete:profiles!athlete_id (full_name)')
+            .in('event_id', displayedEventIds)
+            .in('status', ENROLLED_STATUSES)
+            .order('created_at', { ascending: true })
+        : { data: [] };
+
+    const categoryCounts: Record<string, number> = {};
+    const categoryPreviews: Record<string, string[]> = {};
+    for (const row of (countRows as any[] | null) || []) {
+        const cid = row.category_id;
+        if (!cid) continue;
+        categoryCounts[cid] = (categoryCounts[cid] || 0) + 1;
+        if (!categoryPreviews[cid]) categoryPreviews[cid] = [];
+        if (categoryPreviews[cid].length < 3) {
+            const ath = Array.isArray(row.athlete) ? row.athlete[0] : row.athlete;
+            const name = ath?.full_name || 'Competidor';
+            categoryPreviews[cid].push(name.split(' ').slice(0, 2).join(' '));
+        }
+    }
+
     const eventMap = Object.fromEntries(eligibleEvents.map((e) => [e.id, e]));
 
     const registrations = allRegistrations.map((reg: any) => ({
@@ -105,6 +133,8 @@ export default async function CheckagemPage() {
             eventMap={eventMap}
             currentTenantId={tenant_id!}
             ownedEventIds={ownedEventIds}
+            categoryCounts={categoryCounts}
+            categoryPreviews={categoryPreviews}
         />
     );
 }

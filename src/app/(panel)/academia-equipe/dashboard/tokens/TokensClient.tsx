@@ -20,9 +20,17 @@ interface Transaction {
     registration: { athlete: { full_name: string } | null } | null;
 }
 
+interface TokenSummary {
+    consumed: number;
+    refunded: number;
+    granted: number;
+    count: number;
+}
+
 interface Props {
     balance: number;
     transactions: Transaction[];
+    summary: TokenSummary;
 }
 
 const TYPE_CONFIG = {
@@ -32,12 +40,13 @@ const TYPE_CONFIG = {
     adjusted: { label: 'Ajuste',   icon: SlidersIcon,    color: 'text-amber-600',   bg: 'bg-amber-500/10'   },
 };
 
-export default function TokensClient({ balance, transactions }: Props) {
+export default function TokensClient({ balance, transactions, summary }: Props) {
     const isLow = balance <= 20;
 
-    const totalConsumed = transactions.filter(t => t.type === 'consumed').reduce((s, t) => s + Math.abs(t.amount), 0);
-    const totalGranted  = transactions.filter(t => t.type === 'granted' || t.type === 'adjusted').reduce((s, t) => s + t.amount, 0);
-    const totalRefunded = transactions.filter(t => t.type === 'refunded').reduce((s, t) => s + t.amount, 0);
+    // Totais vêm do histórico completo (calculados no servidor), não dos 100 exibidos.
+    const totalConsumed = summary.consumed;
+    const totalGranted  = summary.granted;
+    const totalRefunded = summary.refunded;
 
     return (
         <div className="space-y-6">
@@ -64,7 +73,7 @@ export default function TokensClient({ balance, transactions }: Props) {
             )}
 
             {/* Cards de resumo */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className={`shadow-none ${isLow ? 'border-destructive/30' : ''}`}>
                     <CardContent className="pt-5 pb-4">
                         <div className="flex items-center gap-3">
@@ -108,6 +117,20 @@ export default function TokensClient({ balance, transactions }: Props) {
                         </div>
                     </CardContent>
                 </Card>
+
+                <Card className="shadow-none">
+                    <CardContent className="pt-5 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-blue-500/10">
+                                <GiftIcon size={20} weight="duotone" className="text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-panel-sm text-muted-foreground">Total adquirido</p>
+                                <p className="text-panel-lg font-black tabular-nums">{totalGranted}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Extrato */}
@@ -118,8 +141,13 @@ export default function TokensClient({ balance, transactions }: Props) {
                             <CoinsIcon size={20} weight="duotone" className="text-primary" />
                             Extrato de Tokens
                         </div>
-                        <Badge variant="secondary" className="rounded-full">{transactions.length}</Badge>
+                        <Badge variant="secondary" className="rounded-full">{summary.count}</Badge>
                     </CardTitle>
+                    {summary.count > transactions.length && (
+                        <p className="text-caption text-muted-foreground mt-1">
+                            Mostrando os {transactions.length} lançamentos mais recentes de {summary.count}.
+                        </p>
+                    )}
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>

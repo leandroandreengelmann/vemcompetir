@@ -45,13 +45,34 @@ export default async function TokensPage() {
             )
         `)
         .eq('tenant_id', profile.tenant_id)
+        // Ordenação determinística: dentro do mesmo created_at, o lançamento
+        // mais recente é o de menor balance_after — evita o extrato "pular".
         .order('created_at', { ascending: false })
+        .order('balance_after', { ascending: true })
         .limit(100);
+
+    // Totais calculados sobre TODO o histórico (não só os 100 exibidos acima).
+    const { data: allMovements } = await adminClient
+        .from('token_transactions')
+        .select('type, amount')
+        .eq('tenant_id', profile.tenant_id);
+
+    const summary = (allMovements ?? []).reduce(
+        (acc, t) => {
+            if (t.type === 'consumed') acc.consumed += Math.abs(t.amount);
+            else if (t.type === 'refunded') acc.refunded += t.amount;
+            else if (t.type === 'granted' || t.type === 'adjusted') acc.granted += t.amount;
+            acc.count += 1;
+            return acc;
+        },
+        { consumed: 0, refunded: 0, granted: 0, count: 0 },
+    );
 
     return (
         <TokensClient
             balance={tenant.inscription_token_balance}
             transactions={(transactions ?? []) as any}
+            summary={summary}
         />
     );
 }

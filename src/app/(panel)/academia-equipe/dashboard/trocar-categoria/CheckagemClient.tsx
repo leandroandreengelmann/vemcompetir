@@ -10,15 +10,13 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import {
     ArrowsClockwiseIcon, UsersIcon, BuildingsIcon,
     MagnifyingGlassIcon, CalendarBlankIcon,
 } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatFullCategoryName } from '@/lib/category-utils';
+import { EnrolledAthletesPreview } from '@/app/atleta/dashboard/inscricoes/EnrolledAthletesPreview';
 
 interface Registration {
     id: string;
@@ -43,6 +41,8 @@ interface Props {
     eventMap: Record<string, Event>;
     currentTenantId: string;
     ownedEventIds: string[];
+    categoryCounts: Record<string, number>;
+    categoryPreviews: Record<string, string[]>;
 }
 
 function BeltBadge({ belt }: { belt?: string }) {
@@ -67,21 +67,10 @@ function BeltBadge({ belt }: { belt?: string }) {
     );
 }
 
-export default function CheckagemClient({ registrations, eventMap, currentTenantId, ownedEventIds }: Props) {
+export default function CheckagemClient({ registrations, eventMap, currentTenantId, ownedEventIds, categoryCounts, categoryPreviews }: Props) {
     const ownedSet = useMemo(() => new Set(ownedEventIds), [ownedEventIds]);
     const [filter, setFilter] = useState<'todos' | 'minha'>('todos');
     const [search, setSearch] = useState('');
-    const [modalCat, setModalCat] = useState<{ cat: Registration['category']; athletes: { full_name: string; belt_color?: string }[] } | null>(null);
-
-    // Group all registrations by category_id for the athletes modal
-    const athletesByCategory = useMemo(() => {
-        return registrations.reduce<Record<string, { full_name: string; belt_color?: string }[]>>((acc, reg) => {
-            if (!reg.category_id || !reg.athlete) return acc;
-            if (!acc[reg.category_id]) acc[reg.category_id] = [];
-            acc[reg.category_id].push(reg.athlete);
-            return acc;
-        }, {});
-    }, [registrations]);
 
     const filtered = useMemo(() => {
         let list = registrations.filter((r) => {
@@ -210,7 +199,6 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                                         </TableHeader>
                                         <TableBody>
                                             {regs.map((reg) => {
-                                                const catAthletes = reg.category_id ? (athletesByCategory[reg.category_id] || []) : [];
                                                 return (
                                                     <TableRow key={reg.id} className="hover:bg-muted/10 transition-colors">
                                                         <TableCell className="pl-6 py-3.5 font-bold text-ui whitespace-normal break-words">
@@ -224,15 +212,14 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                                                                 <p className="text-ui font-semibold text-foreground">
                                                                     {reg.category ? formatFullCategoryName(reg.category) : '—'}
                                                                 </p>
-                                                                {isOwnEvent && reg.category && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setModalCat({ cat: reg.category, athletes: catAthletes })}
-                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-background text-caption font-semibold text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-150 w-fit cursor-pointer"
-                                                                    >
-                                                                        <UsersIcon size={24} weight="duotone" />
-                                                                        Ver atletas ({catAthletes.length})
-                                                                    </button>
+                                                                {reg.category_id && (
+                                                                    <EnrolledAthletesPreview
+                                                                        eventId={eventId}
+                                                                        categoryId={reg.category_id}
+                                                                        currentAthleteId=""
+                                                                        initialCount={categoryCounts[reg.category_id] || 0}
+                                                                        initialPreviewNames={categoryPreviews[reg.category_id] || []}
+                                                                    />
                                                                 )}
                                                             </div>
                                                         </TableCell>
@@ -260,39 +247,6 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                     );
                 })
             )}
-
-            {/* Modal de atletas da categoria */}
-            <Dialog open={!!modalCat} onOpenChange={(open) => !open && setModalCat(null)}>
-                <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="text-panel-md font-bold flex items-center gap-2">
-                            <UsersIcon size={18} weight="duotone" className="text-primary" />
-                            Atletas confirmados
-                        </DialogTitle>
-                        {modalCat?.cat && (
-                            <p className="text-caption text-muted-foreground">
-                                {formatFullCategoryName(modalCat.cat)}
-                            </p>
-                        )}
-                    </DialogHeader>
-
-                    {(modalCat?.athletes.length ?? 0) === 0 ? (
-                        <div className="py-8 text-center text-muted-foreground">
-                            <UsersIcon size={32} weight="duotone" className="mx-auto mb-2 opacity-30" />
-                            <p className="text-ui">Nenhum atleta confirmado ainda.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2 mt-2">
-                            {modalCat?.athletes.map((ath, i) => (
-                                <div key={i} className="flex items-center justify-between px-4 py-3 rounded-xl border bg-muted/20">
-                                    <span className="text-ui font-semibold">{ath.full_name}</span>
-                                    <BeltBadge belt={ath.belt_color} />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
