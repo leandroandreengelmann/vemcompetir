@@ -99,8 +99,13 @@ export async function addToAthleteCartAction(item: {
                     .eq('active', true);
 
                 if (athletePricings && athletePricings.length > 0) {
+                    // Normalização idêntica à validação do pagamento (create-event-payment):
+                    // remove acentos e colapsa espaços, para o preço gravado na sacola bater
+                    // com o esperado no pagamento (evita "divergência de valor").
+                    const normStr = (s: string | null) =>
+                        (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
                     const norm = (a: string | null, b: string | null) =>
-                        a && b && a.trim().toLowerCase() === b.trim().toLowerCase();
+                        !!a && !!b && normStr(a) === normStr(b);
 
                     let matched: number | null = null;
                     // Prioridade: ambos > so gym > so master

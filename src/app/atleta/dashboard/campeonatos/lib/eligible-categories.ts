@@ -434,8 +434,13 @@ export async function getEligibleCategories(eventId: string) {
             .eq('active', true);
 
         if (athletePricings && athletePricings.length > 0) {
+            // Normalização idêntica à validação do pagamento (create-event-payment):
+            // remove acentos e colapsa espaços, evitando divergência de valor por
+            // diferenças sutis (ex: espaço duplo) entre o cadastro e o perfil do atleta.
+            const normStr = (s: string | null) =>
+                (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
             const normalizeMatch = (a: string | null, b: string | null) =>
-                a && b && a.trim().toLowerCase() === b.trim().toLowerCase();
+                !!a && !!b && normStr(a) === normStr(b);
 
             // Prioridade: match em ambos > match so gym > match so master
             for (const ap of athletePricings) {
