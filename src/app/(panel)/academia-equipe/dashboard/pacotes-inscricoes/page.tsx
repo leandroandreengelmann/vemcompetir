@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
@@ -10,6 +11,7 @@ import {
     PackageIcon, CurrencyCircleDollarIcon, TicketIcon, CheckCircleIcon, UserIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import { CreatePackageButton } from '../academias-afiliadas/CreatePackageButton';
+import { EditPackageValue } from './EditPackageValue';
 
 export default async function PacotesInscricoesPage() {
     const supabase = await createClient();
@@ -173,8 +175,8 @@ export default async function PacotesInscricoesPage() {
                                     const registrations: any[] = pkg.registrations ?? [];
                                     const remaining = pkg.total_credits - pkg.used_credits;
                                     return (
-                                        <>
-                                            <TableRow key={pkg.id}>
+                                        <Fragment key={pkg.id}>
+                                            <TableRow>
                                                 <TableCell className="pl-6 text-panel-sm text-muted-foreground whitespace-nowrap">
                                                     {new Date(pkg.created_at).toLocaleDateString('pt-BR')}
                                                 </TableCell>
@@ -189,9 +191,7 @@ export default async function PacotesInscricoesPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-panel-sm text-right pr-6">
-                                                    {pkg.price_paid > 0
-                                                        ? <span className="font-semibold text-emerald-600">R$ {Number(pkg.price_paid).toFixed(2)}</span>
-                                                        : <span className="text-muted-foreground">Grátis</span>}
+                                                    <EditPackageValue packageId={pkg.id} price={Number(pkg.price_paid) || 0} />
                                                 </TableCell>
                                             </TableRow>
                                             {registrations.length > 0 && (
@@ -217,7 +217,7 @@ export default async function PacotesInscricoesPage() {
                                                     </TableCell>
                                                 </TableRow>
                                             )}
-                                        </>
+                                        </Fragment>
                                     );
                                 })
                             ) : (

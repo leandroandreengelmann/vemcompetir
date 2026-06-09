@@ -106,6 +106,48 @@ export async function createInscriptionPackageAction(formData: FormData) {
     return { success: true, warning: tokenWarning };
 }
 
+export async function updateInscriptionPackageValueAction(packageId: string, priceValue: number) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Não autorizado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, tenant_id')
+        .eq('id', user.id)
+        .single();
+
+    if (profile?.role !== 'academia/equipe' || !profile.tenant_id) return { error: 'Sem permissão.' };
+
+    const price = Number(priceValue);
+    if (!Number.isFinite(price) || price < 0) {
+        return { error: 'Informe um valor válido (0 ou maior).' };
+    }
+
+    const adminClient = createAdminClient();
+
+    // Só a academia criadora pode editar o valor do pacote
+    const { data: pkg } = await adminClient
+        .from('inscription_packages')
+        .select('id, created_by_tenant_id')
+        .eq('id', packageId)
+        .single();
+
+    if (!pkg) return { error: 'Pacote não encontrado.' };
+    if (pkg.created_by_tenant_id !== profile.tenant_id) return { error: 'Sem permissão para editar este pacote.' };
+
+    const { error } = await adminClient
+        .from('inscription_packages')
+        .update({ price_paid: price })
+        .eq('id', packageId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/academia-equipe/dashboard/academias-afiliadas');
+    revalidatePath('/academia-equipe/dashboard/pacotes-inscricoes');
+    return { success: true };
+}
+
 export async function getOwnedEventsAction() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

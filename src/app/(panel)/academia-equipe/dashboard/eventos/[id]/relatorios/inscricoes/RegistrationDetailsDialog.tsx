@@ -77,11 +77,33 @@ export function RegistrationDetailsDialog({
                 </Badge>
             );
         }
-        if (tipo === 'evento_proprio') {
+        if (tipo === 'evento_proprio' || tipo === 'isento_evento_proprio') {
             return (
                 <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-slate-500/10 text-slate-700 border-slate-500/20 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-500/30">
-                    EVENTO PRÓPRIO
+                    ISENTO - EVENTO PRÓPRIO
                 </Badge>
+            );
+        }
+        if (tipo === 'pago_em_mao') {
+            const amount = reg.manual_amount ? `R$ ${Number(reg.manual_amount).toFixed(2)}` : null;
+            return (
+                <div className="flex flex-col items-start gap-1">
+                    <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                        PAGO EM MÃO
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">evento próprio{amount ? ` - ${amount}` : ''}</span>
+                </div>
+            );
+        }
+        if (tipo === 'pix_direto') {
+            const amount = reg.manual_amount ? `R$ ${Number(reg.manual_amount).toFixed(2)}` : null;
+            return (
+                <div className="flex flex-col items-start gap-1">
+                    <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30">
+                        PIX DIRETO
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">evento próprio{amount ? ` - ${amount}` : ''}</span>
+                </div>
             );
         }
         if (tipo === 'agendado') {
@@ -178,7 +200,7 @@ export function RegistrationDetailsDialog({
                                 <div>
                                     <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">VALOR</span>
                                     <p className="text-xl font-bold text-foreground tracking-tight">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(registration.price || 0))}
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(registration.manual_amount ?? registration.price ?? 0))}
                                     </p>
                                 </div>
 

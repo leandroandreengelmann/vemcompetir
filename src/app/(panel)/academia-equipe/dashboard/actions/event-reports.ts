@@ -90,7 +90,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
         .select(`
             *,
             athlete:profiles!athlete_id${hasSearch ? '!inner' : ''}(full_name, cpf, belt_color, gym_name),
-            category:category_rows!category_id(categoria_completa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg)
+            category:category_rows!category_id(categoria_completa, faixa, divisao_idade, categoria_peso, peso_min_kg, peso_max_kg)
         `, { count: needsPostFilter ? undefined : 'exact' })
         .eq('event_id', eventId);
 

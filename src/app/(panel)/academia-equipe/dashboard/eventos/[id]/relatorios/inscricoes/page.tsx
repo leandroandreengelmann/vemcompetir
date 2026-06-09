@@ -179,29 +179,49 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
         );
     };
 
+    const beltBgClass = (belt: string) => {
+        const lowerBelt = belt.toLowerCase();
+        if (lowerBelt.includes('branc')) return "bg-white text-slate-800 border-slate-200 shadow-sm";
+        if (lowerBelt.includes('azul')) return "bg-blue-500 text-white border-blue-600 shadow-sm";
+        if (lowerBelt.includes('roxa')) return "bg-purple-500 text-white border-purple-600 shadow-sm";
+        if (lowerBelt.includes('marrom')) return "bg-amber-800 text-white border-amber-900 shadow-sm";
+        if (lowerBelt.includes('preta')) return "bg-slate-900 text-white border-slate-950 shadow-sm dark:bg-black dark:border-slate-800";
+        if (lowerBelt.includes('colorida')) return "bg-gradient-to-r from-green-500 via-yellow-500 to-blue-500 text-white border-none shadow-sm";
+        if (lowerBelt.includes('cinza')) return "bg-gray-400 text-white border-gray-500 shadow-sm";
+        if (lowerBelt.includes('amarela')) return "bg-yellow-400 text-yellow-950 border-yellow-500 shadow-sm";
+        if (lowerBelt.includes('laranja')) return "bg-orange-500 text-white border-orange-600 shadow-sm";
+        if (lowerBelt.includes('verde')) return "bg-green-600 text-white border-green-700 shadow-sm";
+        return "bg-muted text-muted-foreground border-border";
+    };
+
     const renderBeltBadge = (belt: string) => {
         if (!belt) return null;
-
-        const lowerBelt = belt.toLowerCase();
-        let bgClass = "bg-muted text-muted-foreground border-border";
-
-        if (lowerBelt.includes('branca')) bgClass = "bg-white text-slate-800 border-slate-200 shadow-sm";
-        else if (lowerBelt.includes('azul')) bgClass = "bg-blue-500 text-white border-blue-600 shadow-sm";
-        else if (lowerBelt.includes('roxa')) bgClass = "bg-purple-500 text-white border-purple-600 shadow-sm";
-        else if (lowerBelt.includes('marrom')) bgClass = "bg-amber-800 text-white border-amber-900 shadow-sm";
-        else if (lowerBelt.includes('preta')) bgClass = "bg-slate-900 text-white border-slate-950 shadow-sm dark:bg-black dark:border-slate-800";
-        else if (lowerBelt.includes('colorida')) bgClass = "bg-gradient-to-r from-green-500 via-yellow-500 to-blue-500 text-white border-none shadow-sm";
-        else if (lowerBelt.includes('cinza')) bgClass = "bg-gray-400 text-white border-gray-500 shadow-sm";
-        else if (lowerBelt.includes('amarela')) bgClass = "bg-yellow-400 text-yellow-950 border-yellow-500 shadow-sm";
-        else if (lowerBelt.includes('laranja')) bgClass = "bg-orange-500 text-white border-orange-600 shadow-sm";
-        else if (lowerBelt.includes('verde')) bgClass = "bg-green-600 text-white border-green-700 shadow-sm";
-
         return (
-            <Badge variant="outline" className={cn("text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5 mt-1", bgClass)}>
+            <Badge variant="outline" className={cn("text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5 mt-1", beltBgClass(belt))}>
                 {belt}
             </Badge>
         );
     };
+
+    // Para categorias Absoluto: mostra as faixas DA CATEGORIA (ex.: "Azul e Roxa" -> badge azul + roxo),
+    // em vez da faixa individual do atleta.
+    const renderCategoryBelts = (faixa?: string | null) => {
+        if (!faixa) return null;
+        const belts = faixa.split(/\s+e\s+|,/i).map(b => b.trim()).filter(Boolean);
+        if (belts.length === 0) return null;
+        return (
+            <div className="flex flex-wrap gap-1 mt-1">
+                {belts.map((b, i) => (
+                    <Badge key={i} variant="outline" className={cn("text-panel-sm font-bold uppercase tracking-wider px-2 py-0.5", beltBgClass(b))}>
+                        {b}
+                    </Badge>
+                ))}
+            </div>
+        );
+    };
+
+    const isAbsolutoCategory = (categoriaCompleta?: string | null) =>
+        (categoriaCompleta || '').toLowerCase().includes('absoluto');
 
     const semReceita = (summary?.courtesy_count ?? 0) + (summary?.pacote_count ?? 0) + (summary?.own_event_count ?? 0);
     const confirmados = (summary?.paid_count ?? 0) + (summary?.scheduled_count ?? 0);
@@ -506,7 +526,9 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                             <TableCell>
                                                 <div className="flex flex-col items-start gap-1">
                                                     <span className="text-panel-sm font-medium truncate max-w-[300px]" title={reg.category?.categoria_completa}>{reg.category?.categoria_completa}</span>
-                                                    {renderBeltBadge(reg.athlete?.belt_color)}
+                                                    {isAbsolutoCategory(reg.category?.categoria_completa)
+                                                        ? renderCategoryBelts(reg.category?.faixa)
+                                                        : renderBeltBadge(reg.athlete?.belt_color)}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
