@@ -41,7 +41,9 @@ import {
     criarGrupoSeparacao,
     removerGrupoSeparacao,
     getEventoBasico,
+    getAtletasDetalhadosDaCategoria,
     type GrupoSeparacao,
+    type AtletaDetalhado,
 } from '../../../../actions/gestao-evento';
 import { GeBracket } from '@/components/gestao-evento/GeBracket';
 import { TeamsBar } from '@/components/gestao-evento/TeamsBar';
@@ -116,6 +118,7 @@ export default function GestaoEventoChavePage({
 
     const [result, setResult] = useState<GenerateBracketResult | null>(null);
     const [athletes, setAthletes] = useState<AthleteInput[]>([]);
+    const [athleteDetails, setAthleteDetails] = useState<AtletaDetalhado[]>([]);
     const [oficialChave, setOficialChave] = useState<ChaveRow | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -157,15 +160,18 @@ export default function GestaoEventoChavePage({
             setOficialChave(null);
             setResult(r);
             setAthletes(mocks);
+            setAthleteDetails([]);
             setUpdatedAt(new Date());
             setLoading(false);
             return;
         }
         try {
-            const [oficial, gruposRes] = await Promise.all([
+            const [oficial, gruposRes, detalhes] = await Promise.all([
                 getChaveOficial(eventId, categoryName),
                 listarGruposSeparacao(eventId, categoryName),
+                getAtletasDetalhadosDaCategoria(eventId, categoryName),
             ]);
+            setAthleteDetails(detalhes.data || []);
             const loadedGrupos: LocalGrupo[] = (gruposRes.data as GrupoSeparacao[]).map(
                 (g) => ({ id: g.id, atleta_ids: g.atleta_ids }),
             );
@@ -629,6 +635,7 @@ export default function GestaoEventoChavePage({
                         athletes={athletes}
                         mode={isDefinitiva ? 'oficial' : 'previa'}
                         separationGroups={grupos.map((g) => g.atleta_ids)}
+                        athleteDetails={athleteDetails}
                     />
                 </div>
             )}

@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronLeft, Trophy, Crown, Check, FastForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     type GenerateBracketResult,
     type GeneratedMatch,
     type AthleteInput,
@@ -11,6 +17,27 @@ import {
     getRoundLabel,
 } from '@/lib/gestao-evento/bracket-generator';
 import { teamColor, buildGroupColorMap, type GroupBadge } from '@/lib/gestao-evento/team-colors';
+import { getBeltStyle } from '@/lib/belt-theme';
+
+export interface BracketAthleteDetail {
+    id: string;
+    name: string;
+    team?: string | null;
+    weight?: number | null;
+    belt?: string | null;
+    birth_date?: string | null;
+}
+
+function calcAge(birth: string | null | undefined): number | null {
+    if (!birth) return null;
+    const d = new Date(birth);
+    if (Number.isNaN(d.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age >= 0 && age < 120 ? age : null;
+}
 
 interface GeBracketProps {
     title: string;
@@ -19,6 +46,7 @@ interface GeBracketProps {
     mode: 'previa' | 'oficial';
     onWinnerSelect?: (matches: GeneratedMatch[]) => void;
     separationGroups?: string[][];
+    athleteDetails?: BracketAthleteDetail[];
 }
 
 const NODE_W = 220;
@@ -36,6 +64,7 @@ function getInitials(name: string | null | undefined): string {
 function MatchCard({
     match,
     onPick,
+    onInfo,
     side = 'A',
     disabled = false,
     matchNumber,
@@ -43,6 +72,7 @@ function MatchCard({
 }: {
     match: GeneratedMatch;
     onPick?: (winnerId: string) => void;
+    onInfo?: (athleteId: string) => void;
     side?: 'A' | 'B' | 'final';
     disabled?: boolean;
     matchNumber?: number;
@@ -97,19 +127,30 @@ function MatchCard({
                 }
 
                 const canPick = !disabled && !!p.id;
+                const hasInfo = !!onInfo && !!p.id;
+                const clickable = canPick || hasInfo;
                 return (
                     <button
                         key={i}
-                        onClick={() => canPick && onPick?.(p.id!)}
-                        disabled={!canPick}
+                        onClick={() => {
+                            if (canPick) onPick?.(p.id!);
+                            else if (hasInfo) onInfo?.(p.id!);
+                        }}
+                        disabled={!clickable}
                         type="button"
-                        aria-label={canPick && p.name ? `Marcar ${p.name} como vencedor` : undefined}
+                        aria-label={
+                            canPick && p.name
+                                ? `Marcar ${p.name} como vencedor`
+                                : hasInfo && p.name
+                                ? `Ver detalhes de ${p.name}`
+                                : undefined
+                        }
                         className={cn(
                             'relative flex-1 px-3 text-sm transition-all flex items-center gap-2 group',
                             isReverse ? 'flex-row-reverse text-right' : 'text-left',
                             isWinner
                                 ? 'bg-primary text-primary-foreground ge-winner-flash'
-                                : canPick
+                                : clickable
                                 ? 'hover:bg-muted text-ui cursor-pointer'
                                 : 'text-ui cursor-default',
                             isEmpty && 'opacity-40 italic',
@@ -212,12 +253,14 @@ function SingleElim({
     matches,
     totalRounds,
     onPick,
+    onInfo,
     disabled,
     groupColors,
 }: {
     matches: GeneratedMatch[];
     totalRounds: number;
     onPick: (idx: number, winnerId: string) => void;
+    onInfo?: (athleteId: string) => void;
     disabled: boolean;
     groupColors?: Map<string, GroupBadge>;
 }) {
@@ -284,6 +327,7 @@ function SingleElim({
                                                     matchNumber={numberOf(m)}
                                                     groupColors={groupColors}
                                                     onPick={(wid) => onPick(indexOf(m.round, m.position), wid)}
+                                                    onInfo={onInfo}
                                                 />
                                                 {rIdx < lastIdx && (
                                                     <svg
@@ -333,6 +377,7 @@ function SingleElim({
                                 matchNumber={numberOf(final)}
                                 groupColors={groupColors}
                                 onPick={(wid) => onPick(indexOf(final.round, final.position), wid)}
+                                onInfo={onInfo}
                             />
                         </div>
 
@@ -365,6 +410,7 @@ function SingleElim({
                                         matchNumber={numberOf(third)}
                                         groupColors={groupColors}
                                         onPick={(wid) => onPick(indexOf(third.round, third.position), wid)}
+                                        onInfo={onInfo}
                                     />
                                 </div>
                             </div>
@@ -404,6 +450,7 @@ function SingleElim({
                                                         matchNumber={numberOf(m)}
                                                         groupColors={groupColors}
                                                         onPick={(wid) => onPick(indexOf(m.round, m.position), wid)}
+                                                        onInfo={onInfo}
                                                     />
                                                     {rIdx < lastIdx && (
                                                         <svg
@@ -442,11 +489,13 @@ function SingleElim({
 function RoundRobin({
     matches,
     onPick,
+    onInfo,
     disabled,
     groupColors,
 }: {
     matches: GeneratedMatch[];
     onPick: (idx: number, winnerId: string) => void;
+    onInfo?: (athleteId: string) => void;
     disabled: boolean;
     groupColors?: Map<string, GroupBadge>;
 }) {
@@ -461,7 +510,7 @@ function RoundRobin({
                         Luta {m.position + 1}
                     </span>
                     <div className="relative w-[260px] h-[96px]">
-                        <MatchCard match={m} disabled={disabled} matchNumber={idx + 1} groupColors={groupColors} onPick={(wid) => onPick(idx, wid)} />
+                        <MatchCard match={m} disabled={disabled} matchNumber={idx + 1} groupColors={groupColors} onPick={(wid) => onPick(idx, wid)} onInfo={onInfo} />
                     </div>
                 </div>
             ))}
@@ -472,11 +521,13 @@ function RoundRobin({
 function FinalOnly({
     match,
     onPick,
+    onInfo,
     disabled,
     groupColors,
 }: {
     match: GeneratedMatch;
     onPick: (idx: number, winnerId: string) => void;
+    onInfo?: (athleteId: string) => void;
     disabled: boolean;
     groupColors?: Map<string, GroupBadge>;
 }) {
@@ -486,7 +537,7 @@ function FinalOnly({
                 Final Direta · 2 atletas
             </span>
             <div className="relative w-[280px] h-[96px]">
-                <MatchCard match={match} disabled={disabled} matchNumber={1} groupColors={groupColors} onPick={(wid) => onPick(0, wid)} />
+                <MatchCard match={match} disabled={disabled} matchNumber={1} groupColors={groupColors} onPick={(wid) => onPick(0, wid)} onInfo={onInfo} />
             </div>
             {match.winner_id && (
                 <div className="mt-4 flex flex-col items-center">
@@ -521,6 +572,85 @@ function WO({ athlete }: { athlete: AthleteInput | null }) {
     );
 }
 
+function AthleteDialog({
+    athlete,
+    onClose,
+}: {
+    athlete: BracketAthleteDetail | null;
+    onClose: () => void;
+}) {
+    const tColor = athlete?.team ? teamColor(athlete.team) : null;
+    const age = calcAge(athlete?.birth_date);
+    return (
+        <Dialog open={!!athlete} onOpenChange={(o) => !o && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                {athlete && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-3">
+                                <span
+                                    className="h-12 w-12 shrink-0 rounded-full flex items-center justify-center text-sm font-black border-2 border-white shadow-sm"
+                                    style={
+                                        tColor
+                                            ? { background: tColor.solid, color: tColor.text }
+                                            : { background: 'hsl(var(--muted))' }
+                                    }
+                                    aria-hidden
+                                >
+                                    {getInitials(athlete.name)}
+                                </span>
+                                <span className="flex flex-col items-start gap-0.5">
+                                    <span className="text-lg font-extrabold leading-tight">{athlete.name}</span>
+                                    <span
+                                        className="text-xs font-bold uppercase tracking-wider"
+                                        style={tColor ? { color: tColor.solid } : { color: 'hsl(var(--muted-foreground))' }}
+                                    >
+                                        {athlete.team || 'Sem Equipe'}
+                                    </span>
+                                </span>
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        <div className="grid grid-cols-3 gap-3 pt-2">
+                            <InfoStat label="Faixa">
+                                {athlete.belt ? (
+                                    <span
+                                        className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide"
+                                        style={getBeltStyle(athlete.belt)}
+                                    >
+                                        {athlete.belt}
+                                    </span>
+                                ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                )}
+                            </InfoStat>
+                            <InfoStat label="Peso">
+                                <span className="font-bold text-foreground">
+                                    {athlete.weight != null ? `${athlete.weight} kg` : '—'}
+                                </span>
+                            </InfoStat>
+                            <InfoStat label="Idade">
+                                <span className="font-bold text-foreground">
+                                    {age != null ? `${age} anos` : '—'}
+                                </span>
+                            </InfoStat>
+                        </div>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function InfoStat({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex flex-col items-center gap-1 rounded-xl border border-border/50 bg-muted/30 py-3 px-2 text-center">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+            <div className="text-sm">{children}</div>
+        </div>
+    );
+}
+
 export function GeBracket({
     title,
     result,
@@ -528,6 +658,7 @@ export function GeBracket({
     mode,
     onWinnerSelect,
     separationGroups,
+    athleteDetails,
 }: GeBracketProps) {
     const [matches, setMatches] = useState<GeneratedMatch[]>(result.matches);
     const groupColors = useMemo(
@@ -538,6 +669,34 @@ export function GeBracket({
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+    const movedRef = useRef(false);
+
+    // Lookup de detalhes por id do atleta; cai pra nome/equipe do próprio confronto
+    // quando não há detalhe (ex.: modo simulação).
+    const detailMap = useMemo(() => {
+        const map = new Map<string, BracketAthleteDetail>();
+        for (const a of athletes) {
+            if (a.id) map.set(a.id, { id: a.id, name: a.name, team: a.team ?? null });
+        }
+        for (const m of result.matches) {
+            if (m.athlete_a_id && !map.has(m.athlete_a_id))
+                map.set(m.athlete_a_id, { id: m.athlete_a_id, name: m.athlete_a_name ?? '?', team: m.team_a });
+            if (m.athlete_b_id && !map.has(m.athlete_b_id))
+                map.set(m.athlete_b_id, { id: m.athlete_b_id, name: m.athlete_b_name ?? '?', team: m.team_b });
+        }
+        for (const d of athleteDetails ?? []) {
+            map.set(d.id, { ...map.get(d.id), ...d });
+        }
+        return map;
+    }, [athletes, athleteDetails, result.matches]);
+
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const selected = selectedId ? detailMap.get(selectedId) ?? null : null;
+
+    const handleAthleteInfo = (id: string) => {
+        if (movedRef.current) return; // foi um arrasto, não um clique
+        setSelectedId(id);
+    };
 
     useEffect(() => {
         setMatches(result.matches);
@@ -554,6 +713,7 @@ export function GeBracket({
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
         setIsDragging(true);
+        movedRef.current = false;
         setDragStart({ x: e.pageX - containerRef.current.offsetLeft, y: e.pageY - containerRef.current.offsetTop });
         setScrollStart({ left: containerRef.current.scrollLeft, top: containerRef.current.scrollTop });
     };
@@ -564,6 +724,7 @@ export function GeBracket({
         e.preventDefault();
         const x = e.pageX - containerRef.current.offsetLeft;
         const y = e.pageY - containerRef.current.offsetTop;
+        if (Math.abs(x - dragStart.x) > 5 || Math.abs(y - dragStart.y) > 5) movedRef.current = true;
         containerRef.current.scrollLeft = scrollStart.left - (x - dragStart.x) * 1.5;
         containerRef.current.scrollTop = scrollStart.top - (y - dragStart.y) * 1.5;
     };
@@ -599,7 +760,7 @@ export function GeBracket({
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
                 className={cn(
-                    'flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] bg-background rounded-2xl border border-border/30 p-12 md:p-16 min-h-[400px]',
+                    'flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] bg-background rounded-2xl border border-border/30 p-12 md:p-16 min-h-[400px] max-h-[70vh]',
                     result.format === 'single_elimination' && 'cursor-grab active:cursor-grabbing',
                     isDragging && 'select-none'
                 )}
@@ -610,6 +771,7 @@ export function GeBracket({
                         <FinalOnly
                             match={matches[0]}
                             onPick={handlePick}
+                            onInfo={handleAthleteInfo}
                             disabled={disabledPick}
                             groupColors={groupColors}
                         />
@@ -618,6 +780,7 @@ export function GeBracket({
                         <RoundRobin
                             matches={matches}
                             onPick={handlePick}
+                            onInfo={handleAthleteInfo}
                             disabled={disabledPick}
                             groupColors={groupColors}
                         />
@@ -627,12 +790,15 @@ export function GeBracket({
                             matches={matches}
                             totalRounds={result.total_rounds}
                             onPick={handlePick}
+                            onInfo={handleAthleteInfo}
                             disabled={disabledPick}
                             groupColors={groupColors}
                         />
                     )}
                 </div>
             </div>
+
+            <AthleteDialog athlete={selected} onClose={() => setSelectedId(null)} />
 
             <style jsx global>{`
                 .ge-connector-base {
