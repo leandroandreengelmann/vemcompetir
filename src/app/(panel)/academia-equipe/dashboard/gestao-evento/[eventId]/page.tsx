@@ -27,6 +27,8 @@ import {
     listCategoriasComContagem,
     criarCategoriaJuntada,
     desfazerCategoriaJuntada,
+    getAtletasDetalhadosDaCategoria,
+    type AtletaDetalhado,
 } from '../../actions/gestao-evento';
 import {
     Dialog,
@@ -124,6 +126,21 @@ type CategoriaParaSugerir = {
     modalidadeKey: ModalidadeKey;
 };
 
+// Diferença máxima de peso (kg) entre os pontos médios para a sugestão ser considerada "próxima".
+const MAX_WEIGHT_DIST_KG = 8;
+// Diferença máxima de idade (anos) permitida na sugestão: mesma idade ou ±1 ano.
+const MAX_AGE_DIST = 1;
+
+function parseIdadeNum(p: ReturnType<typeof parseCategoria>): number | null {
+    const m = (p.idade || p.grupo || '').match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+}
+
+function pesoMid(min: number | null, max: number | null): number | null {
+    if (min != null && max != null) return (min + max) / 2;
+    return min ?? max;
+}
+
 function findMergeCandidates(
     target: CategoriaParaSugerir,
     all: CategoriaParaSugerir[],
@@ -131,31 +148,37 @@ function findMergeCandidates(
     if (target.count < 1 || target.count > 3) return [];
     if (target.isMerged) return [];
     if (target.chaveGerada) return [];
-    const candidates = all.filter((c) => {
-        if (c.name === target.name) return false;
-        if (c.isMerged) return false;
-        if (c.chaveGerada) return false;
-        if (c.count < 1) return false;
-        if (c.parsed.genero !== target.parsed.genero) return false;
-        if (c.modalidadeKey !== target.modalidadeKey) return false;
-        if (c.parsed.faixa !== target.parsed.faixa) return false;
-        if (c.superDivisao !== target.superDivisao) return false;
-        return true;
-    });
-    return candidates
-        .map((c) => {
-            const aMid =
-                target.peso_min_kg != null && target.peso_max_kg != null
-                    ? (target.peso_min_kg + target.peso_max_kg) / 2
-                    : target.peso_min_kg ?? target.peso_max_kg;
-            const bMid =
-                c.peso_min_kg != null && c.peso_max_kg != null
-                    ? (c.peso_min_kg + c.peso_max_kg) / 2
-                    : c.peso_min_kg ?? c.peso_max_kg;
-            const dist = aMid != null && bMid != null ? Math.abs(aMid - bMid) : 999;
-            return { c, dist };
+
+    const tAge = parseIdadeNum(target.parsed);
+    const tMid = pesoMid(target.peso_min_kg, target.peso_max_kg);
+
+    return all
+        .filter((c) => {
+            if (c.name === target.name) return false;
+            if (c.isMerged) return false;
+            if (c.chaveGerada) return false;
+            if (c.count < 1) return false;
+            if (c.parsed.genero !== target.parsed.genero) return false;
+            if (c.modalidadeKey !== target.modalidadeKey) return false;
+            if (c.parsed.faixa !== target.parsed.faixa) return false;
+            if (c.superDivisao !== target.superDivisao) return false;
+            // Idade: só mesma idade ou ±1 ano (evita misturar, ex.: 8 com 10).
+            const cAge = parseIdadeNum(c.parsed);
+            if (tAge != null && cAge != null && Math.abs(tAge - cAge) > MAX_AGE_DIST) return false;
+            // Peso: próximo (para cima ou para baixo), sem saltos grandes.
+            const cMid = pesoMid(c.peso_min_kg, c.peso_max_kg);
+            if (tMid != null && cMid != null && Math.abs(tMid - cMid) > MAX_WEIGHT_DIST_KG) return false;
+            return true;
         })
-        .sort((a, b) => a.dist - b.dist)
+        .map((c) => {
+            const cAge = parseIdadeNum(c.parsed);
+            const cMid = pesoMid(c.peso_min_kg, c.peso_max_kg);
+            const ageDist = tAge != null && cAge != null ? Math.abs(tAge - cAge) : 9;
+            const weightDist = tMid != null && cMid != null ? Math.abs(tMid - cMid) : 999;
+            return { c, ageDist, weightDist };
+        })
+        // Mesma idade primeiro; depois o peso mais próximo.
+        .sort((a, b) => a.ageDist - b.ageDist || a.weightDist - b.weightDist)
         .slice(0, 5)
         .map((x) => x.c);
 }
@@ -190,6 +213,31 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
     const [desfazendo, setDesfazendo] = useState(false);
     const [desfazerError, setDesfazerError] = useState<string | null>(null);
     const [chipSelecoes, setChipSelecoes] = useState<Map<string, Set<string>>>(new Map());
+    const [atletasModal, setAtletasModal] = useState<{ categoria: string; loading: boolean; lista: AtletaDetalhado[] } | null>(null);
+
+    async function abrirAtletasModal(categoria: string) {
+        setAtletasModal({ categoria, loading: true, lista: [] });
+        try {
+            const res = await getAtletasDetalhadosDaCategoria(eventId, categoria);
+            setAtletasModal({ categoria, loading: false, lista: res.data || [] });
+        } catch (err) {
+            console.error(err);
+            setAtletasModal({ categoria, loading: false, lista: [] });
+        }
+    }
+
+    function idadeDeNascimento(birth: string | null): number | null {
+        if (!birth) return null;
+        const y = new Date(birth).getFullYear();
+        if (!y) return null;
+        return new Date().getFullYear() - y;
+    }
+
+    function formatPeso(w: number | null): string {
+        if (w == null) return '—';
+        const n = Math.abs(Number(w));
+        return Number.isInteger(n) ? `${n} kg` : `${n.toFixed(2).replace('.', ',')} kg`;
+    }
 
     async function load() {
         try {
@@ -751,11 +799,16 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                     {pesoRange}
                                                 </span>
                                             )}
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); abrirAtletasModal(cat.name); }}
+                                                title="Ver atletas desta categoria"
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors cursor-pointer"
+                                            >
                                                 <UsersIcon size={14} weight="duotone" />
                                                 {cat.count}{' '}
                                                 {cat.count === 1 ? 'atleta' : 'atletas'}
-                                            </span>
+                                            </button>
                                         </div>
                                         {!selectMode && sugestoesPorCategoria.get(cat.name) && (() => {
                                             const sugs = sugestoesPorCategoria.get(cat.name)!;
@@ -779,7 +832,8 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                                     sug.peso_max_kg,
                                                                 );
                                                                 return (
-                                                                    <Tooltip key={sug.name}>
+                                                                    <div key={sug.name} className="inline-flex items-center gap-1">
+                                                                    <Tooltip>
                                                                         <TooltipTrigger asChild>
                                                                             <button
                                                                                 type="button"
@@ -849,6 +903,18 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                                             </div>
                                                                         </TooltipContent>
                                                                     </Tooltip>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            abrirAtletasModal(sug.name);
+                                                                        }}
+                                                                        title="Ver atletas"
+                                                                        className="inline-flex items-center justify-center h-8 w-8 rounded-full border-2 border-amber-400/60 bg-white text-amber-800 hover:bg-amber-100"
+                                                                    >
+                                                                        <UsersIcon size={14} weight="bold" />
+                                                                    </button>
+                                                                    </div>
                                                                 );
                                                             })}
                                                         </TooltipProvider>
@@ -882,6 +948,15 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                     </div>
                                     {!selectMode && (
                                         <div className="flex items-center gap-2 shrink-0">
+                                            <Button
+                                                pill
+                                                variant="outline"
+                                                className="font-semibold gap-2"
+                                                onClick={() => abrirAtletasModal(cat.name)}
+                                            >
+                                                <UsersIcon size={14} weight="duotone" />
+                                                Ver atletas
+                                            </Button>
                                             {isMerged && cat.mergedId && (
                                                 <Button
                                                     pill
@@ -1079,6 +1154,73 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                         >
                             <LinkBreakIcon size={14} weight="duotone" />
                             {desfazendo ? 'Desfazendo...' : 'Desfazer'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!atletasModal} onOpenChange={(open) => { if (!open) setAtletasModal(null); }}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-panel-md font-bold flex items-center gap-2">
+                            <UsersIcon size={20} weight="duotone" className="text-primary" />
+                            Atletas da categoria
+                        </DialogTitle>
+                        <DialogDescription className="line-clamp-2">
+                            {atletasModal?.categoria}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {atletasModal?.loading ? (
+                        <div className="space-y-2 py-2">
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    ) : atletasModal && atletasModal.lista.length === 0 ? (
+                        <div className="py-6 text-center text-panel-sm text-muted-foreground">
+                            Nenhum atleta encontrado nesta categoria.
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                            {(atletasModal?.lista || []).map((a) => {
+                                const idade = idadeDeNascimento(a.birth_date);
+                                return (
+                                    <div
+                                        key={a.id}
+                                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-panel-sm line-clamp-1" title={a.name}>{a.name}</p>
+                                            <p className="text-xs text-muted-foreground line-clamp-1">
+                                                {a.team || 'Sem academia'}
+                                                {a.belt ? ` · ${a.belt}` : ''}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0 text-xs font-bold uppercase tracking-wider">
+                                            {idade != null && (
+                                                <span className="px-2 py-1 rounded-full border border-border bg-background text-foreground">
+                                                    {idade} anos
+                                                </span>
+                                            )}
+                                            <span className="px-2 py-1 rounded-full border border-border bg-background text-foreground tabular-nums">
+                                                {formatPeso(a.weight)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <span className="text-panel-sm text-muted-foreground mr-auto">
+                            {atletasModal && !atletasModal.loading
+                                ? `${atletasModal.lista.length} ${atletasModal.lista.length === 1 ? 'atleta' : 'atletas'}`
+                                : ''}
+                        </span>
+                        <Button variant="outline" onClick={() => setAtletasModal(null)}>
+                            Fechar
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -240,6 +240,71 @@ export async function getAtletasInscritos(eventId: string, categoryName: string)
     return { data: athletes, error: null };
 }
 
+export type AtletaDetalhado = {
+    id: string;
+    name: string;
+    team: string | null;
+    weight: number | null;
+    belt: string | null;
+    birth_date: string | null;
+};
+
+// Lista os atletas de uma categoria (resolve junções) com detalhes para decisão de fusão.
+export async function getAtletasDetalhadosDaCategoria(
+    eventId: string,
+    categoryName: string,
+): Promise<{ data: AtletaDetalhado[]; error: any }> {
+    try {
+        await assertEventOwner(eventId);
+        const adminSupabase = createAdminClient();
+
+        const { data: juntada } = await adminSupabase
+            .from('ge_categorias_juntadas')
+            .select('id, ge_categorias_juntadas_itens(category_name)')
+            .eq('event_id', eventId)
+            .eq('display_name', categoryName)
+            .maybeSingle();
+
+        const memberSet = new Set<string>();
+        if (juntada) {
+            for (const it of ((juntada as any).ge_categorias_juntadas_itens || []) as { category_name: string }[]) {
+                memberSet.add(it.category_name);
+            }
+        } else {
+            memberSet.add(categoryName);
+        }
+
+        const { data, error } = await adminSupabase
+            .from('event_registrations')
+            .select(`
+                id,
+                athlete_id,
+                athlete:profiles!athlete_id(full_name, gym_name, weight, belt_color, birth_date),
+                category:category_rows!category_id(categoria_completa)
+            `)
+            .eq('event_id', eventId)
+            .in('status', PAID_STATUSES);
+
+        if (error) return { data: [], error };
+
+        const athletes: AtletaDetalhado[] = (data || [])
+            .filter((r: any) => memberSet.has(normalizeCategoryName(r.category?.categoria_completa)))
+            .map((r: any) => ({
+                id: String(r.athlete_id ?? r.id),
+                name: r.athlete?.full_name || 'Desconhecido',
+                team: r.athlete?.gym_name || null,
+                weight: r.athlete?.weight ?? null,
+                belt: r.athlete?.belt_color ?? null,
+                birth_date: r.athlete?.birth_date ?? null,
+            }))
+            .sort((a, b) => (a.weight ?? 0) - (b.weight ?? 0));
+
+        return { data: athletes, error: null };
+    } catch (err: any) {
+        return { data: [], error: err?.message || 'Erro ao listar atletas.' };
+    }
+}
+
 export async function getPreviewChave(
     eventId: string,
     categoryName: string,
