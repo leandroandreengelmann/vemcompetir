@@ -44,14 +44,13 @@ describe('generateBracket — formatos', () => {
         expect(r.matches).toHaveLength(3);
     });
 
-    it('4 atletas → single_elimination + disputa de 3º', () => {
+    it('4 atletas → single_elimination, sem disputa de 3º', () => {
         const r = generateBracket(mkAthletes(4), { seed: 'fixo' });
         expect(r.format).toBe('single_elimination');
         const final = r.matches.find((m) => m.round === 2 && m.position === 0);
         const third = r.matches.find((m) => m.position === 99);
         expect(final).toBeDefined();
-        expect(third).toBeDefined();
-        expect(third!.round).toBe(2);
+        expect(third).toBeUndefined();
     });
 
     it('6 atletas → bracket size 8, 2 BYEs em R1', () => {
@@ -95,20 +94,20 @@ describe('generateBracket — sem duplo BYE em R1', () => {
     });
 });
 
-describe('generateBracket — disputa de 3º', () => {
-    it('2 atletas: NÃO inclui disputa de 3º', () => {
+describe('generateBracket — sem disputa de 3º (3º = semifinalista que perdeu p/ o campeão)', () => {
+    it('2 atletas: não inclui luta de 3º', () => {
         const r = generateBracket(mkAthletes(2));
         expect(r.matches.find((m) => m.position === 99)).toBeUndefined();
     });
 
-    it('3 atletas (round_robin): NÃO inclui disputa de 3º', () => {
+    it('3 atletas (round_robin): não inclui luta de 3º', () => {
         const r = generateBracket(mkAthletes(3));
         expect(r.matches.find((m) => m.position === 99)).toBeUndefined();
     });
 
-    it('≥4 atletas: inclui disputa de 3º', () => {
+    it('≥4 atletas: não inclui mais luta de 3º', () => {
         const r = generateBracket(mkAthletes(7), { seed: 'sete' });
-        expect(r.matches.find((m) => m.position === 99)).toBeDefined();
+        expect(r.matches.find((m) => m.position === 99)).toBeUndefined();
     });
 });
 

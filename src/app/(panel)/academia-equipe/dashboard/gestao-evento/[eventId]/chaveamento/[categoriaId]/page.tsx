@@ -136,6 +136,7 @@ export default function GestaoEventoChavePage({
     gruposRef.current = grupos;
 
     const [pdfBusy, setPdfBusy] = useState(false);
+    const [treeBusy, setTreeBusy] = useState(false);
 
     const [simEnabled, setSimEnabled] = useState(false);
     const [simCount, setSimCount] = useState<SimCount>(8);
@@ -302,6 +303,45 @@ export default function GestaoEventoChavePage({
             setDialogKind('erro');
         } finally {
             setPdfBusy(false);
+        }
+    }
+
+    async function handleDownloadTreePdf() {
+        if (!result || athletes.length === 0 || treeBusy) return;
+        setTreeBusy(true);
+        try {
+            const [{ pdf }, { BracketTreePdfDocument }, evRes] = await Promise.all([
+                import('@react-pdf/renderer'),
+                import('@/components/gestao-evento/BracketTreePdfDocument'),
+                simEnabled
+                    ? Promise.resolve({ data: { name: 'Simulação' }, error: null })
+                    : getEventoBasico(eventId),
+            ]);
+            const eventTitle = evRes?.data?.name || 'Evento';
+            const blob = await pdf(
+                <BracketTreePdfDocument
+                    eventTitle={eventTitle}
+                    categoryName={categoryName}
+                    result={result}
+                    athletes={athletes}
+                    separationGroups={grupos.map((g) => g.atleta_ids)}
+                    generatedAt={new Date()}
+                />,
+            ).toBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeName = `${eventTitle}-${categoryName}`
+                .replace(/[\\/:*?"<>|]+/g, '-')
+                .slice(0, 120);
+            a.href = url;
+            a.download = `chave-arvore-${safeName}.pdf`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err: any) {
+            setDialogMsg(err?.message || 'Falha ao gerar PDF da chave.');
+            setDialogKind('erro');
+        } finally {
+            setTreeBusy(false);
         }
     }
 
@@ -525,6 +565,20 @@ export default function GestaoEventoChavePage({
                             <Button
                                 variant="outline"
                                 pill
+                                onClick={handleDownloadTreePdf}
+                                disabled={treeBusy || !result || athletes.length === 0}
+                                className="gap-2 h-9 px-4 font-semibold border-sky-500/40 text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 hover:border-sky-500/70 dark:text-sky-400 dark:hover:text-sky-300"
+                            >
+                                {treeBusy ? (
+                                    <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                ) : (
+                                    <TreeStructureIcon size={14} weight="duotone" />
+                                )}
+                                {treeBusy ? 'Gerando chave...' : 'Baixar chave (árvore)'}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                pill
                                 onClick={handleNewSeed}
                                 disabled={busy}
                                 className="gap-2 h-9 px-4 font-semibold"
@@ -552,6 +606,20 @@ export default function GestaoEventoChavePage({
                                     <FilePdfIcon size={14} weight="duotone" />
                                 )}
                                 {pdfBusy ? 'Gerando PDF...' : 'Baixar PDF'}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                pill
+                                onClick={handleDownloadTreePdf}
+                                disabled={treeBusy || !result || athletes.length === 0}
+                                className="gap-2 h-9 px-4 font-semibold border-sky-500/40 text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 hover:border-sky-500/70 dark:text-sky-400 dark:hover:text-sky-300"
+                            >
+                                {treeBusy ? (
+                                    <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                ) : (
+                                    <TreeStructureIcon size={14} weight="duotone" />
+                                )}
+                                {treeBusy ? 'Gerando chave...' : 'Baixar chave (árvore)'}
                             </Button>
                             <Button
                                 variant="outline"

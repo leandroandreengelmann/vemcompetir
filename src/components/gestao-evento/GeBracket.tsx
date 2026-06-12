@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, ChevronLeft, Trophy, Crown, Check, FastForward } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Trophy, Crown, Check, FastForward, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     Dialog,
@@ -275,7 +275,24 @@ function SingleElim({
 
     const finalRound = rounds[rounds.length - 1];
     const final = finalRound[0];
-    const third = matches.find((m) => m.position === 99);
+
+    // 3º lugar: NÃO há luta de disputa. O 3º é o semifinalista que perdeu
+    // para o campeão (definido após a final).
+    const championId = final?.winner_id ?? null;
+    let thirdPlace: { name: string | null; team: string | null } | null = null;
+    if (championId && final && totalRounds >= 2) {
+        const champSemiPos = championId === final.athlete_a_id ? 0 : 1;
+        const semi = matches.find(
+            (m) => m.round === totalRounds - 1 && m.position === champSemiPos,
+        );
+        if (semi) {
+            if (semi.athlete_a_id && semi.athlete_a_id !== championId) {
+                thirdPlace = { name: semi.athlete_a_name, team: semi.team_a };
+            } else if (semi.athlete_b_id && semi.athlete_b_id !== championId) {
+                thirdPlace = { name: semi.athlete_b_name, team: semi.team_b };
+            }
+        }
+    }
 
     function indexOf(round: number, position: number) {
         return matches.findIndex((m) => m.round === round && m.position === position);
@@ -295,7 +312,6 @@ function SingleElim({
             }
         }
     }
-    if (third) matchNumberMap.set(`${third.round}-99`, counter++);
     const numberOf = (m: GeneratedMatch) => matchNumberMap.get(`${m.round}-${m.position}`);
 
     return (
@@ -395,25 +411,23 @@ function SingleElim({
                             </div>
                         )}
 
-                        {third && (
-                            <div className="mt-12 relative w-[220px]">
-                                <div className="absolute -top-7 left-0 right-0 text-center">
-                                    <span className="text-label text-orange-700 bg-orange-500/10 px-4 py-1 rounded-full border border-orange-500/20 shadow-sm whitespace-nowrap">
-                                        Disputa de 3º
+                        {/* 3º lugar — sem disputa: é o semifinalista que perdeu para o campeão */}
+                        {totalRounds >= 2 && (
+                            thirdPlace?.name ? (
+                                <div className="mt-6 mx-auto flex flex-col items-center">
+                                    <div className="bg-amber-700 text-amber-50 px-4 py-1 rounded-full text-xs font-black tracking-widest uppercase shadow-lg shadow-amber-700/20 mb-2 flex items-center gap-1">
+                                        🥉 3º Lugar
+                                    </div>
+                                    <span className="font-bold text-base text-foreground">{thirdPlace.name}</span>
+                                    <span className="text-sm text-muted-foreground">{thirdPlace.team || 'Sem Equipe'}</span>
+                                </div>
+                            ) : (
+                                <div className="mt-8 mx-auto max-w-[240px] text-center">
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 shadow-sm">
+                                        🥉 3º lugar: semifinalista que perder para o campeão
                                     </span>
                                 </div>
-                                <div className="relative w-[220px] h-[96px] z-10 shrink-0">
-                                    <MatchCard
-                                        match={third}
-                                        side="final"
-                                        disabled={disabled}
-                                        matchNumber={numberOf(third)}
-                                        groupColors={groupColors}
-                                        onPick={(wid) => onPick(indexOf(third.round, third.position), wid)}
-                                        onInfo={onInfo}
-                                    />
-                                </div>
-                            </div>
+                            )
                         )}
                     </div>
                 </div>
@@ -670,6 +684,21 @@ export function GeBracket({
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
     const movedRef = useRef(false);
+    const [zoom, setZoom] = useState(1);
+
+    const ZOOM_MIN = 0.4;
+    const ZOOM_MAX = 1.6;
+    const ZOOM_STEP = 0.15;
+    const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+    const zoomIn = () => setZoom((z) => clampZoom(+(z + ZOOM_STEP).toFixed(2)));
+    const zoomOut = () => setZoom((z) => clampZoom(+(z - ZOOM_STEP).toFixed(2)));
+    const zoomReset = () => setZoom(1);
+
+    const handleWheel = (e: React.WheelEvent) => {
+        if (!e.ctrlKey) return; // Ctrl+scroll = zoom; scroll normal = rolar
+        e.preventDefault();
+        setZoom((z) => clampZoom(+(z - Math.sign(e.deltaY) * ZOOM_STEP).toFixed(2)));
+    };
 
     // Lookup de detalhes por id do atleta; cai pra nome/equipe do próprio confronto
     // quando não há detalhe (ex.: modo simulação).
@@ -753,19 +782,59 @@ export function GeBracket({
                 </p>
             </div>
 
-            <div
-                ref={containerRef}
-                onMouseDown={handleMouseDown}
-                onMouseLeave={handleMouseLeave}
-                onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
-                className={cn(
-                    'flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] bg-background rounded-2xl border border-border/30 p-12 md:p-16 min-h-[400px] max-h-[70vh]',
-                    result.format === 'single_elimination' && 'cursor-grab active:cursor-grabbing',
-                    isDragging && 'select-none'
+            <div className="relative">
+                {result.format === 'single_elimination' && (
+                    <div className="absolute top-4 right-4 z-30 flex items-center gap-2 rounded-full border border-border/60 bg-card/90 backdrop-blur px-2.5 py-1.5 shadow-lg">
+                        <button
+                            type="button"
+                            onClick={zoomOut}
+                            disabled={zoom <= ZOOM_MIN}
+                            aria-label="Diminuir zoom"
+                            className="h-12 w-12 flex items-center justify-center rounded-full text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-default transition-colors"
+                        >
+                            <ZoomOut className="h-6 w-6" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={zoomReset}
+                            aria-label="Restaurar zoom"
+                            className="min-w-[4.5rem] px-2 flex items-center justify-center gap-1.5 rounded-full text-sm font-bold text-foreground hover:bg-muted transition-colors"
+                        >
+                            <Maximize className="h-5 w-5" />
+                            {Math.round(zoom * 100)}%
+                        </button>
+                        <button
+                            type="button"
+                            onClick={zoomIn}
+                            disabled={zoom >= ZOOM_MAX}
+                            aria-label="Aumentar zoom"
+                            className="h-12 w-12 flex items-center justify-center rounded-full text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-default transition-colors"
+                        >
+                            <ZoomIn className="h-6 w-6" />
+                        </button>
+                    </div>
                 )}
-            >
-                <div className="bracket-canvas">
+                <div
+                    ref={containerRef}
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
+                    onWheel={handleWheel}
+                    className={cn(
+                        'flex-1 overflow-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] bg-background rounded-2xl border border-border/30 p-12 md:p-16 min-h-[400px] max-h-[70vh]',
+                        result.format === 'single_elimination' && 'cursor-grab active:cursor-grabbing',
+                        isDragging && 'select-none'
+                    )}
+                >
+                    <div
+                        className="bracket-canvas"
+                        style={{
+                            transform: `scale(${zoom})`,
+                            transformOrigin: 'top center',
+                            transition: 'transform 120ms ease',
+                        }}
+                    >
                     {result.format === 'wo' && <WO athlete={woAthlete} />}
                     {result.format === 'final_only' && (
                         <FinalOnly
@@ -795,6 +864,7 @@ export function GeBracket({
                             groupColors={groupColors}
                         />
                     )}
+                    </div>
                 </div>
             </div>
 

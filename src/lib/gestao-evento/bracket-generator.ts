@@ -272,9 +272,8 @@ export function generateBracket(
         prev = cur;
     }
 
-    if (n >= 4) {
-        matches.push(makeMatch(totalRounds, 99, null, null));
-    }
+    // Sem disputa de 3º lugar: o 3º é o semifinalista que perdeu para o campeão
+    // (definido após a final), portanto não geramos luta de 3º.
 
     const placedOrder: AthleteInput[] = slots.filter((s): s is AthleteInput => s !== null);
 
@@ -324,7 +323,7 @@ export function applyWinnerPropagation(
 }
 
 export function getRoundLabel(round: number, totalRounds: number, position?: number): string {
-    if (position === 99) return 'Disputa de 3º';
+    void position;
     if (round === totalRounds) return 'Final';
     if (round === totalRounds - 1) return 'Semifinal';
     return `${round}ª Rodada`;
