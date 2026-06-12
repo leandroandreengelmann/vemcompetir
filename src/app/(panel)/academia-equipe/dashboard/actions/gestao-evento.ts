@@ -8,6 +8,13 @@ import {
     type AthleteInput,
     type GenerateBracketResult,
 } from '@/lib/gestao-evento/bracket-generator';
+import {
+    parseCategoria,
+    getSuperDivisao,
+    divisaoSortKey,
+    faixaSortKey,
+    SUPER_DIVISAO_ORDER,
+} from '@/lib/gestao-evento/parse-categoria';
 
 const PAID_STATUSES = ['paga', 'pago', 'confirmado', 'isento'];
 
@@ -194,6 +201,98 @@ export async function listCategoriasComContagem(eventId: string) {
     list.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
     return { event, data: list, error: null };
+}
+
+export type WoReportItem = {
+    categoria: string;
+    atleta: {
+        nome: string;
+        academia: string | null;
+        faixa: string | null;
+        peso: number | null;
+        birth_date: string | null;
+    };
+};
+
+// Relatório de W.O.: categorias com exatamente 1 atleta (já resolvendo
+// junções), com o atleta que vence por W.O. Ordenado por divisão → faixa.
+export async function getRelatorioWO(eventId: string) {
+    const { event } = await assertEventOwner(eventId);
+    const adminSupabase = createAdminClient();
+
+    const [{ data: regs, error: regsErr }, juntadasRes] = await Promise.all([
+        adminSupabase
+            .from('event_registrations')
+            .select(
+                `status,
+                 category:category_rows!category_id(categoria_completa),
+                 athlete:profiles!athlete_id(full_name, gym_name, weight, belt_color, birth_date)`,
+            )
+            .eq('event_id', eventId)
+            .in('status', PAID_STATUSES),
+        adminSupabase
+            .from('ge_categorias_juntadas')
+            .select('id, display_name, ge_categorias_juntadas_itens(category_name)')
+            .eq('event_id', eventId),
+    ]);
+
+    if (regsErr) return { event, data: [] as WoReportItem[], error: regsErr };
+
+    type Ath = WoReportItem['atleta'];
+    const baseMap = new Map<string, Ath[]>();
+    for (const r of regs || []) {
+        const cat = normalizeCategoryName((r as any).category?.categoria_completa);
+        const a = (r as any).athlete;
+        const ath: Ath = {
+            nome: a?.full_name || 'Desconhecido',
+            academia: a?.gym_name || null,
+            faixa: a?.belt_color || null,
+            peso: a?.weight ?? null,
+            birth_date: a?.birth_date ?? null,
+        };
+        const arr = baseMap.get(cat);
+        if (arr) arr.push(ath);
+        else baseMap.set(cat, [ath]);
+    }
+
+    const juntadas = (juntadasRes.data || []) as Array<{
+        id: string;
+        display_name: string;
+        ge_categorias_juntadas_itens: { category_name: string }[];
+    }>;
+    const memberSet = new Set<string>();
+    for (const j of juntadas) for (const it of j.ge_categorias_juntadas_itens || []) memberSet.add(it.category_name);
+
+    const items: WoReportItem[] = [];
+    for (const [name, aths] of baseMap.entries()) {
+        if (memberSet.has(name)) continue;
+        if (aths.length === 1) items.push({ categoria: name, atleta: aths[0] });
+    }
+    for (const j of juntadas) {
+        const aths: Ath[] = [];
+        for (const it of j.ge_categorias_juntadas_itens || []) {
+            const arr = baseMap.get(it.category_name);
+            if (arr) aths.push(...arr);
+        }
+        if (aths.length === 1) items.push({ categoria: j.display_name, atleta: aths[0] });
+    }
+
+    items.sort((a, b) => {
+        const pa = parseCategoria(a.categoria);
+        const pb = parseCategoria(b.categoria);
+        const sa = SUPER_DIVISAO_ORDER.indexOf(getSuperDivisao(pa.grupo));
+        const sb = SUPER_DIVISAO_ORDER.indexOf(getSuperDivisao(pb.grupo));
+        if (sa !== sb) return sa - sb;
+        const da = divisaoSortKey(pa.grupo, pa.idade);
+        const db = divisaoSortKey(pb.grupo, pb.idade);
+        if (da !== db) return da - db;
+        const fa = faixaSortKey(pa.faixa);
+        const fb = faixaSortKey(pb.faixa);
+        if (fa !== fb) return fa - fb;
+        return a.categoria.localeCompare(b.categoria);
+    });
+
+    return { event, data: items, error: null };
 }
 
 export async function getAtletasInscritos(eventId: string, categoryName: string) {

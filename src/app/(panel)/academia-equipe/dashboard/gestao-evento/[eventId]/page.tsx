@@ -22,13 +22,17 @@ import {
     LinkSimpleIcon,
     LinkBreakIcon,
     WarningIcon,
+    FilePdfIcon,
+    CircleNotchIcon,
 } from '@phosphor-icons/react';
 import {
     listCategoriasComContagem,
     criarCategoriaJuntada,
     desfazerCategoriaJuntada,
     getAtletasDetalhadosDaCategoria,
+    getRelatorioWO,
     type AtletaDetalhado,
+    type WoReportItem,
 } from '../../actions/gestao-evento';
 import {
     Dialog,
@@ -214,6 +218,71 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
     const [desfazerError, setDesfazerError] = useState<string | null>(null);
     const [chipSelecoes, setChipSelecoes] = useState<Map<string, Set<string>>>(new Map());
     const [atletasModal, setAtletasModal] = useState<{ categoria: string; loading: boolean; lista: AtletaDetalhado[] } | null>(null);
+    const [woModal, setWoModal] = useState<{ loading: boolean; items: WoReportItem[] } | null>(null);
+    const [woPdfBusy, setWoPdfBusy] = useState(false);
+
+    // Aplica os filtros ativos da página (faixa/divisão/modalidade/busca) aos itens de W.O.
+    function aplicarFiltrosWo(items: WoReportItem[]): WoReportItem[] {
+        const q = search.trim().toLowerCase();
+        return items.filter((it) => {
+            const p = parseCategoria(it.categoria);
+            if (q && !it.categoria.toLowerCase().includes(q)) return false;
+            if (activeFaixas.size > 0 && !activeFaixas.has(p.faixa)) return false;
+            if (activeDivisoes.size > 0 && !activeDivisoes.has(getSuperDivisao(p.grupo))) return false;
+            if (activeModalidades.size > 0 && !activeModalidades.has(getModalidadeKey(p.modalidade))) return false;
+            return true;
+        });
+    }
+
+    function woFiltroLabel(): string | null {
+        const parts: string[] = [];
+        if (activeDivisoes.size > 0) parts.push([...activeDivisoes].map((d) => SUPER_DIVISAO_LABELS[d]).join(', '));
+        if (activeFaixas.size > 0) parts.push([...activeFaixas].join(', '));
+        if (activeModalidades.size > 0) parts.push([...activeModalidades].map((m) => MODALIDADE_LABELS[m]).join(', '));
+        if (search.trim()) parts.push(`"${search.trim()}"`);
+        return parts.length ? parts.join(' · ') : null;
+    }
+
+    async function abrirRelatorioWo() {
+        setWoModal({ loading: true, items: [] });
+        try {
+            const res = await getRelatorioWO(eventId);
+            setWoModal({ loading: false, items: aplicarFiltrosWo((res.data as WoReportItem[]) || []) });
+        } catch (err: any) {
+            setWoModal({ loading: false, items: [] });
+            console.error(err);
+        }
+    }
+
+    async function baixarRelatorioWoPdf() {
+        if (!woModal || woPdfBusy) return;
+        setWoPdfBusy(true);
+        try {
+            const [{ pdf }, { WoReportPdfDocument }] = await Promise.all([
+                import('@react-pdf/renderer'),
+                import('@/components/gestao-evento/WoReportPdfDocument'),
+            ]);
+            const blob = await pdf(
+                <WoReportPdfDocument
+                    eventTitle={eventName || 'Evento'}
+                    items={woModal.items}
+                    generatedAt={new Date()}
+                    filtroLabel={woFiltroLabel()}
+                />,
+            ).toBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safe = (eventName || 'evento').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 100);
+            a.href = url;
+            a.download = `relatorio-wo-${safe}.pdf`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setWoPdfBusy(false);
+        }
+    }
 
     async function abrirAtletasModal(categoria: string) {
         setAtletasModal({ categoria, loading: true, lista: [] });
@@ -559,6 +628,20 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                     tone="elim"
                 />
             </div>
+
+            {totals.wo > 0 && (
+                <div className="flex justify-end -mt-1">
+                    <Button
+                        variant="outline"
+                        pill
+                        onClick={abrirRelatorioWo}
+                        className="h-10 gap-2 text-panel-sm font-semibold shadow-sm border-amber-500/40 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 hover:border-amber-500/70 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
+                        <TrophyIcon size={16} weight="duotone" />
+                        Relatório de W.O.
+                    </Button>
+                </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
                 {divisoesDisponiveis.length > 0 && (
@@ -1221,6 +1304,87 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                         </span>
                         <Button variant="outline" onClick={() => setAtletasModal(null)}>
                             Fechar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Relatório de W.O. */}
+            <Dialog open={!!woModal} onOpenChange={(open) => { if (!open) setWoModal(null); }}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-panel-md font-bold flex items-center gap-2">
+                            <TrophyIcon size={20} weight="duotone" className="text-amber-600" />
+                            Relatório de W.O.
+                        </DialogTitle>
+                        <DialogDescription>
+                            Categorias com 1 atleta (vence por W.O.)
+                            {woFiltroLabel() ? ` · ${woFiltroLabel()}` : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {woModal?.loading ? (
+                        <div className="space-y-2 py-2">
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    ) : woModal && woModal.items.length === 0 ? (
+                        <div className="py-6 text-center text-panel-sm text-muted-foreground">
+                            Nenhuma categoria de W.O. encontrada.
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                            {(woModal?.items || []).map((it, i) => {
+                                const idade = idadeDeNascimento(it.atleta.birth_date);
+                                return (
+                                    <div
+                                        key={`${it.categoria}-${i}`}
+                                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-xs text-muted-foreground line-clamp-1" title={it.categoria}>{it.categoria}</p>
+                                            <p className="font-semibold text-panel-sm line-clamp-1" title={it.atleta.nome}>{it.atleta.nome}</p>
+                                            <p className="text-xs text-muted-foreground line-clamp-1">
+                                                {it.atleta.academia || 'Sem academia'}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0 text-xs font-bold uppercase tracking-wider">
+                                            {idade != null && (
+                                                <span className="px-2 py-1 rounded-full border border-border bg-background text-foreground">
+                                                    {idade} anos
+                                                </span>
+                                            )}
+                                            <span className="px-2 py-1 rounded-full border border-border bg-background text-foreground tabular-nums">
+                                                {formatPeso(it.atleta.peso)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <span className="text-panel-sm text-muted-foreground mr-auto">
+                            {woModal && !woModal.loading
+                                ? `${woModal.items.length} ${woModal.items.length === 1 ? 'categoria' : 'categorias'}`
+                                : ''}
+                        </span>
+                        <Button variant="outline" onClick={() => setWoModal(null)}>
+                            Fechar
+                        </Button>
+                        <Button
+                            onClick={baixarRelatorioWoPdf}
+                            disabled={!woModal || woModal.loading || woModal.items.length === 0 || woPdfBusy}
+                            className="gap-2"
+                        >
+                            {woPdfBusy ? (
+                                <CircleNotchIcon size={16} weight="bold" className="animate-spin" />
+                            ) : (
+                                <FilePdfIcon size={16} weight="duotone" />
+                            )}
+                            {woPdfBusy ? 'Gerando...' : 'Baixar PDF'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
