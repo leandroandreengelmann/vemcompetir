@@ -55,6 +55,7 @@ import {
     type SuperDivisao,
     type ModalidadeKey,
 } from '@/lib/gestao-evento/parse-categoria';
+import { AcessosPublicosCard } from '@/components/gestao-evento/AcessosPublicosCard';
 
 const POLL_MS = 30_000;
 
@@ -600,6 +601,8 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                     </div>
                 }
             />
+
+            <AcessosPublicosCard eventId={eventId} />
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <KpiCard

@@ -66,8 +66,8 @@ import type {
     GenerateBracketResult,
     AthleteInput,
     BracketFormat,
-    GeneratedMatch,
 } from '@/lib/gestao-evento/bracket-generator';
+import { mapChaveToResult } from '@/lib/gestao-evento/chave-mapper';
 
 const POLL_MS = 30_000;
 
@@ -215,28 +215,9 @@ export default function GestaoEventoChavePage({
             setGrupos(loadedGrupos);
 
             if (oficial.chave) {
-                const matches: GeneratedMatch[] = (oficial.lutas as LutaRow[]).map((l) => ({
-                    round: l.round,
-                    position: l.position,
-                    athlete_a_id: l.athlete_a_id,
-                    athlete_b_id: l.athlete_b_id,
-                    athlete_a_name: l.athlete_a_name,
-                    athlete_b_name: l.athlete_b_name,
-                    team_a: l.team_a,
-                    team_b: l.team_b,
-                    is_bye: l.is_bye,
-                    winner_id: l.winner_id,
-                }));
                 const chave = oficial.chave as ChaveRow;
                 setOficialChave(chave);
-                setResult({
-                    format: chave.formato,
-                    matches,
-                    total_rounds: chave.total_rounds,
-                    main_bracket_size: chave.bracket_size,
-                    seed: chave.seed,
-                    placed_order: chave.placed_order || [],
-                });
+                setResult(mapChaveToResult(chave, oficial.lutas as LutaRow[]));
                 setAthletes(chave.placed_order || []);
                 setMovedIn([]);
                 setUpdatedAt(new Date());
