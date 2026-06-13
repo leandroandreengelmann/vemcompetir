@@ -45,6 +45,7 @@ import {
 import {
     parseCategoria,
     faixaSortKey,
+    divisaoSortKey,
     getFaixaColor,
     getSuperDivisao,
     getModalidadeKey,
@@ -366,14 +367,28 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
-        return categoriasParsed.filter((c) => {
-            if (q && !c.name.toLowerCase().includes(q)) return false;
-            if (!matchesBucket(c.count, bucket)) return false;
-            if (activeFaixas.size > 0 && !activeFaixas.has(c.parsed.faixa)) return false;
-            if (activeDivisoes.size > 0 && !activeDivisoes.has(c.superDivisao)) return false;
-            if (activeModalidades.size > 0 && !activeModalidades.has(c.modalidadeKey)) return false;
-            return true;
-        });
+        return categoriasParsed
+            .filter((c) => {
+                if (q && !c.name.toLowerCase().includes(q)) return false;
+                if (!matchesBucket(c.count, bucket)) return false;
+                if (activeFaixas.size > 0 && !activeFaixas.has(c.parsed.faixa)) return false;
+                if (activeDivisoes.size > 0 && !activeDivisoes.has(c.superDivisao)) return false;
+                if (activeModalidades.size > 0 && !activeModalidades.has(c.modalidadeKey)) return false;
+                return true;
+            })
+            .sort((a, b) => {
+                // Ordena da categoria mais nova (Pré-mirim/Mirim) para a mais velha (Master);
+                // Absoluto (idade aberta) cai no final via chave 99.
+                const ka = divisaoSortKey(a.parsed.grupo, a.parsed.idade);
+                const kb = divisaoSortKey(b.parsed.grupo, b.parsed.idade);
+                if (ka !== kb) return ka - kb;
+                if (a.parsed.genero !== b.parsed.genero)
+                    return a.parsed.genero.localeCompare(b.parsed.genero);
+                const fa = faixaSortKey(a.parsed.faixa);
+                const fb = faixaSortKey(b.parsed.faixa);
+                if (fa !== fb) return fa - fb;
+                return a.name.localeCompare(b.name);
+            });
     }, [categoriasParsed, search, bucket, activeFaixas, activeDivisoes, activeModalidades]);
 
     const totals = useMemo(() => {
