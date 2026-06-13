@@ -38,10 +38,17 @@ describe('generateBracket — formatos', () => {
         expect(r.matches[0].is_bye).toBe(false);
     });
 
-    it('3 atletas → round_robin com 3 lutas', () => {
-        const r = generateBracket(mkAthletes(3));
-        expect(r.format).toBe('round_robin');
-        expect(r.matches).toHaveLength(3);
+    it('3 atletas → single_elimination (4 slots) com 1 BYE para a final', () => {
+        const r = generateBracket(mkAthletes(3), { seed: 'tres' });
+        expect(r.format).toBe('single_elimination');
+        expect(r.main_bracket_size).toBe(4);
+        const r1 = r.matches.filter((m) => m.round === 1);
+        expect(r1).toHaveLength(2);
+        const byes = r1.filter((m) => m.is_bye);
+        expect(byes).toHaveLength(1);
+        expect(byes[0].winner_id).not.toBeNull();
+        const final = r.matches.find((m) => m.round === 2 && m.position === 0);
+        expect(final).toBeDefined();
     });
 
     it('4 atletas → single_elimination, sem disputa de 3º', () => {
@@ -100,7 +107,7 @@ describe('generateBracket — sem disputa de 3º (3º = semifinalista que perdeu
         expect(r.matches.find((m) => m.position === 99)).toBeUndefined();
     });
 
-    it('3 atletas (round_robin): não inclui luta de 3º', () => {
+    it('3 atletas (chave com BYE): não inclui luta de 3º', () => {
         const r = generateBracket(mkAthletes(3));
         expect(r.matches.find((m) => m.position === 99)).toBeUndefined();
     });

@@ -42,6 +42,7 @@ import {
     removerGrupoSeparacao,
     getEventoBasico,
     getAtletasDetalhadosDaCategoria,
+    getCategoriaPesoRange,
     type GrupoSeparacao,
     type AtletaDetalhado,
 } from '../../../../actions/gestao-evento';
@@ -97,6 +98,17 @@ type LutaRow = {
     is_bye: boolean;
 };
 
+// "53,5 a 64 kg" / "até 64 kg" / "acima de 100 kg"
+function formatPesoRange(min: number | null, max: number | null): string | null {
+    const fmt = (n: number) => String(n).replace('.', ',');
+    const hasMin = min != null && !Number.isNaN(min);
+    const hasMax = max != null && !Number.isNaN(max);
+    if (hasMin && hasMax) return `${fmt(min!)} a ${fmt(max!)} kg`;
+    if (hasMax) return `até ${fmt(max!)} kg`;
+    if (hasMin) return `acima de ${fmt(min!)} kg`;
+    return null;
+}
+
 type ChaveRow = {
     id: string;
     formato: BracketFormat;
@@ -119,6 +131,7 @@ export default function GestaoEventoChavePage({
     const [result, setResult] = useState<GenerateBracketResult | null>(null);
     const [athletes, setAthletes] = useState<AthleteInput[]>([]);
     const [athleteDetails, setAthleteDetails] = useState<AtletaDetalhado[]>([]);
+    const [pesoRangeLabel, setPesoRangeLabel] = useState<string | null>(null);
     const [oficialChave, setOficialChave] = useState<ChaveRow | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -167,12 +180,14 @@ export default function GestaoEventoChavePage({
             return;
         }
         try {
-            const [oficial, gruposRes, detalhes] = await Promise.all([
+            const [oficial, gruposRes, detalhes, pesoRange] = await Promise.all([
                 getChaveOficial(eventId, categoryName),
                 listarGruposSeparacao(eventId, categoryName),
                 getAtletasDetalhadosDaCategoria(eventId, categoryName),
+                getCategoriaPesoRange(eventId, categoryName),
             ]);
             setAthleteDetails(detalhes.data || []);
+            setPesoRangeLabel(formatPesoRange(pesoRange.min, pesoRange.max));
             const loadedGrupos: LocalGrupo[] = (gruposRes.data as GrupoSeparacao[]).map(
                 (g) => ({ id: g.id, atleta_ids: g.atleta_ids }),
             );
@@ -286,6 +301,7 @@ export default function GestaoEventoChavePage({
                     result={result}
                     athletes={athletes}
                     separationGroups={grupos.map((g) => g.atleta_ids)}
+                    pesoRangeLabel={pesoRangeLabel}
                     generatedAt={new Date()}
                 />,
             ).toBlob();
@@ -325,6 +341,7 @@ export default function GestaoEventoChavePage({
                     result={result}
                     athletes={athletes}
                     separationGroups={grupos.map((g) => g.atleta_ids)}
+                    pesoRangeLabel={pesoRangeLabel}
                     generatedAt={new Date()}
                 />,
             ).toBlob();

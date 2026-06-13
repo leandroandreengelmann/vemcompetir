@@ -404,6 +404,53 @@ export async function getAtletasDetalhadosDaCategoria(
     }
 }
 
+// Faixa de peso (kg) de uma categoria, resolvendo junções (min/max entre membros).
+export async function getCategoriaPesoRange(
+    eventId: string,
+    categoryName: string,
+): Promise<{ min: number | null; max: number | null }> {
+    try {
+        await assertEventOwner(eventId);
+        const adminSupabase = createAdminClient();
+
+        const { data: juntada } = await adminSupabase
+            .from('ge_categorias_juntadas')
+            .select('id, ge_categorias_juntadas_itens(category_name)')
+            .eq('event_id', eventId)
+            .eq('display_name', categoryName)
+            .maybeSingle();
+
+        const memberSet = new Set<string>();
+        if (juntada) {
+            for (const it of ((juntada as any).ge_categorias_juntadas_itens || []) as { category_name: string }[]) {
+                memberSet.add(normalizeCategoryName(it.category_name));
+            }
+        } else {
+            memberSet.add(normalizeCategoryName(categoryName));
+        }
+
+        const { data, error } = await adminSupabase
+            .from('event_registrations')
+            .select(`category:category_rows!category_id(categoria_completa, peso_min_kg, peso_max_kg)`)
+            .eq('event_id', eventId)
+            .in('status', PAID_STATUSES);
+
+        if (error || !data) return { min: null, max: null };
+
+        let min: number | null = null;
+        let max: number | null = null;
+        for (const r of data as any[]) {
+            const cat = r.category;
+            if (!cat || !memberSet.has(normalizeCategoryName(cat.categoria_completa))) continue;
+            if (cat.peso_min_kg != null) min = min == null ? cat.peso_min_kg : Math.min(min, cat.peso_min_kg);
+            if (cat.peso_max_kg != null) max = max == null ? cat.peso_max_kg : Math.max(max, cat.peso_max_kg);
+        }
+        return { min, max };
+    } catch {
+        return { min: null, max: null };
+    }
+}
+
 export async function getPreviewChave(
     eventId: string,
     categoryName: string,

@@ -224,22 +224,8 @@ export function generateBracket(
         };
     }
 
-    if (n === 3) {
-        const [a, b, c] = shuffled;
-        return {
-            format: 'round_robin',
-            matches: [
-                makeMatch(1, 0, a, b),
-                makeMatch(1, 1, a, c),
-                makeMatch(1, 2, b, c),
-            ],
-            total_rounds: 1,
-            main_bracket_size: 3,
-            seed,
-            placed_order: shuffled,
-        };
-    }
-
+    // 3 atletas: chave eliminatória de 4 slots com 1 BYE — um atleta passa
+    // direto para a final e os outros dois disputam a semifinal.
     const size = nextPowerOf2(n);
     const totalRounds = Math.log2(size);
     const slots = buildSlots(shuffled, size, separationGroups);

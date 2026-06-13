@@ -17,6 +17,7 @@ import {
     buildFightOrder,
     type FightRow,
 } from '@/lib/gestao-evento/bracket-pdf-shared';
+import { parseCategoria } from '@/lib/gestao-evento/parse-categoria';
 
 // ─────────────────────────────────────────────────────────────────
 // Página 1 — Ordem de lutas (portrait)
@@ -64,6 +65,18 @@ const page1 = StyleSheet.create({
         fontSize: 9.5,
         color: '#475569',
         marginTop: 4,
+    },
+    pesoBadge: {
+        alignSelf: 'flex-start',
+        marginTop: 5,
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#0f172a',
+        backgroundColor: '#e2e8f0',
+        borderRadius: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 2.5,
+        letterSpacing: 0.3,
     },
     sectionLabel: {
         fontSize: 11,
@@ -286,6 +299,7 @@ function FightListPage({
     generatedAt,
     isWO,
     woName,
+    pesoRangeLabel,
     bracketOmittedReason,
     showThirdNote,
 }: {
@@ -295,9 +309,13 @@ function FightListPage({
     generatedAt: Date;
     isWO: boolean;
     woName: string | null;
+    pesoRangeLabel: string | null;
     bracketOmittedReason: string | null;
     showThirdNote: boolean;
 }) {
+    const pesoClasse = parseCategoria(categoryName).peso?.trim() || null;
+    const peso = [pesoClasse, pesoRangeLabel].filter(Boolean).join(' · ') || null;
+
     // Group rows by sectionLabel (preserving order)
     const sections: { label: string; items: FightRow[] }[] = [];
     for (const r of rows) {
@@ -317,6 +335,7 @@ function FightListPage({
                         {' · '}
                         {rows.length} {rows.length === 1 ? 'luta' : 'lutas'} no total
                     </Text>
+                    {peso ? <Text style={page1.pesoBadge}>Peso: {peso}</Text> : null}
                 </View>
                 <Image src="/logo.png" style={page1.titleLogo} />
             </View>
@@ -418,6 +437,7 @@ type Props = {
     result: GenerateBracketResult;
     athletes: AthleteInput[];
     separationGroups?: string[][];
+    pesoRangeLabel?: string | null;
     generatedAt?: Date;
 };
 
@@ -425,6 +445,7 @@ export function BracketPdfDocument({
     categoryName,
     result,
     athletes,
+    pesoRangeLabel = null,
     generatedAt = new Date(),
 }: Props) {
     const isWO = result.format === 'wo';
@@ -442,6 +463,7 @@ export function BracketPdfDocument({
                 generatedAt={generatedAt}
                 isWO={isWO}
                 woName={woName}
+                pesoRangeLabel={pesoRangeLabel}
                 bracketOmittedReason={null}
                 showThirdNote={showThirdNote}
             />

@@ -17,6 +17,7 @@ import type {
     GeneratedMatch,
 } from '@/lib/gestao-evento/bracket-generator';
 import { formatDateTime } from '@/lib/gestao-evento/bracket-pdf-shared';
+import { parseCategoria } from '@/lib/gestao-evento/parse-categoria';
 
 // ─────────────────────────────────────────────────────────────────
 // PDF "Chave (árvore)" — A4 PAISAGEM, estilo de chave de campeonato.
@@ -78,6 +79,7 @@ const styles = StyleSheet.create({
     headerSide: { flexDirection: 'column', maxWidth: 160 },
     pesoLabel: { fontSize: 8, color: '#475569' },
     pesoValue: { fontSize: 11, fontWeight: 700 },
+    pesoRange: { fontSize: 9, fontWeight: 700, color: '#0f172a' },
     titleWrap: { flex: 1, alignItems: 'center' },
     superTitle: { fontSize: 7, letterSpacing: 2, color: '#64748b', textTransform: 'uppercase' },
     title: { fontSize: 12.5, fontWeight: 700, textAlign: 'center' },
@@ -128,12 +130,14 @@ type SidePieces = {
 function TreePage({
     title,
     peso,
+    pesoRange,
     result,
     generatedAt,
     athleteCount,
 }: {
     title: string;
     peso: string | null;
+    pesoRange: string | null;
     result: GenerateBracketResult;
     generatedAt: Date;
     athleteCount: number;
@@ -274,10 +278,11 @@ function TreePage({
         <Page size="A4" orientation="landscape" style={styles.page}>
             <View style={styles.header}>
                 <View style={styles.headerSide}>
-                    {peso ? (
+                    {peso || pesoRange ? (
                         <>
                             <Text style={styles.pesoLabel}>Peso</Text>
-                            <Text style={styles.pesoValue}>{peso}</Text>
+                            {peso ? <Text style={styles.pesoValue}>{peso}</Text> : null}
+                            {pesoRange ? <Text style={styles.pesoRange}>{pesoRange}</Text> : null}
                         </>
                     ) : null}
                 </View>
@@ -392,11 +397,13 @@ function WoPage({ title, woName, generatedAt }: { title: string; woName: string 
 function SimplePage({
     title,
     peso,
+    pesoRange,
     result,
     generatedAt,
 }: {
     title: string;
     peso: string | null;
+    pesoRange: string | null;
     result: GenerateBracketResult;
     generatedAt: Date;
 }) {
@@ -409,10 +416,11 @@ function SimplePage({
         <Page size="A4" orientation="landscape" style={styles.page}>
             <View style={styles.header}>
                 <View style={styles.headerSide}>
-                    {peso ? (
+                    {peso || pesoRange ? (
                         <>
                             <Text style={styles.pesoLabel}>Peso</Text>
-                            <Text style={styles.pesoValue}>{peso}</Text>
+                            {peso ? <Text style={styles.pesoValue}>{peso}</Text> : null}
+                            {pesoRange ? <Text style={styles.pesoRange}>{pesoRange}</Text> : null}
                         </>
                     ) : null}
                 </View>
@@ -466,21 +474,17 @@ type Props = {
     result: GenerateBracketResult;
     athletes: AthleteInput[];
     separationGroups?: string[][];
+    pesoRangeLabel?: string | null;
     generatedAt?: Date;
 };
 
-// Extrai "Peso" do título da categoria (a classe de peso), se houver.
+// Extrai a classe de peso do título da categoria, se houver.
 function extractPeso(categoryName: string): string | null {
-    const parts = categoryName.split('•').map((p) => p.trim());
-    // procura o termo de peso conhecido
-    const pesoTerms = ['Galo', 'Pluma', 'Pena', 'Leve', 'Médio', 'Meio-pesado', 'Meio Pesado', 'Pesado', 'Super-pesado', 'Super Pesado', 'Pesadíssimo', 'Absoluto'];
-    for (const p of parts) {
-        if (pesoTerms.some((t) => p.toLowerCase() === t.toLowerCase())) return p;
-    }
-    return null;
+    const peso = parseCategoria(categoryName).peso?.trim();
+    return peso ? peso : null;
 }
 
-export function BracketTreePdfDocument({ categoryName, result, athletes, generatedAt = new Date() }: Props) {
+export function BracketTreePdfDocument({ categoryName, result, athletes, pesoRangeLabel = null, generatedAt = new Date() }: Props) {
     const isWO = result.format === 'wo';
     const woName = isWO && athletes[0] ? athletes[0].name : null;
     const peso = extractPeso(categoryName);
@@ -493,12 +497,13 @@ export function BracketTreePdfDocument({ categoryName, result, athletes, generat
                 <TreePage
                     title={categoryName}
                     peso={peso}
+                    pesoRange={pesoRangeLabel}
                     result={result}
                     generatedAt={generatedAt}
                     athleteCount={athletes.length}
                 />
             ) : (
-                <SimplePage title={categoryName} peso={peso} result={result} generatedAt={generatedAt} />
+                <SimplePage title={categoryName} peso={peso} pesoRange={pesoRangeLabel} result={result} generatedAt={generatedAt} />
             )}
         </Document>
     );
