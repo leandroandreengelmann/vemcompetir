@@ -31,6 +31,8 @@ import {
     PaletteIcon,
     HandshakeIcon,
     FilePdfIcon,
+    UserPlusIcon,
+    MagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 import {
     getPreviewChave,
@@ -43,9 +45,16 @@ import {
     getEventoBasico,
     getAtletasDetalhadosDaCategoria,
     getCategoriaPesoRange,
+    buscarAtletasInscritos,
+    moverAtletaParaCategoria,
+    desfazerMoverAtleta,
+    listarAtletasMovidos,
     type GrupoSeparacao,
     type AtletaDetalhado,
+    type AtletaBusca,
+    type AtletaMovido,
 } from '../../../../actions/gestao-evento';
+import { Input } from '@/components/ui/input';
 import { GeBracket } from '@/components/gestao-evento/GeBracket';
 import { TeamsBar } from '@/components/gestao-evento/TeamsBar';
 import {
@@ -140,9 +149,20 @@ export default function GestaoEventoChavePage({
     const seedRef = useRef(seed);
     seedRef.current = seed;
 
-    type DialogKind = 'definitiva' | 'reverter' | 'erro' | 'regras' | 'grupos' | null;
+    type DialogKind = 'definitiva' | 'reverter' | 'erro' | 'regras' | 'grupos' | 'adicionar' | null;
     const [dialogKind, setDialogKind] = useState<DialogKind>(null);
     const [dialogMsg, setDialogMsg] = useState<string>('');
+
+    // Busca/movimentação de atleta para esta categoria.
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<AtletaBusca[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [moving, setMoving] = useState<string | null>(null);
+    // Atleta selecionado aguardando confirmação.
+    const [pendingAthlete, setPendingAthlete] = useState<AtletaBusca | null>(null);
+    // Atletas que foram trazidos pra esta categoria (persistente, lido do histórico).
+    const [movedIn, setMovedIn] = useState<AtletaMovido[]>([]);
+    const [undoingId, setUndoingId] = useState<string | null>(null);
 
     const [grupos, setGrupos] = useState<LocalGrupo[]>([]);
     const gruposRef = useRef<LocalGrupo[]>([]);
@@ -175,6 +195,7 @@ export default function GestaoEventoChavePage({
             setResult(r);
             setAthletes(mocks);
             setAthleteDetails([]);
+            setMovedIn([]);
             setUpdatedAt(new Date());
             setLoading(false);
             return;
@@ -217,19 +238,24 @@ export default function GestaoEventoChavePage({
                     placed_order: chave.placed_order || [],
                 });
                 setAthletes(chave.placed_order || []);
+                setMovedIn([]);
                 setUpdatedAt(new Date());
                 return;
             }
 
-            const res = await getPreviewChave(
-                eventId,
-                categoryName,
-                seedRef.current,
-                loadedGrupos.map((g) => g.atleta_ids),
-            );
+            const [res, movidos] = await Promise.all([
+                getPreviewChave(
+                    eventId,
+                    categoryName,
+                    seedRef.current,
+                    loadedGrupos.map((g) => g.atleta_ids),
+                ),
+                listarAtletasMovidos(eventId, categoryName),
+            ]);
             setOficialChave(null);
             setResult(res.result);
             setAthletes(res.athletes);
+            setMovedIn(movidos.data || []);
             setUpdatedAt(new Date());
         } catch (err) {
             console.error(err);
@@ -401,6 +427,80 @@ export default function GestaoEventoChavePage({
             setDialogKind('erro');
         } finally {
             setBusy(false);
+        }
+    }
+
+    function openAdicionar() {
+        setSearchTerm('');
+        setSearchResults([]);
+        setSearching(false);
+        setMoving(null);
+        setPendingAthlete(null);
+        setDialogKind('adicionar');
+    }
+
+    // Busca com debounce enquanto o modal "Adicionar atleta" está aberto.
+    useEffect(() => {
+        if (dialogKind !== 'adicionar') return;
+        const term = searchTerm.trim();
+        if (term.length < 2) {
+            setSearchResults([]);
+            setSearching(false);
+            return;
+        }
+        setSearching(true);
+        let active = true;
+        const t = setTimeout(async () => {
+            try {
+                const res = await buscarAtletasInscritos(eventId, term, categoryName);
+                if (active) setSearchResults(res.data || []);
+            } catch {
+                if (active) setSearchResults([]);
+            } finally {
+                if (active) setSearching(false);
+            }
+        }, 300);
+        return () => {
+            active = false;
+            clearTimeout(t);
+        };
+    }, [dialogKind, searchTerm, eventId, categoryName]);
+
+    async function confirmMove(atleta: AtletaBusca) {
+        setMoving(atleta.registrationId);
+        try {
+            const res = await moverAtletaParaCategoria(eventId, categoryName, atleta.registrationId);
+            if (!res.ok) {
+                setDialogMsg(res.error || 'Falha ao mover atleta.');
+                setDialogKind('erro');
+                return;
+            }
+            setPendingAthlete(null);
+            setDialogKind(null);
+            await load();
+        } catch (err: any) {
+            setDialogMsg(err?.message || 'Erro inesperado ao mover atleta.');
+            setDialogKind('erro');
+        } finally {
+            setMoving(null);
+        }
+    }
+
+    async function handleDevolver(registrationId: string) {
+        setUndoingId(registrationId);
+        try {
+            const res = await desfazerMoverAtleta(eventId, registrationId);
+            if (!res.ok) {
+                setDialogMsg(res.error || 'Falha ao devolver atleta.');
+                setDialogKind('erro');
+                return;
+            }
+            await load();
+        } catch (err: any) {
+            setDialogMsg(err?.message || 'Erro inesperado ao devolver atleta.');
+            setDialogKind('erro');
+        } finally {
+            setUndoingId(null);
         }
     }
 
@@ -658,6 +758,16 @@ export default function GestaoEventoChavePage({
                             <Button
                                 variant="outline"
                                 pill
+                                onClick={openAdicionar}
+                                disabled={busy}
+                                className="gap-2 h-9 px-4 font-semibold border-sky-500/40 text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 hover:border-sky-500/70 dark:text-sky-400 dark:hover:text-sky-300"
+                            >
+                                <UserPlusIcon size={14} weight="duotone" />
+                                Adicionar atleta
+                            </Button>
+                            <Button
+                                variant="outline"
+                                pill
                                 onClick={handleNewSeed}
                                 disabled={busy}
                                 className="gap-2 h-9 px-4 font-semibold"
@@ -682,6 +792,47 @@ export default function GestaoEventoChavePage({
                     )}
                 </div>
             </div>
+
+            {movedIn.length > 0 && !simEnabled && !isDefinitiva && (
+                <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400">
+                        <UserPlusIcon size={16} weight="duotone" />
+                        Atletas trazidos pra esta categoria
+                    </div>
+                    <div className="space-y-2">
+                        {movedIn.map((a) => (
+                            <div
+                                key={a.registrationId}
+                                className="flex items-center justify-between gap-3 flex-wrap rounded-xl bg-background/60 border border-sky-500/20 px-3 py-2"
+                            >
+                                <div className="min-w-0 text-panel-sm">
+                                    <span className="font-semibold text-foreground">{a.name}</span>
+                                    {a.team ? (
+                                        <span className="text-muted-foreground"> · {a.team}</span>
+                                    ) : null}
+                                    <span className="block text-[11px] text-muted-foreground">
+                                        veio de {a.fromCategory}
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    pill
+                                    onClick={() => handleDevolver(a.registrationId)}
+                                    disabled={undoingId !== null}
+                                    className="shrink-0 gap-2 h-9 px-4 font-semibold border-sky-500/40 text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 hover:border-sky-500/70 dark:text-sky-400 dark:hover:text-sky-300"
+                                >
+                                    {undoingId === a.registrationId ? (
+                                        <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                    ) : (
+                                        <ArrowsClockwiseIcon size={14} weight="duotone" />
+                                    )}
+                                    Devolver pra {a.fromCategory}
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {athletes.length > 0 && phase !== 'loading' && (
                 <TeamsBar athletes={athletes} />
@@ -903,6 +1054,153 @@ export default function GestaoEventoChavePage({
                             Apagar e reverter
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={dialogKind === 'adicionar'}
+                onOpenChange={(o) => {
+                    if (!o && moving === null) {
+                        setDialogKind(null);
+                        setPendingAthlete(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    {pendingAthlete ? (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <UserPlusIcon size={20} weight="duotone" className="text-sky-600" />
+                                    Confirmar adição
+                                </DialogTitle>
+                                <DialogDescription className="space-y-2 pt-2">
+                                    <span className="block">
+                                        <strong>{pendingAthlete.name}</strong>
+                                        {pendingAthlete.team ? ` (${pendingAthlete.team})` : ''} vai{' '}
+                                        <strong>sair</strong> de{' '}
+                                        <strong>{pendingAthlete.currentCategory}</strong> e{' '}
+                                        <strong>entrar</strong> em <strong>{categoryName}</strong>.
+                                    </span>
+                                    <span className="block text-muted-foreground">
+                                        Dá pra desfazer logo depois, na própria tela.
+                                    </span>
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button
+                                    variant="outline"
+                                    pill
+                                    onClick={() => setPendingAthlete(null)}
+                                    disabled={moving !== null}
+                                >
+                                    Voltar
+                                </Button>
+                                <Button
+                                    pill
+                                    onClick={() => confirmMove(pendingAthlete)}
+                                    disabled={moving !== null}
+                                    className="gap-2 bg-sky-600 hover:bg-sky-700 text-white"
+                                >
+                                    {moving !== null ? (
+                                        <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                    ) : (
+                                        <UserPlusIcon size={14} weight="duotone" />
+                                    )}
+                                    Confirmar adição
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    ) : (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <UserPlusIcon size={20} weight="duotone" className="text-sky-600" />
+                                    Adicionar atleta a esta categoria
+                                </DialogTitle>
+                                <DialogDescription className="pt-1">
+                                    Busque um atleta confirmado no evento. Você confirma antes de
+                                    efetivar e pode desfazer depois.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <MagnifyingGlassIcon
+                                        size={16}
+                                        weight="bold"
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                    />
+                                    <Input
+                                        autoFocus
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Buscar atleta pelo nome..."
+                                        className="pl-9 h-11 rounded-xl"
+                                    />
+                                </div>
+
+                                <div className="max-h-72 overflow-auto rounded-xl border border-border/50 divide-y divide-border/30">
+                                    {searching ? (
+                                        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                            <CircleNotchIcon size={16} weight="bold" className="animate-spin" />
+                                            Buscando...
+                                        </div>
+                                    ) : searchTerm.trim().length < 2 ? (
+                                        <div className="py-8 text-center text-sm text-muted-foreground">
+                                            Digite ao menos 2 letras para buscar.
+                                        </div>
+                                    ) : searchResults.length === 0 ? (
+                                        <div className="py-8 text-center text-sm text-muted-foreground">
+                                            Nenhum atleta confirmado encontrado.
+                                        </div>
+                                    ) : (
+                                        searchResults.map((a) => (
+                                            <div
+                                                key={a.registrationId}
+                                                className="flex items-center justify-between gap-3 p-3 hover:bg-muted/30 transition-colors"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-sm line-clamp-1">{a.name}</p>
+                                                    <p className="text-xs text-muted-foreground line-clamp-1">
+                                                        {a.team || 'Sem equipe'}
+                                                    </p>
+                                                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                                                        Atual: {a.currentCategory}
+                                                        {a.locked && (
+                                                            <span className="ml-1 font-semibold text-amber-700 dark:text-amber-400">
+                                                                · chave definitiva
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    pill
+                                                    onClick={() => setPendingAthlete(a)}
+                                                    disabled={a.locked}
+                                                    title={
+                                                        a.locked
+                                                            ? 'Categoria com chave definitiva — reverta antes de mover'
+                                                            : undefined
+                                                    }
+                                                    className="shrink-0 gap-1.5 h-9 px-4 font-semibold bg-sky-600 hover:bg-sky-700 text-white"
+                                                >
+                                                    <UserPlusIcon size={14} weight="duotone" />
+                                                    Selecionar
+                                                </Button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button variant="outline" pill onClick={() => setDialogKind(null)}>
+                                    Fechar
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronLeft, Trophy, Crown, Check, FastForward, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -545,6 +545,7 @@ function FinalOnly({
     disabled: boolean;
     groupColors?: Map<string, GroupBadge>;
 }) {
+    if (!match) return null;
     return (
         <div className="flex flex-col items-center gap-4 py-8">
             <span className="text-label font-bold text-amber-600 dark:text-amber-500 bg-amber-500/10 px-6 py-1.5 rounded-full border border-amber-500/20 shadow-sm">
@@ -675,6 +676,14 @@ export function GeBracket({
     athleteDetails,
 }: GeBracketProps) {
     const [matches, setMatches] = useState<GeneratedMatch[]>(result.matches);
+    // Sincroniza `matches` no próprio render quando o resultado muda de forma
+    // (ex.: W.O. -> final ao adicionar atleta). Evita um frame com dados defasados
+    // que faria componentes como FinalOnly receberem `undefined` e quebrarem.
+    const syncedMatchesRef = useRef(result.matches);
+    if (syncedMatchesRef.current !== result.matches) {
+        syncedMatchesRef.current = result.matches;
+        setMatches(result.matches);
+    }
     const groupColors = useMemo(
         () => buildGroupColorMap(separationGroups ?? []),
         [separationGroups],
@@ -726,10 +735,6 @@ export function GeBracket({
         if (movedRef.current) return; // foi um arrasto, não um clique
         setSelectedId(id);
     };
-
-    useEffect(() => {
-        setMatches(result.matches);
-    }, [result.matches, result.seed]);
 
     const disabledPick = !onWinnerSelect;
 

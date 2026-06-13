@@ -993,6 +993,384 @@ export async function desfazerCategoriaJuntada(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// MOVER ATLETA ENTRE CATEGORIAS
+// Busca atletas confirmados do evento e move um deles para esta categoria,
+// retirando-o automaticamente da categoria em que estava.
+// ─────────────────────────────────────────────────────────────────────
+
+export type AtletaBusca = {
+    registrationId: string;
+    athleteId: string;
+    name: string;
+    team: string | null;
+    currentCategory: string;
+    locked: boolean; // categoria atual já tem chave definitiva
+};
+
+// Conjunto de nomes de categoria (membros, normalizados) que já têm chave definitiva.
+async function getLockedCategoryNames(
+    adminSupabase: ReturnType<typeof createAdminClient>,
+    eventId: string,
+): Promise<Set<string>> {
+    const [chavesRes, juntadasRes] = await Promise.all([
+        adminSupabase.from('ge_chaves_oficiais').select('category_name').eq('event_id', eventId),
+        adminSupabase
+            .from('ge_categorias_juntadas')
+            .select('display_name, ge_categorias_juntadas_itens(category_name)')
+            .eq('event_id', eventId),
+    ]);
+
+    const displayToMembers = new Map<string, string[]>();
+    for (const j of (juntadasRes.data || []) as any[]) {
+        const members = ((j.ge_categorias_juntadas_itens || []) as { category_name: string }[]).map(
+            (it) => it.category_name,
+        );
+        displayToMembers.set(j.display_name, members);
+    }
+
+    const locked = new Set<string>();
+    for (const c of (chavesRes.data || []) as { category_name: string }[]) {
+        const members = displayToMembers.get(c.category_name);
+        if (members && members.length) {
+            for (const m of members) locked.add(normalizeCategoryName(m));
+        } else {
+            locked.add(normalizeCategoryName(c.category_name));
+        }
+    }
+    return locked;
+}
+
+// Resolve os nomes de categoria (normalizados) que compõem um display (junção ou simples).
+async function resolveMemberSet(
+    adminSupabase: ReturnType<typeof createAdminClient>,
+    eventId: string,
+    displayName: string,
+): Promise<Set<string>> {
+    const { data: juntada } = await adminSupabase
+        .from('ge_categorias_juntadas')
+        .select('ge_categorias_juntadas_itens(category_name)')
+        .eq('event_id', eventId)
+        .eq('display_name', displayName)
+        .maybeSingle();
+
+    const set = new Set<string>();
+    if (juntada) {
+        for (const it of ((juntada as any).ge_categorias_juntadas_itens || []) as { category_name: string }[]) {
+            set.add(normalizeCategoryName(it.category_name));
+        }
+    } else {
+        set.add(normalizeCategoryName(displayName));
+    }
+    return set;
+}
+
+export async function buscarAtletasInscritos(
+    eventId: string,
+    query: string,
+    excludeCategoryName?: string,
+): Promise<{ data: AtletaBusca[]; error: any }> {
+    try {
+        await assertEventOwner(eventId);
+        const adminSupabase = createAdminClient();
+
+        const term = query.trim().toLowerCase();
+        if (term.length < 2) return { data: [], error: null };
+
+        const [excludeSet, locked, regsRes] = await Promise.all([
+            excludeCategoryName
+                ? resolveMemberSet(adminSupabase, eventId, excludeCategoryName)
+                : Promise.resolve(new Set<string>()),
+            getLockedCategoryNames(adminSupabase, eventId),
+            adminSupabase
+                .from('event_registrations')
+                .select(`
+                    id,
+                    athlete_id,
+                    athlete:profiles!athlete_id(full_name, gym_name),
+                    category:category_rows!category_id(categoria_completa)
+                `)
+                .eq('event_id', eventId)
+                .in('status', PAID_STATUSES),
+        ]);
+
+        if (regsRes.error) return { data: [], error: regsRes.error };
+
+        const list: AtletaBusca[] = (regsRes.data || [])
+            .map((r: any) => {
+                const cur = normalizeCategoryName(r.category?.categoria_completa);
+                return {
+                    registrationId: String(r.id),
+                    athleteId: String(r.athlete_id),
+                    name: r.athlete?.full_name || 'Desconhecido',
+                    team: r.athlete?.gym_name || null,
+                    currentCategory: cur,
+                    locked: locked.has(cur),
+                };
+            })
+            .filter((a) => a.name.toLowerCase().includes(term) && !excludeSet.has(a.currentCategory))
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .slice(0, 20);
+
+        return { data: list, error: null };
+    } catch (err: any) {
+        return { data: [], error: err?.message || 'Erro ao buscar atletas.' };
+    }
+}
+
+export async function moverAtletaParaCategoria(
+    eventId: string,
+    categoryDestino: string,
+    registrationId: string,
+): Promise<{ ok: boolean; error?: string; fromCategory?: string; athleteName?: string }> {
+    try {
+        const { user } = await requireTenantScope();
+        await assertEventOwner(eventId);
+        const adminSupabase = createAdminClient();
+
+        const [locked, destMembers] = await Promise.all([
+            getLockedCategoryNames(adminSupabase, eventId),
+            resolveMemberSet(adminSupabase, eventId, categoryDestino),
+        ]);
+
+        for (const m of destMembers) {
+            if (locked.has(m)) {
+                return {
+                    ok: false,
+                    error: 'A categoria de destino já tem chave definitiva. Reverta a chave antes de mover atletas.',
+                };
+            }
+        }
+
+        const { data: reg } = await adminSupabase
+            .from('event_registrations')
+            .select('id, event_id, category_id, status, athlete:profiles!athlete_id(full_name), category:category_rows!category_id(categoria_completa)')
+            .eq('id', registrationId)
+            .single();
+
+        if (!reg || reg.event_id !== eventId) return { ok: false, error: 'Inscrição não encontrada.' };
+        if (!PAID_STATUSES.includes(reg.status)) return { ok: false, error: 'Inscrição não está confirmada.' };
+
+        const oldCategoryId = reg.category_id as string | null;
+        const oldName = normalizeCategoryName((reg as any).category?.categoria_completa);
+        const athleteName = (reg as any).athlete?.full_name || 'Atleta';
+
+        if (oldCategoryId && locked.has(oldName)) {
+            return {
+                ok: false,
+                error: 'O atleta está numa categoria com chave definitiva. Reverta a chave dele antes de movê-lo.',
+            };
+        }
+
+        // category_id de destino: reaproveita o de um atleta que já esteja no destino.
+        const { data: regsEvt } = await adminSupabase
+            .from('event_registrations')
+            .select('category_id, category:category_rows!category_id(categoria_completa)')
+            .eq('event_id', eventId)
+            .in('status', PAID_STATUSES);
+
+        let targetCategoryId: string | null = null;
+        for (const r of (regsEvt || []) as any[]) {
+            if (!r.category_id) continue;
+            if (destMembers.has(normalizeCategoryName(r.category?.categoria_completa))) {
+                targetCategoryId = r.category_id;
+                break;
+            }
+        }
+
+        // Fallback: categoria de destino vazia → procura a linha de categoria do evento.
+        if (!targetCategoryId) {
+            const { data: tables } = await adminSupabase
+                .from('event_category_tables')
+                .select('category_table_id')
+                .eq('event_id', eventId);
+            const tableIds = (tables || []).map((t: any) => t.category_table_id);
+            if (tableIds.length) {
+                const { data: rows } = await adminSupabase
+                    .from('category_rows')
+                    .select('id, categoria_completa')
+                    .in('table_id', tableIds);
+                for (const row of (rows || []) as any[]) {
+                    if (destMembers.has(normalizeCategoryName(row.categoria_completa))) {
+                        targetCategoryId = row.id;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!targetCategoryId) return { ok: false, error: 'Não foi possível localizar a categoria de destino.' };
+        if (targetCategoryId === oldCategoryId) return { ok: false, error: 'O atleta já está nesta categoria.' };
+
+        const { error: updErr } = await adminSupabase
+            .from('event_registrations')
+            .update({ category_id: targetCategoryId })
+            .eq('id', registrationId)
+            .eq('event_id', eventId);
+
+        if (updErr) return { ok: false, error: updErr.message };
+
+        if (oldCategoryId) {
+            await adminSupabase.from('registration_category_changes').insert({
+                registration_id: registrationId,
+                changed_by: user.id,
+                old_category_id: oldCategoryId,
+                new_category_id: targetCategoryId,
+            });
+        }
+
+        return { ok: true, fromCategory: oldName, athleteName };
+    } catch (err: any) {
+        console.error('[moverAtletaParaCategoria]', err);
+        return { ok: false, error: err?.message || 'Erro inesperado.' };
+    }
+}
+
+// Desfaz a última movimentação de uma inscrição, devolvendo-a à categoria de origem.
+export async function desfazerMoverAtleta(
+    eventId: string,
+    registrationId: string,
+): Promise<{ ok: boolean; error?: string; backTo?: string; athleteName?: string }> {
+    try {
+        const { user } = await requireTenantScope();
+        await assertEventOwner(eventId);
+        const adminSupabase = createAdminClient();
+
+        const { data: change } = await adminSupabase
+            .from('registration_category_changes')
+            .select('id, old_category_id, new_category_id')
+            .eq('registration_id', registrationId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (!change) return { ok: false, error: 'Nada para desfazer nesta inscrição.' };
+
+        const { data: reg } = await adminSupabase
+            .from('event_registrations')
+            .select('id, event_id, category_id, athlete:profiles!athlete_id(full_name)')
+            .eq('id', registrationId)
+            .single();
+
+        if (!reg || reg.event_id !== eventId) return { ok: false, error: 'Inscrição não encontrada.' };
+
+        // Só desfaz se nada mudou desde a movimentação (categoria atual == destino registrado).
+        if (reg.category_id !== change.new_category_id) {
+            return { ok: false, error: 'A categoria mudou desde a última movimentação — não dá pra desfazer automaticamente.' };
+        }
+
+        const { error: updErr } = await adminSupabase
+            .from('event_registrations')
+            .update({ category_id: change.old_category_id })
+            .eq('id', registrationId)
+            .eq('event_id', eventId);
+
+        if (updErr) return { ok: false, error: updErr.message };
+
+        await adminSupabase.from('registration_category_changes').insert({
+            registration_id: registrationId,
+            changed_by: user.id,
+            old_category_id: change.new_category_id,
+            new_category_id: change.old_category_id,
+        });
+
+        const { data: backRow } = await adminSupabase
+            .from('category_rows')
+            .select('categoria_completa')
+            .eq('id', change.old_category_id)
+            .maybeSingle();
+
+        return {
+            ok: true,
+            backTo: normalizeCategoryName((backRow as any)?.categoria_completa),
+            athleteName: (reg as any).athlete?.full_name || 'Atleta',
+        };
+    } catch (err: any) {
+        console.error('[desfazerMoverAtleta]', err);
+        return { ok: false, error: err?.message || 'Erro inesperado.' };
+    }
+}
+
+export type AtletaMovido = {
+    registrationId: string;
+    name: string;
+    team: string | null;
+    fromCategory: string;
+};
+
+// Lista os atletas que foram MOVIDOS para dentro desta categoria (e ainda estão nela),
+// para oferecer "Devolver" de forma persistente (lendo do histórico).
+export async function listarAtletasMovidos(
+    eventId: string,
+    categoryName: string,
+): Promise<{ data: AtletaMovido[]; error: any }> {
+    try {
+        await assertEventOwner(eventId);
+        const adminSupabase = createAdminClient();
+
+        const memberSet = await resolveMemberSet(adminSupabase, eventId, categoryName);
+
+        const { data: regs, error } = await adminSupabase
+            .from('event_registrations')
+            .select('id, category_id, athlete:profiles!athlete_id(full_name, gym_name), category:category_rows!category_id(categoria_completa)')
+            .eq('event_id', eventId)
+            .in('status', PAID_STATUSES);
+        if (error) return { data: [], error };
+
+        const here = (regs || []).filter((r: any) =>
+            memberSet.has(normalizeCategoryName(r.category?.categoria_completa)),
+        );
+        if (here.length === 0) return { data: [], error: null };
+
+        const regIds = here.map((r: any) => r.id);
+        const { data: changes } = await adminSupabase
+            .from('registration_category_changes')
+            .select('registration_id, old_category_id, new_category_id, created_at')
+            .in('registration_id', regIds)
+            .order('created_at', { ascending: false });
+
+        // Última mudança por inscrição.
+        const latest = new Map<string, any>();
+        for (const c of (changes || []) as any[]) {
+            if (!latest.has(c.registration_id)) latest.set(c.registration_id, c);
+        }
+
+        const oldIdSet = new Set<string>();
+        const moved: { reg: any; change: any }[] = [];
+        for (const r of here as any[]) {
+            const c = latest.get(r.id);
+            // Só conta se a última ação foi mover ele PRA cá (e ele ainda está aqui).
+            if (c && c.new_category_id === r.category_id) {
+                moved.push({ reg: r, change: c });
+                oldIdSet.add(c.old_category_id);
+            }
+        }
+        if (moved.length === 0) return { data: [], error: null };
+
+        const { data: oldRows } = await adminSupabase
+            .from('category_rows')
+            .select('id, categoria_completa')
+            .in('id', Array.from(oldIdSet));
+        const oldName = new Map<string, string>();
+        for (const row of (oldRows || []) as any[]) {
+            oldName.set(row.id, normalizeCategoryName(row.categoria_completa));
+        }
+
+        const data: AtletaMovido[] = moved
+            .map(({ reg, change }) => ({
+                registrationId: String(reg.id),
+                name: reg.athlete?.full_name || 'Atleta',
+                team: reg.athlete?.gym_name || null,
+                fromCategory: oldName.get(change.old_category_id) || 'categoria anterior',
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        return { data, error: null };
+    } catch (err: any) {
+        return { data: [], error: err?.message || 'Erro ao listar atletas movidos.' };
+    }
+}
+
 export type ListEventosResult = Awaited<ReturnType<typeof listEventosGestao>>;
 export type ListCategoriasResult = Awaited<ReturnType<typeof listCategoriasComContagem>>;
 export type PreviewChaveResult = {
