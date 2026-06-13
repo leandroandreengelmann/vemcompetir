@@ -442,7 +442,12 @@ function SimplePage({
                             <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: INK, alignItems: 'center', justifyContent: 'center' }}>
                                 <Text style={{ fontSize: 9, fontWeight: 700 }}>{i + 1}</Text>
                             </View>
-                            <Text style={{ fontSize: 9, fontWeight: 700 }}>{a.name}</Text>
+                            <View style={{ flexDirection: 'column' }}>
+                                <Text style={{ fontSize: 9, fontWeight: 700 }}>{a.name}</Text>
+                                {result.format === 'final_only' && a.team ? (
+                                    <Text style={[styles.team, { fontSize: 7.5 }]}>{a.team}</Text>
+                                ) : null}
+                            </View>
                         </View>
                     ))}
                 </View>
