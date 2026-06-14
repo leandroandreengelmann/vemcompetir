@@ -368,7 +368,7 @@ function TreePage({
     );
 }
 
-function WoPage({ title, woName, generatedAt }: { title: string; woName: string | null; generatedAt: Date }) {
+function WoPage({ title, woName, woTeam, generatedAt }: { title: string; woName: string | null; woTeam: string | null; generatedAt: Date }) {
     return (
         <Page size="A4" orientation="landscape" style={styles.page}>
             <View style={styles.header}>
@@ -384,6 +384,7 @@ function WoPage({ title, woName, generatedAt }: { title: string; woName: string 
                     W.O. — Campeão automático
                 </Text>
                 <Text style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>{woName || '—'}</Text>
+                {woTeam ? <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{woTeam}</Text> : null}
             </View>
             <View style={styles.footer} fixed>
                 <Text>Gerado em {formatDateTime(generatedAt)}</Text>
@@ -492,12 +493,13 @@ function extractPeso(categoryName: string): string | null {
 export function BracketTreePdfDocument({ categoryName, result, athletes, pesoRangeLabel = null, generatedAt = new Date() }: Props) {
     const isWO = result.format === 'wo';
     const woName = isWO && athletes[0] ? athletes[0].name : null;
+    const woTeam = isWO && athletes[0]?.team?.trim() ? athletes[0].team.trim() : null;
     const peso = extractPeso(categoryName);
 
     return (
         <Document>
             {isWO ? (
-                <WoPage title={categoryName} woName={woName} generatedAt={generatedAt} />
+                <WoPage title={categoryName} woName={woName} woTeam={woTeam} generatedAt={generatedAt} />
             ) : result.format === 'single_elimination' ? (
                 <TreePage
                     title={categoryName}
