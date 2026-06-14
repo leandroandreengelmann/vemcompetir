@@ -59,6 +59,24 @@ import { AcessosPublicosCard } from '@/components/gestao-evento/AcessosPublicosC
 
 const POLL_MS = 30_000;
 
+// Normaliza texto p/ busca: minúsculo, sem acento. Ex: "Pré-mirim" -> "pre-mirim".
+function normalizeSearch(s: string): string {
+    return s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '');
+}
+
+// Busca tokenizada: todos os termos digitados (em qualquer ordem) precisam
+// aparecer no texto da categoria. Ex: "branca pena 13" casa com a categoria
+// independentemente da ordem ou de acentos.
+function matchesSearch(haystack: string, query: string): boolean {
+    const terms = normalizeSearch(query).split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return true;
+    const target = normalizeSearch(haystack);
+    return terms.every((t) => target.includes(t));
+}
+
 type Categoria = {
     name: string;
     count: number;
@@ -225,10 +243,10 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
 
     // Aplica os filtros ativos da página (faixa/divisão/modalidade/busca) aos itens de W.O.
     function aplicarFiltrosWo(items: WoReportItem[]): WoReportItem[] {
-        const q = search.trim().toLowerCase();
+        const q = search.trim();
         return items.filter((it) => {
             const p = parseCategoria(it.categoria);
-            if (q && !it.categoria.toLowerCase().includes(q)) return false;
+            if (q && !matchesSearch(it.categoria, q)) return false;
             if (activeFaixas.size > 0 && !activeFaixas.has(p.faixa)) return false;
             if (activeDivisoes.size > 0 && !activeDivisoes.has(getSuperDivisao(p.grupo))) return false;
             if (activeModalidades.size > 0 && !activeModalidades.has(getModalidadeKey(p.modalidade))) return false;
@@ -367,10 +385,10 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
     }, [categoriasParsed]);
 
     const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase();
+        const q = search.trim();
         return categoriasParsed
             .filter((c) => {
-                if (q && !c.name.toLowerCase().includes(q)) return false;
+                if (q && !matchesSearch(c.name, q)) return false;
                 if (!matchesBucket(c.count, bucket)) return false;
                 if (activeFaixas.size > 0 && !activeFaixas.has(c.parsed.faixa)) return false;
                 if (activeDivisoes.size > 0 && !activeDivisoes.has(c.superDivisao)) return false;
