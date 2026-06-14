@@ -22,7 +22,7 @@ import {
     type SuperDivisao,
 } from '@/lib/gestao-evento/parse-categoria';
 
-const PAID_STATUSES = ['paga', 'pago', 'confirmado', 'isento'];
+const PAID_STATUSES = ['paga', 'pago', 'confirmado', 'isento', 'isento_evento_proprio', 'pago_em_mao', 'pix_direto'];
 
 // Mesma normalização usada na gestão: encurta categorias de absoluto para casar
 // com o category_name salvo em ge_chaves_oficiais.

@@ -16,7 +16,7 @@ import {
     SUPER_DIVISAO_ORDER,
 } from '@/lib/gestao-evento/parse-categoria';
 
-const PAID_STATUSES = ['paga', 'pago', 'confirmado', 'isento'];
+const PAID_STATUSES = ['paga', 'pago', 'confirmado', 'isento', 'isento_evento_proprio', 'pago_em_mao', 'pix_direto'];
 
 function normalizeCategoryName(name: string | null | undefined): string {
     if (!name) return 'Sem categoria';
