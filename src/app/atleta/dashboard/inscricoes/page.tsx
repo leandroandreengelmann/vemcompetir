@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/auth-guards';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CaretLeftIcon, ClipboardTextIcon, MagnifyingGlassIcon, TrophyIcon, MapPinIcon } from '@phosphor-icons/react/dist/ssr';
+import { ClipboardTextIcon, MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -193,21 +193,7 @@ id,
                         <div className="grid gap-4 w-full">
                             {inscricoes.map((inscricao: any) => (
                                 <div key={inscricao.id}>
-                                    <Card className="overflow-hidden border-none shadow-premium w-full bg-white flex flex-col sm:flex-row">
-                                        {/* Imagem do Evento */}
-                                        <div className="sm:w-32 sm:h-auto sm:relative bg-muted shrink-0">
-                                            {inscricao.event?.image_path ? (
-                                                <img
-                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/event-images/${inscricao.event.image_path}`}
-                                                    alt={inscricao.event.title || 'Evento'}
-                                                    className="w-full h-auto sm:absolute sm:inset-0 sm:h-full sm:object-cover transition-transform duration-500 group-hover:scale-105"
-                                                />
-                                            ) : (
-                                                <div className="h-24 sm:h-32 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 transition-colors">
-                                                    <TrophyIcon size={32} weight="duotone" className="text-primary/20" />
-                                                </div>
-                                            )}
-                                        </div>
+                                    <Card className="overflow-hidden border-none shadow-premium w-full bg-white">
                                         {/* Detalhes da Inscrição */}
                                         <div className="p-4 flex-1 flex flex-col justify-center gap-3">
                                             {/* Título + badge de status */}

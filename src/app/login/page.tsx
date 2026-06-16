@@ -210,10 +210,10 @@ export default function LoginPage() {
                         </Button>
 
                         <div className="flex flex-col items-center gap-2">
-                            <p className="text-sm text-muted-foreground">Não tem uma conta?</p>
+                            <p className="text-base sm:text-lg text-muted-foreground">Não tem uma conta?</p>
                             <Link
                                 href="/register"
-                                className="text-sm font-semibold text-foreground hover:underline transition-all"
+                                className="text-base sm:text-lg font-semibold text-foreground hover:underline transition-all"
                             >
                                 Criar conta gratuita
                             </Link>

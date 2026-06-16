@@ -186,3 +186,35 @@ export async function searchMasters(query: string, tenantId?: string, gymName?: 
         community: string[]
     };
 }
+
+// Busca dedicada ao fluxo do atleta: só academias cadastradas que tenham mestre.
+export async function searchAthleteGyms(query: string) {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.rpc('search_athlete_gyms', {
+        search_term: query
+    });
+
+    if (error) {
+        console.error('Error in searchAthleteGyms:', error);
+        return [];
+    }
+
+    return (data ?? []) as { id: string, name: string }[];
+}
+
+// Lista os mestres oficiais de uma academia (exibidos ao selecionar a academia).
+export async function listTenantMasters(tenantId: string) {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.rpc('list_tenant_masters', {
+        p_tenant_id: tenantId
+    });
+
+    if (error) {
+        console.error('Error in listTenantMasters:', error);
+        return [];
+    }
+
+    return (data ?? []) as { id: string, full_name: string }[];
+}

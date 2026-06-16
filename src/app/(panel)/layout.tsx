@@ -22,8 +22,6 @@ export default async function PanelLayout({
 
     if (profile.role === 'academia/equipe' && profile.tenant_id) {
         const supabase = await createClient();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // usado no filtro de ownedEvents
 
         const [{ data: tenant }, { data: credits }, { data: ownedEvents }] = await Promise.all([
             supabase
@@ -40,7 +38,6 @@ export default async function PanelLayout({
                 .from('events')
                 .select('id')
                 .eq('tenant_id', profile.tenant_id)
-                .gte('event_date', today.toISOString())
                 .limit(1),
         ]);
 

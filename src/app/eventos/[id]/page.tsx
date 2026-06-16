@@ -223,19 +223,17 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
 
                         {/* Hero Image Section */}
                         <div className="lg:col-span-5 space-y-3">
-                            <div className="relative aspect-square overflow-hidden rounded-[7px] border bg-card shadow-2xl ring-1 ring-black/5">
+                            <div className="relative overflow-hidden rounded-[7px] border bg-card shadow-2xl ring-1 ring-black/5">
                                 {coverUrl ? (
-                                    <Image
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
                                         src={coverUrl}
                                         alt={event.title}
-                                        fill
-                                        priority
-                                        quality={100}
-                                        sizes="(max-width: 1024px) 100vw, 513px"
-                                        className="object-cover transition-transform duration-700 hover:scale-105"
+                                        decoding="async"
+                                        className="block w-full h-auto transition-transform duration-700 hover:scale-105"
                                     />
                                 ) : (
-                                    <div className="h-full w-full flex items-center justify-center p-12 bg-muted/30">
+                                    <div className="aspect-square w-full flex items-center justify-center p-12 bg-muted/30">
                                         <Trophy className="h-24 w-24 text-muted-foreground/20" />
                                     </div>
                                 )}

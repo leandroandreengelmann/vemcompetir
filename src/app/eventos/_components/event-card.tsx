@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Calendar, MapPin, ArrowRight, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,18 +20,18 @@ export function EventCard({ event }: EventCardProps) {
         <Link href={`/eventos/${event.id}`} className="block h-full">
             <Card className="overflow-hidden group flex flex-col h-full border-border/50 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-500 rounded-[7px] p-0 gap-0 bg-white cursor-pointer">
                 <CardHeader className="p-0 border-0">
-                    <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden">
+                    <div className="relative overflow-hidden">
                         {coverUrl ? (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                                 src={coverUrl}
                                 alt={event.title}
-                                fill
-                                quality={100}
-                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                className="object-cover transition-transform duration-700 sm:group-hover:scale-110"
+                                loading="lazy"
+                                decoding="async"
+                                className="block w-full h-auto transition-transform duration-700 sm:group-hover:scale-110"
                             />
                         ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-muted/50">
+                            <div className="flex aspect-[4/3] sm:aspect-square w-full items-center justify-center bg-muted/50">
                                 <Calendar className="h-10 w-10 text-muted-foreground/20" />
                             </div>
                         )}
@@ -56,7 +55,7 @@ export function EventCard({ event }: EventCardProps) {
                         className={
                             event.inscricoes_encerradas
                                 ? 'text-lg sm:text-2xl font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors duration-300'
-                                : 'text-base sm:text-h2 font-semibold text-foreground line-clamp-2 sm:min-h-[4rem] group-hover:text-primary transition-colors duration-300'
+                                : 'text-xl sm:text-3xl font-bold text-foreground line-clamp-2 sm:min-h-[4.5rem] group-hover:text-primary transition-colors duration-300'
                         }
                     >
                         {event.title}
@@ -66,14 +65,14 @@ export function EventCard({ event }: EventCardProps) {
                         className={
                             event.inscricoes_encerradas
                                 ? 'space-y-2 sm:space-y-3'
-                                : 'space-y-1 sm:space-y-1.5 sm:pt-2'
+                                : 'space-y-0 sm:pt-1'
                         }
                     >
                         <p
                             className={
                                 event.inscricoes_encerradas
                                     ? 'text-base sm:text-xl text-foreground font-bold uppercase tracking-wide'
-                                    : 'text-xs sm:text-ui text-muted-foreground font-medium uppercase tracking-tight'
+                                    : 'text-sm sm:text-lg text-muted-foreground font-semibold uppercase tracking-tight leading-tight'
                             }
                         >
                             {event.starts_at ? format(new Date(event.starts_at), "dd 'de' MMMM", { locale: ptBR }) : 'Data a definir'}
@@ -82,10 +81,10 @@ export function EventCard({ event }: EventCardProps) {
                             className={
                                 event.inscricoes_encerradas
                                     ? 'text-base sm:text-lg text-muted-foreground font-medium'
-                                    : 'text-xs sm:text-ui text-muted-foreground font-medium truncate'
+                                    : 'text-sm sm:text-lg text-muted-foreground font-semibold truncate leading-tight'
                             }
                         >
-                            {event.city ? `${event.city}, ${event.state}` : (event.venue_name || 'Local a definir')}
+                            {event.city ? `${event.city.trim()}, ${(event.state || '').trim()}` : (event.venue_name || 'Local a definir')}
                         </p>
                     </div>
                 </CardContent>

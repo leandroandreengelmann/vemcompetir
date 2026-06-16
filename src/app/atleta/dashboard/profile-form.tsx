@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,11 +20,9 @@ import {
     DialogFooter,
     DialogClose,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { CheckIcon, CircleNotchIcon, XIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon, InfoIcon } from '@phosphor-icons/react';
+import { CheckIcon, CircleNotchIcon, WarningCircleIcon, CheckCircleIcon, CaretRightIcon, ArrowLeftIcon, SignOutIcon, InfoIcon } from '@phosphor-icons/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { updateAthleteProfile, searchGyms, searchMasters, signOutAction } from './actions';
-import { useDebounce } from '@/hooks/use-debounce';
+import { updateAthleteProfile, searchAthleteGyms, listTenantMasters, signOutAction } from './actions';
 import { getBeltColor, hexToHsl } from '@/lib/belt-theme';
 import { validateCPF, formatCPF, formatPhone, normalizeNumeric } from '@/lib/validation';
 import { COUNTRIES } from '@/lib/countries';
@@ -72,21 +69,16 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
     const activeFg = isWhiteBelt ? '240 10% 3.9%' : '0 0% 100%';
     const activeBorder = isWhiteBelt ? '240 5.9% 90%' : activeHsl;
 
-    // Form states
-    const [gymQuery, setGymQuery] = useState(profile?.gym_name || '');
-    const [gymResults, setGymResults] = useState<{ official: any[], community: string[] }>({ official: [], community: [] });
-    const [showGymResults, setShowGymResults] = useState(false);
+    // Form states — vínculo (academia + mestre)
+    // Só academias cadastradas (com mestre) e mestres oficiais. Sem sugestão/texto livre.
+    const [allGyms, setAllGyms] = useState<{ id: string, name: string }[]>([]);
     const [selectedGym, setSelectedGym] = useState<{ id?: string, name: string } | null>(
-        profile?.tenant_id ? { id: profile.tenant_id, name: profile.gym_name || '' } :
-            profile?.gym_name ? { name: profile.gym_name } : null
+        profile?.tenant_id ? { id: profile.tenant_id, name: profile.gym_name || '' } : null
     );
 
-    const [masterQuery, setMasterQuery] = useState(profile?.master_name || '');
-    const [masterResults, setMasterResults] = useState<{ official: any[], community: string[] }>({ official: [], community: [] });
-    const [showMasterResults, setShowMasterResults] = useState(false);
+    const [masters, setMasters] = useState<{ id: string, full_name: string }[]>([]);
     const [selectedMaster, setSelectedMaster] = useState<{ id?: string, name: string } | null>(
-        profile?.master_id ? { id: profile.master_id, name: profile.master_name || '' } :
-            profile?.master_name ? { name: profile.master_name } : null
+        profile?.master_id ? { id: profile.master_id, name: profile.master_name || '' } : null
     );
 
     const [isFetchingGyms, setIsFetchingGyms] = useState(false);
@@ -118,93 +110,39 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
         return ageNum;
     }, [birthDateValue]);
 
-    const debouncedGymQuery = useDebounce(gymQuery, 300);
-    const debouncedMasterQuery = useDebounce(masterQuery, 300);
-
-    const gymRef = useRef<HTMLDivElement>(null);
-    const masterRef = useRef<HTMLDivElement>(null);
-
     // Form refs for validation
     const formRef = useRef<HTMLFormElement>(null);
 
-    // Click outside to close results
+    // Carrega todas as academias (cadastradas e com mestre) uma única vez
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (gymRef.current && !gymRef.current.contains(event.target as Node)) setShowGymResults(false);
-            if (masterRef.current && !masterRef.current.contains(event.target as Node)) setShowMasterResults(false);
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        setIsFetchingGyms(true);
+        searchAthleteGyms('')
+            .then(results => setAllGyms(results))
+            .finally(() => setIsFetchingGyms(false));
     }, []);
 
-    // Fetch Gyms
+    // Ao selecionar a academia, carrega os mestres dela (prontos para clicar)
     useEffect(() => {
-        if (debouncedGymQuery.length > 1 && !selectedGym) {
-            Promise.resolve().then(() => setIsFetchingGyms(true));
-            searchGyms(debouncedGymQuery).then(results => {
-                setGymResults(results);
-                setIsFetchingGyms(false);
-                setShowGymResults(true);
-            }).catch(() => {
-                setIsFetchingGyms(false);
-            });
-        } else {
-            Promise.resolve().then(() => {
-                setGymResults({ official: [], community: [] });
-                setShowGymResults(false);
-                setIsFetchingGyms(false);
-            });
-        }
-    }, [debouncedGymQuery, selectedGym]);
-
-    // Fetch Masters
-    useEffect(() => {
-        const shouldSearch = selectedGym && (debouncedMasterQuery.length > 1 || debouncedMasterQuery.length === 0);
-
-        if (shouldSearch && !selectedMaster) {
+        if (selectedGym?.id) {
             Promise.resolve().then(() => setIsFetchingMasters(true));
-            searchMasters(debouncedMasterQuery, selectedGym.id, selectedGym.id ? undefined : selectedGym.name)
-                .then(results => {
-                    setMasterResults(results);
-                    setIsFetchingMasters(false);
-                    setShowMasterResults(true);
-                })
-                .catch(() => {
-                    setIsFetchingMasters(false);
-                });
-        } else if (!selectedGym) {
-            Promise.resolve().then(() => {
-                setMasterResults({ official: [], community: [] });
-                setShowMasterResults(false);
+            listTenantMasters(selectedGym.id).then(results => {
+                setMasters(results);
+                setIsFetchingMasters(false);
+            }).catch(() => {
                 setIsFetchingMasters(false);
             });
+        } else {
+            setMasters([]);
         }
-    }, [debouncedMasterQuery, selectedMaster, selectedGym]);
+    }, [selectedGym?.id]);
 
     const handleGymSelect = (gym: { id?: string, name: string }) => {
         setSelectedGym(gym);
-        setGymQuery(gym.name);
-        setShowGymResults(false);
         setSelectedMaster(null);
-        setMasterQuery('');
     };
 
     const handleMasterSelect = (master: { id?: string, name: string }) => {
         setSelectedMaster(master);
-        setMasterQuery(master.name);
-        setShowMasterResults(false);
-    };
-
-    const clearGym = () => {
-        setSelectedGym(null);
-        setGymQuery('');
-        setSelectedMaster(null);
-        setMasterQuery('');
-    };
-
-    const clearMaster = () => {
-        setSelectedMaster(null);
-        setMasterQuery('');
     };
 
     const validateStep = (s: number) => {
@@ -408,173 +346,66 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
 
                     {/* STEP VÍNCULO */}
                     <div className={cn("space-y-6 animate-in fade-in slide-in-from-right-4 duration-300", step !== vinculoStepIndex && "hidden")}>
-                        <div className="space-y-4 relative" ref={gymRef}>
-                            <div className="space-y-1">
-                                <Label className="text-panel-sm font-medium text-muted-foreground">Academia / equipe <span className="text-red-500 ml-1">*</span></Label>
-                                <p className="text-panel-sm font-medium text-[hsl(var(--primary))] leading-tight">
-                                    {selectedGym
-                                        ? "Para se desvincular desta academia e adicionar outra, basta clicar no X ao lado do nome. Isso limpará os campos para uma nova busca."
-                                        : "Digite o nome da sua equipe / academia para buscar. Caso ela ainda não exista no sistema, você poderá cadastrá-la em seguida."
-                                    }
+                        {/* Academia / equipe — só cadastradas e com mestre */}
+                        <div className="space-y-2">
+                            <Label className="text-panel-sm font-semibold text-foreground">1. Sua academia / equipe <span className="text-red-500 ml-1">*</span></Label>
+                            <Select
+                                value={selectedGym?.id ?? ''}
+                                onValueChange={(id) => {
+                                    const g = allGyms.find(x => x.id === id);
+                                    if (g) handleGymSelect({ id: g.id, name: g.name });
+                                }}
+                                disabled={isFetchingGyms}
+                            >
+                                <SelectTrigger className={`min-h-12 h-auto py-2 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'} [&>span]:line-clamp-2 [&>span]:text-left`}>
+                                    <SelectValue placeholder={isFetchingGyms ? "Carregando academias..." : "Selecione sua academia"} />
+                                </SelectTrigger>
+                                <SelectContent position="popper" className="rounded-xl max-h-72 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-2rem)]">
+                                    {allGyms.map(g => (
+                                        <SelectItem key={g.id} value={g.id} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground whitespace-normal break-words pr-2">
+                                            {g.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Mestre / professor */}
+                        <div className="space-y-2">
+                            <Label className="text-panel-sm font-semibold text-foreground">2. Seu mestre / professor <span className="text-red-500 ml-1">*</span></Label>
+                            <Select
+                                value={selectedMaster?.id ?? ''}
+                                onValueChange={(id) => {
+                                    const m = masters.find(x => x.id === id);
+                                    if (m) handleMasterSelect({ id: m.id, name: m.full_name });
+                                }}
+                                disabled={!selectedGym || isFetchingMasters}
+                            >
+                                <SelectTrigger className={`min-h-12 h-auto py-2 rounded-xl shadow-none focus:ring-0 focus:ring-offset-0 font-medium bg-white border ${isWhiteBelt ? 'border-gray-200' : 'border-primary/20'} [&>span]:line-clamp-2 [&>span]:text-left`}>
+                                    <SelectValue placeholder={!selectedGym ? "Selecione a academia primeiro" : isFetchingMasters ? "Carregando mestres..." : "Selecione seu mestre / professor"} />
+                                </SelectTrigger>
+                                <SelectContent position="popper" className="rounded-xl max-h-72 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-2rem)]">
+                                    {masters.map(m => (
+                                        <SelectItem key={m.id} value={m.id} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground whitespace-normal break-words pr-2">
+                                            {m.full_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {selectedGym && !isFetchingMasters && masters.length === 0 && (
+                                <p className="text-panel-sm text-muted-foreground px-1">Esta academia ainda não tem mestres cadastrados.</p>
+                            )}
+                        </div>
+
+                        {/* Aviso — só quando ainda não há academia selecionada */}
+                        {!selectedGym && (
+                            <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+                                <InfoIcon size={22} weight="fill" className="text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-panel-sm font-medium text-amber-900 leading-snug">
+                                    Não encontrou sua academia? Peça para seu professor entrar em contato com a <strong>organização do evento</strong> para credenciamento e cadastro da academia/equipe.
                                 </p>
                             </div>
-                            <div className="relative">
-                                <Input
-                                    placeholder="Busque sua equipe / academia..."
-                                    value={gymQuery}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setGymQuery(value);
-                                        if (selectedGym) setSelectedGym(null);
-                                    }}
-                                    className="h-12 rounded-xl shadow-none pr-10 focus-visible:ring-0 focus-visible:ring-offset-0 text-panel-sm font-medium"
-                                    autoComplete="off"
-                                />
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    {isFetchingGyms && <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />}
-                                    {selectedGym ? (
-                                        <button type="button" onClick={clearGym} className="text-muted-foreground hover:text-foreground">
-                                            <XIcon size={20} weight="duotone" />
-                                        </button>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            {showGymResults && gymQuery.length > 1 && (
-                                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
-                                    <div className="max-h-60 overflow-y-auto p-1">
-                                        <div className="flex flex-wrap gap-2 p-3">
-                                            {gymResults?.official?.map(g => (
-                                                <button key={g.id} type="button" onClick={() => handleGymSelect({ id: g.id, name: g.name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
-                                                        ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
-                                                        : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
-                                                        }`}>
-                                                        {g.name}
-                                                    </Badge>
-                                                </button>
-                                            ))}
-
-                                            {gymResults?.community?.map(name => (
-                                                <button key={name} type="button" onClick={() => handleGymSelect({ name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
-                                                        ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
-                                                        : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
-                                                        }`}>
-                                                        {name}
-                                                    </Badge>
-                                                </button>
-                                            ))}
-
-                                            {(!gymResults?.official?.length && !gymResults?.community?.length) && (
-                                                <p className="w-full py-4 text-panel-sm text-center text-muted-foreground">Nenhuma equipe encontrada.</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 bg-muted/30 mt-2 border-t border-border/60 space-y-3">
-                                        <div className="space-y-1">
-                                            <p className="text-panel-sm font-semibold text-slate-900">Não encontrou sua equipe/academia?</p>
-                                            <p className="text-panel-sm text-muted-foreground">Você pode cadastrar agora e usar no seu perfil.</p>
-                                        </div>
-                                        <Link href={`/atleta/dashboard/perfil/cadastrar-academia?belt=${currentBelt}`} className="block">
-                                            <Button
-                                                type="button"
-                                                className={`w-full h-10 rounded-full text-panel-sm font-bold ${isWhiteBelt
-                                                    ? "bg-background text-foreground border border-brand-950/20 shadow-none hover:bg-muted/40"
-                                                    : "bg-primary text-primary-foreground border-none hover:opacity-90"
-                                                    }`}
-                                            >
-                                                Cadastrar equipe
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className={cn("space-y-2 relative animate-in fade-in slide-in-from-top-2", !selectedGym && "opacity-50 pointer-events-none")} ref={masterRef}>
-                            <Label className="text-panel-sm font-medium text-muted-foreground">Mestre / professor responsável <span className="text-red-500 ml-1">*</span></Label>
-                            <div className="relative">
-                                <Input
-                                    placeholder="Quem é seu mestre?"
-                                    value={masterQuery}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setMasterQuery(value);
-                                        if (selectedMaster) setSelectedMaster(null);
-                                    }}
-                                    onFocus={() => {
-                                        if (selectedGym && !selectedMaster) setShowMasterResults(true);
-                                    }}
-                                    className="h-12 rounded-xl shadow-none pr-10 focus-visible:ring-0 focus-visible:ring-offset-0 font-medium"
-                                    autoComplete="off"
-                                />
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    {isFetchingMasters && <CircleNotchIcon size={16} weight="bold" className="animate-spin text-muted-foreground" />}
-                                    {selectedMaster ? (
-                                        <button type="button" onClick={clearMaster} className="text-muted-foreground hover:text-foreground">
-                                            <XIcon size={20} weight="duotone" />
-                                        </button>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            {showMasterResults && (debouncedMasterQuery.length > 1 || debouncedMasterQuery.length === 0) && (
-                                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
-                                    <div className="max-h-60 overflow-y-auto p-1">
-                                        <div className="flex flex-wrap gap-2 p-3">
-                                            {masterResults?.official?.map(m => (
-                                                <button key={m.id} type="button" onClick={() => handleMasterSelect({ id: m.id, name: m.full_name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
-                                                        ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
-                                                        : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
-                                                        }`}>
-                                                        {m.full_name}
-                                                    </Badge>
-                                                </button>
-                                            ))}
-
-                                            {masterResults?.community?.map(name => (
-                                                <button key={name} type="button" onClick={() => handleMasterSelect({ name })} className="transition-transform active:scale-95">
-                                                    <Badge variant="outline" className={`h-9 px-4 text-panel-sm font-medium cursor-pointer rounded-full ${isWhiteBelt
-                                                        ? "border-brand-950/20 bg-muted/50 text-foreground hover:bg-muted"
-                                                        : "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)]"
-                                                        }`}>
-                                                        {name}
-                                                    </Badge>
-                                                </button>
-                                            ))}
-
-                                            {(!masterResults?.official?.length && !masterResults?.community?.length) && (
-                                                <p className="w-full py-4 text-panel-sm text-center text-muted-foreground">Nenhum mestre encontrado.</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 bg-muted/30 mt-2 border-t border-border/60 space-y-3">
-                                        <div className="space-y-1">
-                                            <p className="text-panel-sm font-semibold text-slate-900">Não encontrou seu mestre?</p>
-                                            <p className="text-panel-sm text-muted-foreground">Você pode cadastrar agora e usar no seu perfil.</p>
-                                        </div>
-                                        <Link
-                                            href={`/atleta/dashboard/perfil/cadastrar-mestre?belt=${currentBelt}${selectedGym?.id ? `&tenantId=${selectedGym.id}` : ''}${selectedGym?.name ? `&gymName=${encodeURIComponent(selectedGym.name)}` : ''}`}
-                                            className="block"
-                                        >
-                                            <Button
-                                                type="button"
-                                                className={`w-full h-10 rounded-full text-panel-sm font-bold ${isWhiteBelt
-                                                    ? "bg-background text-foreground border border-brand-950/20 shadow-none hover:bg-muted/40"
-                                                    : "bg-primary text-primary-foreground border-none hover:opacity-90"
-                                                    }`}
-                                            >
-                                                Cadastrar
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
 
                     {/* STEP TÉCNICO & CONTATO */}
@@ -586,8 +417,8 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                     <SelectValue placeholder="Selecione seu sexo" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl">
-                                    <SelectItem value="Masculino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Masculino</SelectItem>
-                                    <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">Feminino</SelectItem>
+                                    <SelectItem value="Masculino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground whitespace-normal break-words pr-2">Masculino</SelectItem>
+                                    <SelectItem value="Feminino" className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground whitespace-normal break-words pr-2">Feminino</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -610,7 +441,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl">
                                     {belts.map(belt => (
-                                        <SelectItem key={belt} value={belt} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">
+                                        <SelectItem key={belt} value={belt} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground whitespace-normal break-words pr-2">
                                             {belt}
                                         </SelectItem>
                                     ))}
@@ -626,7 +457,7 @@ export function AthleteProfileForm({ profile, user, belts }: ProfileFormProps) {
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl max-h-64">
                                     {COUNTRIES.map(c => (
-                                        <SelectItem key={c.code} value={c.code} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground">
+                                        <SelectItem key={c.code} value={c.code} className="font-medium cursor-pointer focus:bg-primary focus:text-primary-foreground whitespace-normal break-words pr-2">
                                             <span className="inline-flex items-center gap-2">
                                                 <span
                                                     className={`fi fi-${c.code.toLowerCase()} rounded-sm shadow-sm`}

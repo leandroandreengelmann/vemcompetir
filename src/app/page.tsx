@@ -66,8 +66,14 @@ export default async function Home() {
             <p className="text-sm sm:text-base text-muted-foreground font-medium">Nenhum evento publicado no momento.</p>
             <p className="text-caption text-muted-foreground/60 mt-1">Fique de olho, novas competições surgem em breve!</p>
           </div>
+        ) : events.length === 1 ? (
+          <div className="flex justify-center">
+            <div className="w-full max-w-xs sm:max-w-sm">
+              <EventCard event={events[0]} />
+            </div>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 justify-center">
             {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}

@@ -263,13 +263,25 @@ export default function RegisterPage() {
                     {/* PASSO 2 — Data de nascimento + CPF */}
                     {step === 2 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-400">
-                            <Alert variant="warning">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle className="font-bold text-sm">Dados importantes</AlertTitle>
-                                <AlertDescription className="text-xs leading-relaxed">
-                                    Informe sua data de nascimento e CPF <strong>corretos</strong>. Dados incorretos podem resultar em classificação errada de categoria, problemas em inscrições e <strong>exclusão da conta</strong>.
-                                </AlertDescription>
-                            </Alert>
+                            <div className="rounded-xl border border-amber-300 bg-amber-50 overflow-hidden">
+                                <div className="flex items-center gap-2 bg-amber-100 px-4 py-2.5 border-b border-amber-200">
+                                    <AlertTriangle className="h-5 w-5 text-amber-700 shrink-0" />
+                                    <h5 className="font-bold text-sm text-amber-900">Atenção: dados corretos são obrigatórios</h5>
+                                </div>
+                                <div className="px-4 py-3 space-y-3 text-amber-950">
+                                    <p className="text-sm leading-relaxed">
+                                        Informe sua <strong>data de nascimento</strong> e <strong>CPF</strong> exatamente como nos documentos. Dados incorretos podem causar:
+                                    </p>
+                                    <ul className="space-y-1.5 text-sm leading-relaxed">
+                                        <li className="flex gap-2"><span className="text-amber-600">•</span><span>Classificação na <strong>categoria errada</strong></span></li>
+                                        <li className="flex gap-2"><span className="text-amber-600">•</span><span>Problemas ou bloqueio nas <strong>inscrições</strong></span></li>
+                                        <li className="flex gap-2"><span className="text-amber-600">•</span><span><strong>Exclusão da conta</strong></span></li>
+                                    </ul>
+                                    <p className="text-sm leading-relaxed rounded-lg bg-amber-100 border border-amber-200 px-3 py-2">
+                                        ⚠️ Prestar <strong>informações falsas</strong> pode comprometer sua participação nos eventos e configurar <strong>crime de falsidade ideológica</strong> (art. 299 do Código Penal).
+                                    </p>
+                                </div>
+                            </div>
 
                             <div className="space-y-2">
                                 <label htmlFor="birth_date" className="text-sm font-medium">Data de Nascimento</label>
@@ -321,7 +333,7 @@ export default function RegisterPage() {
                                 <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.birth_date || !formData.cpf || (!isMinor && normalizeNumeric(formData.phone).length < 10)}>
                                     Próximo
                                 </Button>
-                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
+                                <button type="button" onClick={goPrev} className="text-base sm:text-sm font-medium text-muted-foreground hover:text-foreground active:bg-muted hover:bg-muted/50 transition-colors flex items-center justify-center gap-1.5 w-full min-h-[44px] py-2.5 rounded-lg" disabled={loading}>
                                     <ArrowLeft className="h-4 w-4" /> Voltar
                                 </button>
                             </div>
@@ -401,7 +413,7 @@ export default function RegisterPage() {
                                     disabled={!formData.guardian_name || !formData.guardian_relationship || !formData.guardian_cpf || !formData.guardian_phone}>
                                     Próximo
                                 </Button>
-                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
+                                <button type="button" onClick={goPrev} className="text-base sm:text-sm font-medium text-muted-foreground hover:text-foreground active:bg-muted hover:bg-muted/50 transition-colors flex items-center justify-center gap-1.5 w-full min-h-[44px] py-2.5 rounded-lg" disabled={loading}>
                                     <ArrowLeft className="h-4 w-4" /> Voltar
                                 </button>
                             </div>
@@ -438,7 +450,7 @@ export default function RegisterPage() {
                                 <Button type="button" onClick={handleNext} pill className="w-full h-12 text-base font-semibold" disabled={!formData.guardian_term_accepted}>
                                     Aceitar e Continuar
                                 </Button>
-                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
+                                <button type="button" onClick={goPrev} className="text-base sm:text-sm font-medium text-muted-foreground hover:text-foreground active:bg-muted hover:bg-muted/50 transition-colors flex items-center justify-center gap-1.5 w-full min-h-[44px] py-2.5 rounded-lg">
                                     <ArrowLeft className="h-4 w-4" /> Voltar
                                 </button>
                             </div>
@@ -472,7 +484,7 @@ export default function RegisterPage() {
                                 <Button type="submit" pill className="w-full h-12 text-base font-semibold" disabled={!formData.email || !formData.senha || loading}>
                                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Criando...</> : 'Criar Conta'}
                                 </Button>
-                                <button type="button" onClick={goPrev} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1" disabled={loading}>
+                                <button type="button" onClick={goPrev} className="text-base sm:text-sm font-medium text-muted-foreground hover:text-foreground active:bg-muted hover:bg-muted/50 transition-colors flex items-center justify-center gap-1.5 w-full min-h-[44px] py-2.5 rounded-lg" disabled={loading}>
                                     <ArrowLeft className="h-4 w-4" /> Voltar
                                 </button>
                             </div>
@@ -492,7 +504,7 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground">
                 Já tem uma conta? <Link href="/login" className="font-semibold text-primary hover:underline">Entre aqui</Link>
             </p>
         </div>

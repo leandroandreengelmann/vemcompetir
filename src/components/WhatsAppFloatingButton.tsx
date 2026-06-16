@@ -23,7 +23,7 @@ export function WhatsAppFloatingButton() {
                 href={buildLink('suporte')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-800 shadow-lg border text-sm font-semibold text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-all"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-800 shadow-lg border text-sm font-semibold text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-all"
             >
                 <HeadsetIcon size={16} weight="duotone" />
                 Suporte
@@ -32,7 +32,7 @@ export function WhatsAppFloatingButton() {
                 href={buildLink('duvida')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-800 shadow-lg border text-sm font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-800 shadow-lg border text-sm font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all"
             >
                 <QuestionIcon size={16} weight="duotone" />
                 Dúvida
