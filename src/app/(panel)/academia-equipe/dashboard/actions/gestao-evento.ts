@@ -32,7 +32,7 @@ async function assertEventOwner(eventId: string) {
     const supabase = await createClient();
     const { data: event } = await supabase
         .from('events')
-        .select('id, owner_tenant_id:tenant_id, name:title, event_date, status')
+        .select('id, owner_tenant_id:tenant_id, name:title, event_date, event_end_date, status')
         .eq('id', eventId)
         .single();
     if (!event || event.owner_tenant_id !== tenant_id) throw new Error('Acesso negado');

@@ -24,6 +24,7 @@ import {
     WarningIcon,
     FilePdfIcon,
     CircleNotchIcon,
+    TreeStructureIcon,
 } from '@phosphor-icons/react';
 import {
     listCategoriasComContagem,
@@ -31,9 +32,15 @@ import {
     desfazerCategoriaJuntada,
     getAtletasDetalhadosDaCategoria,
     getRelatorioWO,
+    getChaveOficial,
+    getPreviewChave,
+    listarGruposSeparacao,
+    getCategoriaPesoRange,
+    getEventoBasico,
     type AtletaDetalhado,
     type WoReportItem,
 } from '../../actions/gestao-evento';
+import { mapChaveToResult } from '@/lib/gestao-evento/chave-mapper';
 import {
     Dialog,
     DialogContent,
@@ -216,9 +223,20 @@ function matchesBucket(count: number, bucket: Bucket): boolean {
     return true;
 }
 
+function formatPesoRangeLabel(min: number | null, max: number | null): string | null {
+    const fmt = (n: number) => String(n).replace('.', ',');
+    const hasMin = min != null && !Number.isNaN(min);
+    const hasMax = max != null && !Number.isNaN(max);
+    if (hasMin && hasMax) return `${fmt(min!)} a ${fmt(max!)} kg`;
+    if (hasMax) return `até ${fmt(max!)} kg`;
+    if (hasMin) return `acima de ${fmt(min!)} kg`;
+    return null;
+}
+
 export default function GestaoEventoCategoriasPage({ params }: { params: Promise<{ eventId: string }> }) {
     const { eventId } = use(params);
     const [eventName, setEventName] = useState<string>('');
+    const [eventEndAt, setEventEndAt] = useState<string | null>(null);
     const [categorias, setCategorias] = useState<Categoria[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -240,6 +258,18 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
     const [atletasModal, setAtletasModal] = useState<{ categoria: string; loading: boolean; lista: AtletaDetalhado[] } | null>(null);
     const [woModal, setWoModal] = useState<{ loading: boolean; items: WoReportItem[] } | null>(null);
     const [woPdfBusy, setWoPdfBusy] = useState(false);
+    const [treeBusyName, setTreeBusyName] = useState<string | null>(null);
+
+    // Evento encerrado = passou pelo menos 1 dia após o término (event_end_date ou event_date).
+    // A partir do dia seguinte ao fim, os cards só permitem baixar a chave (árvore).
+    const eventoEncerrado = useMemo(() => {
+        if (!eventEndAt) return false;
+        const end = new Date(eventEndAt);
+        if (Number.isNaN(end.getTime())) return false;
+        // início do dia seguinte ao término
+        const cutoff = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1, 0, 0, 0, 0);
+        return Date.now() >= cutoff.getTime();
+    }, [eventEndAt]);
 
     // Aplica os filtros ativos da página (faixa/divisão/modalidade/busca) aos itens de W.O.
     function aplicarFiltrosWo(items: WoReportItem[]): WoReportItem[] {
@@ -332,6 +362,11 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
         try {
             const res = await listCategoriasComContagem(eventId);
             setEventName((res.event as any)?.name || '');
+            setEventEndAt(
+                ((res.event as any)?.event_end_date as string | null) ??
+                    ((res.event as any)?.event_date as string | null) ??
+                    null,
+            );
             setCategorias((res.data as Categoria[]) || []);
             setUpdatedAt(new Date());
         } catch (err) {
@@ -346,6 +381,68 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
         const id = setInterval(load, POLL_MS);
         return () => clearInterval(id);
     }, [eventId]);
+
+    // Baixa o PDF da chave (árvore) de uma categoria diretamente da lista.
+    // Usado após o evento encerrado, quando os demais botões somem.
+    async function handleDownloadTree(catName: string) {
+        if (treeBusyName) return;
+        setTreeBusyName(catName);
+        try {
+            const [{ pdf }, { BracketTreePdfDocument }, oficial, gruposRes, detalhes, pesoRange, evRes] =
+                await Promise.all([
+                    import('@react-pdf/renderer'),
+                    import('@/components/gestao-evento/BracketTreePdfDocument'),
+                    getChaveOficial(eventId, catName),
+                    listarGruposSeparacao(eventId, catName),
+                    getAtletasDetalhadosDaCategoria(eventId, catName),
+                    getCategoriaPesoRange(eventId, catName),
+                    getEventoBasico(eventId),
+                ]);
+
+            const separationGroups = ((gruposRes.data as any[]) || []).map((g: any) => g.atleta_ids);
+
+            let result: any;
+            let athletes: any[];
+            if (oficial.chave) {
+                result = mapChaveToResult(oficial.chave as any, oficial.lutas as any);
+                athletes = (oficial.chave as any).placed_order || [];
+            } else {
+                const preview = await getPreviewChave(eventId, catName, 'preview', separationGroups);
+                result = preview.result;
+                athletes = preview.athletes;
+            }
+
+            if (!result || athletes.length === 0) {
+                throw new Error('Não há dados de chave para esta categoria.');
+            }
+
+            const eventTitle = evRes?.data?.name || eventName || 'Evento';
+            const blob = await pdf(
+                <BracketTreePdfDocument
+                    eventTitle={eventTitle}
+                    categoryName={catName}
+                    result={result}
+                    athletes={athletes}
+                    separationGroups={separationGroups}
+                    pesoRangeLabel={formatPesoRangeLabel(pesoRange.min, pesoRange.max)}
+                    generatedAt={new Date()}
+                />,
+            ).toBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeName = `${eventTitle}-${catName}`
+                .replace(/[\\/:*?"<>|]+/g, '-')
+                .slice(0, 120);
+            a.href = url;
+            a.download = `chave-arvore-${safeName}.pdf`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err: any) {
+            console.error('[handleDownloadTree]', err);
+        } finally {
+            setTreeBusyName(null);
+        }
+    }
 
     const categoriasParsed = useMemo(
         () =>
@@ -589,7 +686,7 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                 description={eventName ? `${eventName} · ${totals.totalAtletas} atletas em ${totals.totalCat} categorias` : 'Carregando...'}
                 rightElement={
                     <div className="flex items-center gap-2">
-                        {selectMode ? (
+                        {!eventoEncerrado && (selectMode ? (
                             <Button
                                 variant="outline"
                                 pill
@@ -609,7 +706,7 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                 <LinkSimpleIcon size={16} weight="duotone" />
                                 Juntar categorias
                             </Button>
-                        )}
+                        ))}
                         <Button variant="outline" pill className="h-12 gap-2 text-panel-sm font-semibold shadow-sm" asChild>
                             <Link href="/academia-equipe/dashboard/gestao-evento">
                                 <ArrowLeftIcon size={16} weight="duotone" />
@@ -929,7 +1026,7 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                                 {cat.count === 1 ? 'atleta' : 'atletas'}
                                             </button>
                                         </div>
-                                        {!selectMode && sugestoesPorCategoria.get(cat.name) && (() => {
+                                        {!selectMode && !eventoEncerrado && sugestoesPorCategoria.get(cat.name) && (() => {
                                             const sugs = sugestoesPorCategoria.get(cat.name)!;
                                             const sel = chipSelecoes.get(cat.name) || new Set<string>();
                                             const selCount = sel.size;
@@ -1065,7 +1162,26 @@ export default function GestaoEventoCategoriasPage({ params }: { params: Promise
                                             );
                                         })()}
                                     </div>
-                                    {!selectMode && (
+                                    {eventoEncerrado ? (
+                                        cat.chaveGerada && (
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <Button
+                                                    pill
+                                                    variant="outline"
+                                                    disabled={treeBusyName === cat.name}
+                                                    onClick={() => handleDownloadTree(cat.name)}
+                                                    className="font-semibold gap-2 border-sky-500/40 text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 hover:border-sky-500/70 dark:text-sky-400 dark:hover:text-sky-300"
+                                                >
+                                                    {treeBusyName === cat.name ? (
+                                                        <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                                    ) : (
+                                                        <TreeStructureIcon size={14} weight="duotone" />
+                                                    )}
+                                                    {treeBusyName === cat.name ? 'Gerando chave...' : 'Baixar chave (árvore)'}
+                                                </Button>
+                                            </div>
+                                        )
+                                    ) : !selectMode && (
                                         <div className="flex items-center gap-2 shrink-0">
                                             <Button
                                                 pill
