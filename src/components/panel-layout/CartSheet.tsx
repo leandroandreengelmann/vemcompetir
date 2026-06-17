@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "./PixModal";
 import { OwnEventConfirmModal, type OwnEventCheckoutItem } from "./OwnEventConfirmModal";
+import type { EventRegistrationReceipt } from "@/lib/receipts/event-registration-receipt";
 import { cancelPendingCartItemAction, getOwnApiEventIdsAction, checkoutOwnEventAction } from "@/app/(panel)/academia-equipe/dashboard/eventos/cart-actions";
 import { checkAthletesNeedingTermsAction } from "@/app/atleta/components/terms-actions";
 import { CancelRegistrationButton } from "@/app/atleta/dashboard/inscricoes/CancelRegistrationButton";
@@ -63,6 +64,7 @@ export function CartSheet() {
     // Own event with own API: confirmation modal
     const [ownApiEventIds, setOwnApiEventIds] = useState<Set<string>>(new Set());
     const [ownEventConfirmEventId, setOwnEventConfirmEventId] = useState<string | null>(null);
+    const [ownEventReceipts, setOwnEventReceipts] = useState<EventRegistrationReceipt[] | null>(null);
     const router = useRouter();
 
     // Detect own events with own Asaas API
@@ -430,6 +432,7 @@ export function CartSheet() {
                     eventTitle={ownEventConfirmEventId ? (groupedItems[ownEventConfirmEventId]?.title ?? '') : ''}
                     items={ownEventConfirmEventId ? (groupedItems[ownEventConfirmEventId]?.items ?? []) : []}
                     submitting={submitting}
+                    successReceipts={ownEventReceipts}
                     onConfirm={async (checkoutItems: OwnEventCheckoutItem[]) => {
                         const eventId = ownEventConfirmEventId!;
                         setSubmitting(true);
@@ -440,9 +443,16 @@ export function CartSheet() {
                                 return;
                             }
                             showToast.success('Inscrições confirmadas');
-                            setOwnEventConfirmEventId(null);
+                            // Atualiza o carrinho em segundo plano; mantém o modal aberto
+                            // mostrando os recibos para download.
                             await fetchCart();
                             router.refresh();
+                            const receipts = result.receipts ?? [];
+                            if (receipts.length > 0) {
+                                setOwnEventReceipts(receipts);
+                            } else {
+                                setOwnEventConfirmEventId(null);
+                            }
                         } catch {
                             showToast.error('Falha ao confirmar inscrições', 'Tente novamente em instantes.');
                         } finally {
@@ -450,6 +460,10 @@ export function CartSheet() {
                         }
                     }}
                     onCancel={() => setOwnEventConfirmEventId(null)}
+                    onDone={() => {
+                        setOwnEventReceipts(null);
+                        setOwnEventConfirmEventId(null);
+                    }}
                 />
 
                 {/* Minor athlete term acceptance — shown sequentially before payment */}

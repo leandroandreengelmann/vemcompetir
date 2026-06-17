@@ -6,6 +6,10 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { consumeTokens } from '@/lib/token-utils';
 import {
+    createEventRegistrationReceipt,
+    type EventRegistrationReceipt,
+} from '@/lib/receipts/event-registration-receipt';
+import {
     isAbsolutoCategory,
     isEligible,
     isMasterLivre,
@@ -547,7 +551,6 @@ export async function checkoutOwnEventAction(
     eventId: string,
     items: Array<{
         registrationId: string;
-        paymentMethod: 'pago_em_mao' | 'pix_direto' | 'isento';
         amount: number;
         notes?: string;
     }>
@@ -558,7 +561,7 @@ export async function checkoutOwnEventAction(
     // Verify event belongs to tenant
     const { data: event } = await admin
         .from('events')
-        .select('tenant_id')
+        .select('tenant_id, title, event_date')
         .eq('id', eventId)
         .single();
 
@@ -606,21 +609,14 @@ export async function checkoutOwnEventAction(
         return { error: 'Erro ao criar registro de pagamento.' };
     }
 
-    // Update each registration with specific own-event status
-    const statusMap: Record<string, string> = {
-        pago_em_mao: 'pago_em_mao',
-        pix_direto: 'pix_direto',
-        isento: 'isento_evento_proprio',
-    };
-
+    // Evento próprio: marca como pago, pagamento via PIX, com o valor recebido (total ou editado).
     for (const item of items) {
-        const status = statusMap[item.paymentMethod] || 'isento_evento_proprio';
         const { error } = await admin
             .from('event_registrations')
             .update({
-                status,
+                status: 'pago',
                 payment_id: paymentId,
-                manual_payment_method: item.paymentMethod,
+                manual_payment_method: 'pix_direto',
                 manual_amount: item.amount,
                 manual_payment_notes: item.notes || null,
             })
@@ -638,6 +634,50 @@ export async function checkoutOwnEventAction(
         createdBy: profile.id,
     });
 
+    // Emite 1 recibo por inscrição (valor > 0) e devolve para o modal exibir/baixar.
+    const receipts: EventRegistrationReceipt[] = [];
+    try {
+        const { data: tenant } = await admin
+            .from('tenants')
+            .select('name')
+            .eq('id', tenant_id)
+            .maybeSingle();
+
+        const { data: regRows } = await admin
+            .from('event_registrations')
+            .select('id, athlete_id, athlete:profiles!athlete_id(full_name, cpf)')
+            .in('id', registrationIds);
+
+        const regById = new Map<string, any>((regRows || []).map((r: any) => [r.id, r]));
+        const nowIso = new Date().toISOString();
+
+        for (const item of items) {
+            const reg = regById.get(item.registrationId);
+            const athlete = reg?.athlete;
+            const res = await createEventRegistrationReceipt(admin, {
+                tenantId: tenant_id,
+                userId: profile.id,
+                registrationId: item.registrationId,
+                amount: item.amount,
+                paymentMethod: 'pix',
+                payerName: athlete?.full_name ?? null,
+                payerDocument: athlete?.cpf ?? null,
+                description: `Inscrição em ${event.title ?? 'evento'}`,
+                eventId,
+                eventTitle: event.title ?? null,
+                eventDate: (event as any).event_date ?? null,
+                athleteId: reg?.athlete_id ?? null,
+                tenantName: tenant?.name ?? null,
+                paidAt: nowIso,
+            });
+            if (res.receipt) receipts.push(res.receipt);
+        }
+    } catch (err) {
+        // Recibo é complementar — não falha o checkout se algo der errado aqui.
+        console.error('checkoutOwnEventAction receipts error:', err);
+    }
+
     revalidatePath('/academia-equipe/dashboard/eventos');
-    return { success: true, payment_id: paymentId };
+    revalidatePath('/academia-equipe/dashboard/financeiro/recibos');
+    return { success: true, payment_id: paymentId, receipts };
 }

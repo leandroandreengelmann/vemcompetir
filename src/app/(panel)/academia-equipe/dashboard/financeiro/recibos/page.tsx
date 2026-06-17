@@ -11,6 +11,7 @@ import {
     CaretRightIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import { ReceiptDownloadButton } from './ReceiptDownloadButton';
+import { GenerateOwnEventReceiptsButton } from './GenerateOwnEventReceiptsButton';
 import { PeriodFilter } from '../_components/PeriodFilter';
 import { resolvePeriod, periodToIsoFilter, periodToQueryString } from '../_components/period';
 
@@ -50,6 +51,7 @@ export default async function ReceiptsPage({
                 icon={ReceiptIcon as any}
                 rightElement={
                     <div className="flex items-center gap-2">
+                        <GenerateOwnEventReceiptsButton />
                         <PeriodFilter />
                         <Link href="/academia-equipe/dashboard/financeiro">
                             <Button variant="outline" pill className="h-12 gap-2 text-panel-sm font-semibold shadow-sm">

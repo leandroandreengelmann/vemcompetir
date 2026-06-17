@@ -114,13 +114,14 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             href: "/academia-equipe/dashboard/inscricoes",
             roles: ['academia/equipe'],
         },
-        {
-            label: "Cortesias",
-            icon: TicketIcon,
-            href: "/academia-equipe/dashboard/cortesias",
-            roles: ['academia/equipe'],
-            isNew: true,
-        },
+        // Cortesias desativada do menu (página mantida, mas sem link de acesso).
+        // {
+        //     label: "Cortesias",
+        //     icon: TicketIcon,
+        //     href: "/academia-equipe/dashboard/cortesias",
+        //     roles: ['academia/equipe'],
+        //     isNew: true,
+        // },
         {
             label: "Checagem",
             icon: ArrowsClockwiseIcon,

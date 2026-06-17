@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireFinancialModule } from '@/lib/auth-guards';
 import { classifyRegistration, fetchPaymentsMap } from '../actions/registration-classifier';
+import { createEventRegistrationReceipt } from '@/lib/receipts/event-registration-receipt';
 import { revalidatePath } from 'next/cache';
 
 export type TransactionRow = {
@@ -572,5 +573,96 @@ export async function getReceiptForDownload(receiptId: string): Promise<{ receip
         };
     } catch (err: any) {
         return { error: err?.message ?? 'Erro inesperado.' };
+    }
+}
+
+/**
+ * Gera recibos para inscrições de eventos próprios já pagas que ainda não têm
+ * recibo (retroativo). Identifica pelo pagamento interno (asaas_payment_id LIKE 'own_event_%').
+ */
+export async function gerarRecibosEventoProprioPendentesAction(): Promise<{
+    created: number;
+    skipped: number;
+    error?: string;
+}> {
+    try {
+        const { user, tenant_id } = await requireFinancialModule();
+        const adminSupabase = createAdminClient();
+
+        // Pagamentos internos de evento próprio desta academia
+        const { data: ownPays } = await adminSupabase
+            .from('payments')
+            .select('id')
+            .eq('tenant_id_organizer', tenant_id)
+            .like('asaas_payment_id', 'own_event_%');
+
+        const payIds = (ownPays || []).map((p: any) => p.id);
+        if (payIds.length === 0) return { created: 0, skipped: 0 };
+
+        // Inscrições pagas dessa academia vinculadas a esses pagamentos
+        const { data: regs } = await adminSupabase
+            .from('event_registrations')
+            .select(`
+                id, price, manual_amount, athlete_id, event_id, status,
+                athlete:profiles!athlete_id(full_name, cpf),
+                event:events!event_id(title, event_date)
+            `)
+            .in('payment_id', payIds)
+            .eq('tenant_id', tenant_id)
+            .in('status', ['pago', 'pix_direto', 'pago_em_mao']);
+
+        const registrations = (regs || []) as any[];
+        if (registrations.length === 0) return { created: 0, skipped: 0 };
+
+        // Recibos já existentes para essas inscrições
+        const regIds = registrations.map((r) => r.id);
+        const { data: existing } = await adminSupabase
+            .from('receipts')
+            .select('source_id')
+            .eq('tenant_id', tenant_id)
+            .eq('source_type', 'event_registration')
+            .in('source_id', regIds);
+        const existingSet = new Set((existing || []).map((e: any) => e.source_id));
+
+        const { data: tenant } = await adminSupabase
+            .from('tenants')
+            .select('name')
+            .eq('id', tenant_id)
+            .maybeSingle();
+        const tenantName = (tenant as any)?.name ?? null;
+
+        let created = 0;
+        let skipped = 0;
+
+        for (const r of registrations) {
+            if (existingSet.has(r.id)) {
+                skipped++;
+                continue;
+            }
+            const amount = Number(r.manual_amount ?? r.price ?? 0);
+            const res = await createEventRegistrationReceipt(adminSupabase, {
+                tenantId: tenant_id,
+                userId: user.id,
+                registrationId: r.id,
+                amount,
+                paymentMethod: 'pix',
+                payerName: r.athlete?.full_name ?? null,
+                payerDocument: r.athlete?.cpf ?? null,
+                description: `Inscrição em ${r.event?.title ?? 'evento'}`,
+                eventId: r.event_id,
+                eventTitle: r.event?.title ?? null,
+                eventDate: r.event?.event_date ?? null,
+                athleteId: r.athlete_id ?? null,
+                tenantName,
+            });
+            if (res.receipt) created++;
+            else skipped++;
+        }
+
+        revalidatePath('/academia-equipe/dashboard/financeiro/recibos');
+        revalidatePath('/academia-equipe/dashboard/financeiro');
+        return { created, skipped };
+    } catch (err: any) {
+        return { created: 0, skipped: 0, error: err?.message ?? 'Erro inesperado.' };
     }
 }
