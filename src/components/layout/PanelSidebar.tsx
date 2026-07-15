@@ -27,6 +27,7 @@ import {
     ExportIcon,
     BellIcon,
     TrophyIcon,
+    UserPlusIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -145,6 +146,13 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             isNew: true,
         }] : []),
         ...(hasOwnedEvents ? [{
+            label: "Inscrever Atleta",
+            icon: UserPlusIcon,
+            href: "/academia-equipe/dashboard/inscrever-atleta",
+            roles: ['academia/equipe'] as string[],
+            isNew: true,
+        }] : []),
+        ...(hasOwnedEvents ? [{
             label: "Pacotes de Inscrição",
             icon: CurrencyCircleDollarIcon,
             href: "/academia-equipe/dashboard/pacotes-inscricoes",
@@ -203,6 +211,12 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             label: "Jurídico",
             icon: ScalesIcon,
             href: "/admin/dashboard/juridico",
+            roles: ['admin_geral'],
+        },
+        {
+            label: "Super Admins",
+            icon: UserPlusIcon,
+            href: "/admin/dashboard/super-admins",
             roles: ['admin_geral'],
         },
         {
