@@ -28,6 +28,7 @@ import {
     BellIcon,
     TrophyIcon,
     UserPlusIcon,
+    StorefrontIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -212,6 +213,13 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             icon: ScalesIcon,
             href: "/admin/dashboard/juridico",
             roles: ['admin_geral'],
+        },
+        {
+            label: "Loja",
+            icon: StorefrontIcon,
+            href: "/admin/dashboard/loja",
+            roles: ['admin_geral'],
+            isNew: true,
         },
         {
             label: "Super Admins",

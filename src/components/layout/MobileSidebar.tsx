@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ListIcon, SquaresFourIcon, UsersIcon, CalendarIcon, StackSimpleIcon, UserPlusIcon } from "@phosphor-icons/react";
+import { ListIcon, SquaresFourIcon, UsersIcon, CalendarIcon, StackSimpleIcon, UserPlusIcon, StorefrontIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 interface MobileSidebarProps {
@@ -64,6 +64,12 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
             icon: CalendarIcon,
             href: "/academia-equipe/dashboard/eventos/disponiveis",
             roles: ['academia/equipe'],
+        },
+        {
+            label: "Loja",
+            icon: StorefrontIcon,
+            href: "/admin/dashboard/loja",
+            roles: ['admin_geral'],
         },
         {
             label: "Super Admins",
