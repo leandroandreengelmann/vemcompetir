@@ -344,7 +344,7 @@ describe('reactivateCartItemAction', () => {
 
         const result = await reactivateCartItemAction('reg-error');
 
-        expect(result).toEqual({ error: 'Erro ao reativar item na cesta.' });
+        expect(result).toEqual({ error: 'Erro ao reativar item no carrinho.' });
     });
 });
 

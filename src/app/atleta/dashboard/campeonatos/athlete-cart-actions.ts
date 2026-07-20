@@ -149,7 +149,7 @@ export async function addToAthleteCartAction(item: {
 
     if (error) {
         console.error('addToAthleteCartAction error:', error);
-        throw new Error('Erro ao adicionar à cesta.');
+        throw new Error('Erro ao adicionar ao carrinho.');
     }
 
     // PROMO: free_second_registration
@@ -388,7 +388,7 @@ export async function removeFromAthleteCartAction(registrationId: string) {
 
     if (error) {
         console.error('removeFromAthleteCartAction error:', error);
-        throw new Error('Erro ao remover da cesta.');
+        throw new Error('Erro ao remover do carrinho.');
     }
 
     // PROMO: combo_bundle — re-avalia após remoção (pode desfazer o combo)
@@ -472,7 +472,7 @@ export async function reactivateAthleteCartItemAction(registrationId: string) {
 
     if (error) {
         console.error('reactivateAthleteCartItemAction error:', error);
-        throw new Error('Erro ao reativar item na cesta.');
+        throw new Error('Erro ao reativar item no carrinho.');
     }
 
     // Cascade: also reactivate any companion granted by this registration

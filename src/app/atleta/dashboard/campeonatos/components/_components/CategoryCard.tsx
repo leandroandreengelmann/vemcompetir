@@ -36,7 +36,7 @@ interface CategoryCardProps {
     inCartLabel?: string;
 }
 
-export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatchDetails = false, isWhiteBelt = false, isInCart = false, addToCartLabel = 'Inscrever', inCartLabel = 'Na sacola' }: CategoryCardProps) {
+export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatchDetails = false, isWhiteBelt = false, isInCart = false, addToCartLabel = 'Inscrever', inCartLabel = 'No carrinho' }: CategoryCardProps) {
     const [adding, setAdding] = useState(false);
     const [added, setAdded] = useState(false);
 

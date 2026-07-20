@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     StackSimpleIcon,
     TShirtIcon,
@@ -12,6 +13,7 @@ import {
     ArrowRightIcon,
     WarningIcon,
     InfoIcon,
+    EyeIcon,
 } from '@phosphor-icons/react/dist/ssr';
 
 export default async function LojaHubPage() {
@@ -57,10 +59,18 @@ export default async function LojaHubPage() {
                 title="Loja Virtual"
                 description="Gestão da lojinha de kimonos e artigos de jiu-jitsu."
                 rightElement={
-                    <Badge variant={enabled ? 'default' : 'secondary'} className="gap-1">
-                        <StorefrontIcon size={14} weight="bold" />
-                        {enabled ? 'Loja ativa' : 'Loja desligada'}
-                    </Badge>
+                    <div className="flex items-center gap-3">
+                        <Badge variant={enabled ? 'default' : 'secondary'} className="gap-1">
+                            <StorefrontIcon size={14} weight="bold" />
+                            {enabled ? 'Loja ativa' : 'Loja desligada'}
+                        </Badge>
+                        <Button asChild variant="outline" pill className="gap-2">
+                            <Link href="/loja" target="_blank">
+                                <EyeIcon size={18} weight="bold" />
+                                Ver na loja
+                            </Link>
+                        </Button>
+                    </div>
                 }
             />
 

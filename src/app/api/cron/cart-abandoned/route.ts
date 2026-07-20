@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { dispatchNotification } from '@/lib/evolution';
 import { auditLog } from '@/lib/audit-log';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vemcompetir.com.br';
+
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
                     evento: eventTitles || 'seu evento',
                     total_inscricoes: String(info.itemCount),
                     valor: info.total.toFixed(2).replace('.', ','),
-                    link: 'https://vemcompetir.com.br/atleta/dashboard/cesta',
+                    link: `${SITE_URL}/atleta/dashboard/campeonatos?carrinho=1`,
                 },
                 relatedEntityType: 'profile',
                 relatedEntityId: athleteId,

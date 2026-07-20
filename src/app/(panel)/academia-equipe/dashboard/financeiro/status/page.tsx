@@ -35,7 +35,7 @@ const statusLabel: Record<string, string> = {
     isento: 'Isento',
     isento_evento_proprio: 'Isento (Evento Próprio)',
     cancelada: 'Cancelada',
-    carrinho: 'Na Cesta',
+    carrinho: 'No Carrinho',
 };
 
 export const dynamic = 'force-dynamic';

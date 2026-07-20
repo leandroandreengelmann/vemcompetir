@@ -473,7 +473,7 @@ export async function reactivateCartItemAction(registrationId: string) {
 
     if (error) {
         console.error('reactivateCartItemAction error:', error);
-        return { error: 'Erro ao reativar item na cesta.' };
+        return { error: 'Erro ao reativar item no carrinho.' };
     }
 
     // Cascade: reactivate companion if any

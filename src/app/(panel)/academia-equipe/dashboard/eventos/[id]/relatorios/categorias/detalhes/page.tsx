@@ -155,7 +155,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                         <div className="space-y-1">
                             <CardTitle className="text-base font-bold flex items-center gap-2">
                                 <ShoppingBagIcon size={20} weight="duotone" className="text-sky-500" />
-                                Na Cesta de Compras
+                                No Carrinho
                             </CardTitle>
                             <CardDescription className="text-xs">Atletas que iniciaram a inscrição mas não finalizaram o pedido.</CardDescription>
                         </div>
@@ -164,7 +164,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                         </Badge>
                     </CardHeader>
                     <CardContent>
-                        {renderTable(carrinho, "Nenhum abandono de cesta nesta categoria.")}
+                        {renderTable(carrinho, "Nenhum carrinho abandonado nesta categoria.")}
                     </CardContent>
                 </Card>
 

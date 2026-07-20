@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { showToast } from "@/lib/toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import { PixModal } from "@/components/panel-layout/PixModal";
@@ -41,6 +41,12 @@ export function AthleteCartSheet() {
     useEffect(() => {
         if (isOpen) fetchCart();
     }, [isOpen, fetchCart]);
+
+    // Abre o carrinho automaticamente via ?carrinho=1 (link do lembrete de carrinho abandonado)
+    const searchParams = useSearchParams();
+    useEffect(() => {
+        if (searchParams.get('carrinho') === '1') setOpen(true);
+    }, [searchParams, setOpen]);
 
     const [submitting, setSubmitting] = useState(false);
     const [pixModalOpen, setPixModalOpen] = useState(false);
@@ -126,9 +132,9 @@ export function AthleteCartSheet() {
                                 <ShoppingBagIcon size={20} weight="duotone" className="text-primary" />
                             </div>
                             <div className="space-y-0.5">
-                                <SheetTitle className="text-panel-lg">Minha Cesta</SheetTitle>
+                                <SheetTitle className="text-panel-lg">Meu Carrinho</SheetTitle>
                                 <p className="text-panel-sm text-muted-foreground">
-                                    {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} na cesta
+                                    {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} no carrinho
                                     {pendingItems.length > 0 && ` • ${pendingItems.length} aguardando pagamento`}
                                 </p>
                             </div>
@@ -143,9 +149,9 @@ export function AthleteCartSheet() {
                                 <ShoppingBagIcon size={40} weight="duotone" className="text-muted-foreground/50" />
                             </div>
                             <div className="space-y-1">
-                                <h3 className="font-semibold text-foreground">Sua cesta está vazia</h3>
+                                <h3 className="font-semibold text-foreground">Seu carrinho está vazio</h3>
                                 <p className="text-panel-sm text-muted-foreground max-w-[200px] mx-auto">
-                                    Explore os campeonatos e adicione categorias à sua cesta.
+                                    Explore os campeonatos e adicione categorias ao seu carrinho.
                                 </p>
                             </div>
                             <Button variant="outline" onClick={() => setOpen(false)} className="mt-4">
@@ -170,7 +176,7 @@ export function AthleteCartSheet() {
                                         <div className="flex items-start gap-2.5 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2.5 text-blue-800">
                                             <InfoIcon size={16} weight="duotone" className="shrink-0 mt-0.5 text-blue-500" />
                                             <p className="text-panel-sm font-semibold leading-relaxed">
-                                                Clique em <strong>Refazer</strong> para devolver a inscrição à cesta e tentar o pagamento novamente.
+                                                Clique em <strong>Refazer</strong> para devolver a inscrição ao carrinho e tentar o pagamento novamente.
                                             </p>
                                         </div>
                                         {pendingItems.some(i => i.promoTypeApplied === 'combo_bundle') && (
@@ -440,7 +446,7 @@ export function AthleteCartSheet() {
                             Remover categoria gratuita?
                         </DialogTitle>
                         <DialogDescription className="text-panel-sm leading-relaxed pt-1">
-                            Esta categoria foi adicionada <strong>gratuitamente</strong> ao comprar a categoria Absoluto. Ao removê-la, você abre mão do benefício. O Absoluto permanece na sua sacola.
+                            Esta categoria foi adicionada <strong>gratuitamente</strong> ao comprar a categoria Absoluto. Ao removê-la, você abre mão do benefício. O Absoluto permanece no seu carrinho.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2 sm:gap-0">

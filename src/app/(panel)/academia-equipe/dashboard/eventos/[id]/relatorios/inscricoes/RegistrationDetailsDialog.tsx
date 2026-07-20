@@ -136,7 +136,7 @@ export function RegistrationDetailsDialog({
         }
         return (
             <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
-                NA CESTA DE COMPRAS
+                NO CARRINHO
             </Badge>
         );
     };

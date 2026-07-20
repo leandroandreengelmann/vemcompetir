@@ -19,12 +19,12 @@ export function ReactivatePaymentButton({ registrationId }: { registrationId: st
             await reactivateItem(registrationId);
             setOpen(true);
             toast.success('Inscrição reativada', {
-                description: 'O item voltou para sua cesta. Você já pode tentar realizar o pagamento novamente.',
+                description: 'O item voltou para seu carrinho. Você já pode tentar realizar o pagamento novamente.',
             });
         } catch (error) {
             console.error('Falha ao reativar:', error);
             toast.error('Erro ao reativar', {
-                description: 'Ocorreu um erro ao tentar devolver a inscrição para a cesta.'
+                description: 'Ocorreu um erro ao tentar devolver a inscrição para o carrinho.'
             });
         } finally {
             setIsLoading(false);

@@ -135,7 +135,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax, initialAt
             price: isOwner && adminTax > 0 ? adminTax : category.registration_fee,
         });
 
-        showToast.success('Adicionado à sacola', `${selectedAthlete.full_name} · ${category.categoria_completa}`);
+        showToast.success('Adicionado ao carrinho', `${selectedAthlete.full_name} · ${category.categoria_completa}`);
     };
 
     const isWhiteBelt = selectedAthlete?.belt_color?.toLowerCase() === 'branca' || selectedAthlete?.belt_color?.toLowerCase() === 'white';

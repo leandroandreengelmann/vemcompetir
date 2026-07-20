@@ -166,7 +166,7 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                                 ) : (
                                     <ShoppingBagIcon size={20} weight="duotone" />
                                 )}
-                                {isActuallyInCart ? 'Na sacola' : 'Inscrever'}
+                                {isActuallyInCart ? 'No carrinho' : 'Inscrever'}
                             </button>
                         ) : (
                             <div className={`transition-colors ${isSelected ? 'text-primary' : (isWhiteBelt ? 'text-brand-950' : 'text-primary')}`}>

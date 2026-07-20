@@ -339,7 +339,7 @@ export function CategorySearchPanel({ eventId, categories, isWhiteBelt = false, 
                             ? async () => { await onAddToCartProp(cat.id); }
                             : async () => {
                                 await addToAthleteCartAction({ eventId, categoryId: cat.id });
-                                showToast.success('Adicionado à sacola', cat.name);
+                                showToast.success('Adicionado ao carrinho', cat.name);
                                 useAthleteCart.getState().fetchCart();
                             };
                         return (

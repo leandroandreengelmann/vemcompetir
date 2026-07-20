@@ -90,7 +90,7 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
             set({ isOpen: true });
 
             if ((result as any).companionAdded) {
-                showToast.success('Categoria gratuita incluída', `${(result as any).companionName} foi adicionada à sacola.`);
+                showToast.success('Categoria gratuita incluída', `${(result as any).companionName} foi adicionada ao carrinho.`);
             } else if ((result as any).companionWarning) {
                 showToast.warning('Atenção', (result as any).companionWarning);
             }

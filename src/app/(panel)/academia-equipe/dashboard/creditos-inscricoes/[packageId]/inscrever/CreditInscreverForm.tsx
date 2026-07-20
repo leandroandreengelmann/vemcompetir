@@ -60,7 +60,7 @@ function getStatusLabel(status: string): { label: string; className: string } {
         agendado: { label: 'Pagamento Agendado', className: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' },
         aguardando_pagamento: { label: 'Aguard. pagamento', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
         pendente: { label: 'Pendente', className: 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400' },
-        carrinho: { label: 'Na Cesta', className: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400' },
+        carrinho: { label: 'No Carrinho', className: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400' },
     };
     return map[status] || { label: status, className: 'bg-gray-100 text-gray-600' };
 }

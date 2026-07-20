@@ -98,8 +98,9 @@ export function buildWhatsAppUrl(whatsapp: string, items: CartItem[], total: num
         const variant = [i.size, i.color].filter(Boolean).join(', ');
         const label = variant ? `${i.name} (${variant})` : i.name;
         const qty = i.qty > 1 ? `${i.qty}x ` : '';
+        const preco = i.qty > 1 ? `${brl(i.price)} cada = ${brl(i.price * i.qty)}` : brl(i.price);
         const link = `${origin}/loja/produto/${i.slug}`;
-        return `• ${qty}${label} — ${brl(i.price)}\n${link}`;
+        return `• ${qty}${label} — ${preco}\n${link}`;
     });
 
     const msg = `Olá! Tenho interesse nos seguintes produtos:\n\n${blocks.join('\n\n')}\n\nTotal: ${brl(total)}`;

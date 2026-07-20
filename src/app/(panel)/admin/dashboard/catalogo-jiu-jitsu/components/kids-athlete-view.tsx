@@ -351,7 +351,7 @@ export function KidsAthleteView() {
                                     >
                                         {inCart ? (
                                             <>
-                                                <CheckIcon size={14} weight="duotone" /> Na sacola
+                                                <CheckIcon size={14} weight="duotone" /> No carrinho
                                             </>
                                         ) : (
                                             <>
@@ -407,7 +407,7 @@ export function KidsAthleteView() {
                             <div className="flex items-center gap-3">
                                 <ShoppingBagIcon size={20} weight="duotone" />
                                 <div>
-                                    <p className="text-xs opacity-80">Sua sacola</p>
+                                    <p className="text-xs opacity-80">Seu carrinho</p>
                                     <p className="text-sm font-bold">
                                         {cart.size} {cart.size === 1 ? 'categoria' : 'categorias'} selecionadas
                                     </p>

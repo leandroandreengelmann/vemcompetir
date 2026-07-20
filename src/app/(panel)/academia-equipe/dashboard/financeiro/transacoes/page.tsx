@@ -129,7 +129,7 @@ export default function TransacoesPage() {
         if (t === 'pendente') {
             return <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300">PENDENTE</Badge>;
         }
-        return <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300">NA CESTA</Badge>;
+        return <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300">NO CARRINHO</Badge>;
     };
 
     const isRevenueTipo = (t: string) => ['pago', 'agendado', 'pago_em_mao', 'pix_direto'].includes(t);

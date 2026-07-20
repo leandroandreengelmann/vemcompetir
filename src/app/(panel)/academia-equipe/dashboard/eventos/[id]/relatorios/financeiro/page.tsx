@@ -99,7 +99,7 @@ export default function FinanceiroReportPage({ params }: { params: Promise<{ id:
         }
         return (
             <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
-                NA CESTA
+                NO CARRINHO
             </Badge>
         );
     };

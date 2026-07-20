@@ -37,52 +37,118 @@ export function StoreHeader() {
 }
 
 function CartDrawer() {
-    const { items, total, isOpen, setOpen, remove, setQty, keyOf, clear, store } = useCart();
+    const { items, count, total, isOpen, setOpen, remove, setQty, keyOf, clear, store } = useCart();
 
     const canCheckout = items.length > 0 && !!store.whatsapp;
     const waUrl = store.whatsapp ? buildWhatsAppUrl(store.whatsapp, items, total) : '#';
 
     return (
         <Sheet open={isOpen} onOpenChange={setOpen}>
-            <SheetContent className="flex w-full flex-col sm:max-w-md">
-                <SheetHeader>
+            <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+                <SheetHeader className="border-b px-4 py-4 pr-14">
                     <SheetTitle className="flex items-center gap-2">
-                        <ShoppingCartIcon size={22} weight="bold" /> Seu carrinho
+                        <ShoppingCartIcon size={22} weight="bold" />
+                        Seu carrinho
                     </SheetTitle>
+                    <p className="text-sm text-muted-foreground">
+                        {count === 0
+                            ? 'Nenhum item por enquanto'
+                            : `${count} ${count === 1 ? 'item' : 'itens'} · ${formatBRL(total)}`}
+                    </p>
                 </SheetHeader>
 
                 {items.length === 0 ? (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
-                        <ShoppingCartIcon size={48} weight="thin" />
-                        <p>Seu carrinho está vazio.</p>
+                    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+                        <ShoppingCartIcon size={56} weight="thin" className="text-muted-foreground/50" />
+                        <div className="space-y-1">
+                            <p className="font-medium">Seu carrinho está vazio</p>
+                            <p className="text-sm text-muted-foreground">
+                                Escolha seus kimonos e artigos e eles aparecem aqui.
+                            </p>
+                        </div>
+                        <Button asChild variant="outline" pill className="gap-2">
+                            <Link href="/loja" onClick={() => setOpen(false)}>
+                                <StorefrontIcon size={18} weight="bold" />
+                                Ver produtos
+                            </Link>
+                        </Button>
                     </div>
                 ) : (
                     <>
-                        <div className="flex-1 space-y-3 overflow-y-auto py-2">
+                        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
                             {items.map((i) => {
                                 const k = keyOf(i);
                                 const variant = [i.size, i.color].filter(Boolean).join(' · ');
                                 return (
-                                    <div key={k} className="flex gap-3 rounded-lg border p-2">
-                                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                                            {i.image && (
+                                    <div key={k} className="flex gap-3 rounded-xl border bg-card p-3">
+                                        <Link
+                                            href={`/loja/produto/${i.slug}`}
+                                            onClick={() => setOpen(false)}
+                                            className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted"
+                                        >
+                                            {i.image ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={i.image} alt={i.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                                    <StorefrontIcon size={22} weight="thin" />
+                                                </div>
                                             )}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="line-clamp-2 text-sm font-medium">{i.name}</p>
-                                            {variant && <p className="text-xs text-muted-foreground">{variant}</p>}
-                                            <p className="text-sm font-semibold text-primary">{formatBRL(i.price)}</p>
-                                        </div>
-                                        <div className="flex flex-col items-end justify-between">
-                                            <button onClick={() => remove(k)} className="text-muted-foreground hover:text-destructive" title="Remover">
-                                                <TrashIcon size={16} weight="bold" />
-                                            </button>
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => setQty(k, i.qty - 1)} className="rounded border p-1 hover:bg-muted"><MinusIcon size={12} weight="bold" /></button>
-                                                <span className="w-6 text-center text-sm">{i.qty}</span>
-                                                <button onClick={() => setQty(k, i.qty + 1)} className="rounded border p-1 hover:bg-muted"><PlusIcon size={12} weight="bold" /></button>
+                                        </Link>
+
+                                        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+                                            <div className="flex items-start gap-2">
+                                                <div className="min-w-0 flex-1">
+                                                    <Link
+                                                        href={`/loja/produto/${i.slug}`}
+                                                        onClick={() => setOpen(false)}
+                                                        className="line-clamp-2 text-sm font-medium hover:underline"
+                                                    >
+                                                        {i.name}
+                                                    </Link>
+                                                    {variant && (
+                                                        <p className="mt-0.5 text-xs text-muted-foreground">{variant}</p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => remove(k)}
+                                                    title="Remover"
+                                                    aria-label={`Remover ${i.name}`}
+                                                    className="-mr-1 -mt-1 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <TrashIcon size={16} weight="bold" />
+                                                </button>
+                                            </div>
+
+                                            <div className="flex items-end justify-between gap-2">
+                                                <div className="flex items-center rounded-full border">
+                                                    <button
+                                                        onClick={() => setQty(k, i.qty - 1)}
+                                                        disabled={i.qty <= 1}
+                                                        aria-label="Diminuir quantidade"
+                                                        className="rounded-l-full px-2.5 py-1.5 transition-colors hover:bg-muted disabled:opacity-40 disabled:hover:bg-transparent"
+                                                    >
+                                                        <MinusIcon size={12} weight="bold" />
+                                                    </button>
+                                                    <span className="w-7 text-center text-sm font-medium tabular-nums">{i.qty}</span>
+                                                    <button
+                                                        onClick={() => setQty(k, i.qty + 1)}
+                                                        aria-label="Aumentar quantidade"
+                                                        className="rounded-r-full px-2.5 py-1.5 transition-colors hover:bg-muted"
+                                                    >
+                                                        <PlusIcon size={12} weight="bold" />
+                                                    </button>
+                                                </div>
+                                                <div className="text-right">
+                                                    {i.qty > 1 && (
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {formatBRL(i.price)} cada
+                                                        </p>
+                                                    )}
+                                                    <p className="text-sm font-semibold text-primary tabular-nums">
+                                                        {formatBRL(i.price * i.qty)}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -90,23 +156,52 @@ function CartDrawer() {
                             })}
                         </div>
 
-                        <div className="space-y-3 border-t pt-3">
-                            <div className="flex items-center justify-between text-lg font-bold">
-                                <span>Total</span>
-                                <span>{formatBRL(total)}</span>
+                        <div className="space-y-3 border-t bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-sm text-muted-foreground">
+                                    {count} {count === 1 ? 'item' : 'itens'}
+                                </span>
+                                <span className="text-xl font-bold tabular-nums">{formatBRL(total)}</span>
                             </div>
+
                             {!store.whatsapp && (
-                                <p className="text-xs text-destructive">Loja sem WhatsApp configurado. Não é possível finalizar.</p>
+                                <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                    Loja sem WhatsApp configurado. Não é possível finalizar o pedido.
+                                </p>
                             )}
-                            <Button asChild pill className="w-full gap-2 bg-[#25D366] text-white hover:bg-[#1eb457]" disabled={!canCheckout}>
-                                <a href={canCheckout ? waUrl : undefined} target="_blank" rel="noopener noreferrer">
+
+                            {canCheckout ? (
+                                <Button asChild pill className="w-full gap-2 bg-[#25D366] text-white hover:bg-[#1eb457]">
+                                    <a href={waUrl} target="_blank" rel="noopener noreferrer">
+                                        <WhatsappLogoIcon size={22} weight="fill" />
+                                        Finalizar no WhatsApp
+                                    </a>
+                                </Button>
+                            ) : (
+                                <Button pill disabled className="w-full gap-2">
                                     <WhatsappLogoIcon size={22} weight="fill" />
                                     Finalizar no WhatsApp
-                                </a>
-                            </Button>
-                            <button onClick={clear} className="w-full text-center text-xs text-muted-foreground hover:text-foreground">
-                                Esvaziar carrinho
-                            </button>
+                                </Button>
+                            )}
+
+                            <p className="text-center text-sm text-muted-foreground">
+                                O pedido é combinado direto com a loja pelo WhatsApp.
+                            </p>
+
+                            <div className="flex items-center justify-between gap-2 pt-1">
+                                <button
+                                    onClick={() => setOpen(false)}
+                                    className="rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                >
+                                    Continuar comprando
+                                </button>
+                                <button
+                                    onClick={clear}
+                                    className="rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
+                                >
+                                    Esvaziar carrinho
+                                </button>
+                            </div>
                         </div>
                     </>
                 )}
