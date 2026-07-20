@@ -85,6 +85,8 @@ export async function deleteTokenPackageAction(id: string) {
 }
 
 export async function getTokenPackagesAction() {
+    const user = await requireAdmin();
+    if (!user) return [];
     const adminClient = createAdminClient();
     const { data } = await adminClient
         .from('token_packages')
@@ -94,6 +96,8 @@ export async function getTokenPackagesAction() {
 }
 
 export async function getAcademiesTokenSummaryAction() {
+    const user = await requireAdmin();
+    if (!user) return [];
     const adminClient = createAdminClient();
     const { data } = await adminClient
         .from('tenants')

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { decrypt, hashToken } from '@/lib/crypto';
+import { decrypt, hashToken, safeEqualHex } from '@/lib/crypto';
 import { auditLog } from '@/lib/audit-log';
 import { consumeTokens, refundTokens } from '@/lib/token-utils';
 import { dispatchPaymentNotifications } from '@/lib/evolution-payment-dispatch';
@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Webhook not configured securely' }, { status: 401 });
         }
 
-        if (!incomingToken || !validHashes.includes(hashToken(incomingToken))) {
+        const incomingHash = incomingToken ? hashToken(incomingToken) : null;
+        const isValidToken = !!incomingHash && validHashes.some(h => safeEqualHex(h, incomingHash));
+        if (!isValidToken) {
             auditLog('WEBHOOK_INVALID_TOKEN', { has_token: !!incomingToken }, 'warn');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

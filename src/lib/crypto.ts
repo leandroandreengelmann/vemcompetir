@@ -1,4 +1,4 @@
-import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import { createHash, randomBytes, createCipheriv, createDecipheriv, timingSafeEqual } from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -52,6 +52,17 @@ export function hashToken(token: string): string {
 
 export function generateToken(bytes = 32): string {
     return randomBytes(bytes).toString('hex');
+}
+
+/**
+ * Compara dois hashes em hexadecimal em tempo constante (evita timing attacks).
+ * Retorna false se os comprimentos diferirem.
+ */
+export function safeEqualHex(a: string, b: string): boolean {
+    const ba = Buffer.from(a, 'hex');
+    const bb = Buffer.from(b, 'hex');
+    if (ba.length === 0 || ba.length !== bb.length) return false;
+    return timingSafeEqual(ba, bb);
 }
 
 export function getLast4(value: string): string {

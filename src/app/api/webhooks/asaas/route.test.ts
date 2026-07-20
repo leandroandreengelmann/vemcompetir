@@ -12,6 +12,8 @@ vi.mock('@/lib/supabase/admin', () => ({
 vi.mock('@/lib/crypto', () => ({
     decrypt: vi.fn(),
     hashToken: vi.fn(), // Mock hashToken
+    // Comparação de hash em tempo constante — no teste, igualdade simples de string
+    safeEqualHex: vi.fn((a: string, b: string) => a === b),
 }));
 
 vi.mock('@/lib/audit-log', () => ({

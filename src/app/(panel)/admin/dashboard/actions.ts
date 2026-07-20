@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireRole } from '@/lib/auth-guards';
 
 export type AcademyRankingItem = {
     id: string;
@@ -50,6 +51,7 @@ function resolveStatus(balance: number): 'ok' | 'low' | 'negative' {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
+    await requireRole('admin_geral');
     const adminClient = createAdminClient();
     const startOfMonth = getStartOfMonth();
 
