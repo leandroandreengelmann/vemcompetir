@@ -34,8 +34,12 @@ export default async function AthleteManagementPage() {
     }
 
     const tenantFilter = isAcademy ? orgProfile.tenant_id : null;
-    const { data: athletesWithEmails } = await supabase
+    const { data: athletesWithEmails, error: athletesError } = await supabase
         .rpc('list_athletes_with_auth', { p_tenant_id: tenantFilter });
+
+    if (athletesError) {
+        console.error('[atletas] list_athletes_with_auth falhou:', athletesError);
+    }
 
     const adminClient = createAdminClient();
 
@@ -145,13 +149,20 @@ export default async function AthleteManagementPage() {
                     <CardTitle className="text-panel-md font-semibold">Lista de Atletas</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 min-w-0 max-w-full">
-                    <FilteredAthletesTable
-                        variant="main"
-                        athletes={athletesWithEmails ?? []}
-                        isAdmin={isAdmin}
-                        isAcademy={isAcademy}
-                        registrationCounts={registrationCountsObj}
-                    />
+                    {athletesError ? (
+                        <div className="px-6 py-10 text-center text-panel-sm text-destructive">
+                            Não foi possível carregar a lista de atletas. Recarregue a página — se o
+                            problema continuar, avise o suporte.
+                        </div>
+                    ) : (
+                        <FilteredAthletesTable
+                            variant="main"
+                            athletes={athletesWithEmails ?? []}
+                            isAdmin={isAdmin}
+                            isAcademy={isAcademy}
+                            registrationCounts={registrationCountsObj}
+                        />
+                    )}
                 </CardContent>
             </Card>
             {/* Seções de descoberta — somente para academias */}
