@@ -4,6 +4,9 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { getPublishedEvents } from "./eventos/_data/events";
 import { EventCard } from "./eventos/_components/event-card";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import { HeroBanners } from "@/components/home/HeroBanners";
+import { getHeroBannersForHome } from "@/lib/dal/hero-banners";
+import { heroBannerImageUrl } from "@/lib/hero-banners";
 
 export const revalidate = 60;
 
@@ -36,28 +39,46 @@ export default async function Home() {
     }
   }
 
-  const events = await getPublishedEvents();
+  const [events, heroData] = await Promise.all([
+    getPublishedEvents(),
+    getHeroBannersForHome(),
+  ]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
       <PublicHeader />
 
-      {/* Hero Section */}
-      <section className="bg-primary text-primary-foreground pt-[calc(4rem+1.5rem)] pb-10 sm:pt-[calc(var(--header-height,90px)+4rem)] sm:pb-20 md:pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="max-w-3xl space-y-3 sm:space-y-6">
-            <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] sm:tracking-[0.3em] text-primary-foreground/40">
-              Próximos Eventos
-            </p>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight sm:tracking-tighter leading-tight sm:leading-[1.05]">
-              Encontre sua próxima competição.
-            </h1>
-            <p className="text-sm sm:text-lg text-primary-foreground/50 max-w-xl leading-relaxed">
-              Confira as próximas competições e garanta sua inscrição nos maiores eventos de combate da região.
-            </p>
+      {heroData.banners.length > 0 ? (
+        <HeroBanners
+          intervalSeconds={heroData.intervalSeconds}
+          banners={heroData.banners.map((b) => ({
+            id: b.id,
+            title: b.title,
+            subtitle: b.subtitle,
+            imageUrl: heroBannerImageUrl(b.image_path),
+            imageUrlMobile: b.image_path_mobile ? heroBannerImageUrl(b.image_path_mobile) : null,
+            linkUrl: b.link_url,
+            overlayStyle: b.overlay_style,
+          }))}
+        />
+      ) : (
+        /* Hero Section (fallback padrão quando os banners estão desativados ou vazios) */
+        <section className="bg-primary text-primary-foreground pt-[calc(4rem+1.5rem)] pb-10 sm:pt-[calc(var(--header-height,90px)+4rem)] sm:pb-20 md:pb-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="max-w-3xl space-y-3 sm:space-y-6">
+              <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] sm:tracking-[0.3em] text-primary-foreground/40">
+                Próximos Eventos
+              </p>
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight sm:tracking-tighter leading-tight sm:leading-[1.05]">
+                Encontre sua próxima competição.
+              </h1>
+              <p className="text-sm sm:text-lg text-primary-foreground/50 max-w-xl leading-relaxed">
+                Confira as próximas competições e garanta sua inscrição nos maiores eventos de combate da região.
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Events Grid */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16 md:py-24 w-full">

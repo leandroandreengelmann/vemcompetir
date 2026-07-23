@@ -4,8 +4,10 @@ test.describe('Homepage', () => {
     test('should load the homepage correctly', async ({ page }) => {
         await page.goto('/');
 
-        // Check for Hero text
-        await expect(page.locator('h1')).toContainText('Encontre sua próxima competição');
+        // Check for Hero: either the default hero text or the banner carousel
+        const fallbackHero = page.locator('h1', { hasText: 'Encontre sua próxima competição' });
+        const bannerHero = page.getByTestId('hero-banners');
+        await expect(fallbackHero.or(bannerHero).first()).toBeVisible();
 
         // Check for Header elements
         const header = page.locator('header');

@@ -29,6 +29,7 @@ import {
     TrophyIcon,
     UserPlusIcon,
     StorefrontIcon,
+    ImagesIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -218,6 +219,13 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             label: "Loja",
             icon: StorefrontIcon,
             href: "/admin/dashboard/loja",
+            roles: ['admin_geral'],
+            isNew: true,
+        },
+        {
+            label: "Banners da Home",
+            icon: ImagesIcon,
+            href: "/admin/dashboard/banners",
             roles: ['admin_geral'],
             isNew: true,
         },
