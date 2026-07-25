@@ -307,7 +307,9 @@ export async function updateOrganizerAction(formData: FormData) {
         .single();
 
     if (profileForTenant?.tenant_id) {
-        const tenantUpdate: Record<string, any> = { use_own_asaas_api, can_register_academies, token_management_enabled };
+        // `name` mantém o tenant em sincronia com profiles.full_name e o
+        // user_metadata (evita nomes divergentes entre as fontes ao renomear).
+        const tenantUpdate: Record<string, any> = { name: full_name, use_own_asaas_api, can_register_academies, token_management_enabled };
 
         if (use_own_asaas_api && asaas_api_key && asaas_api_key.trim().length > 0) {
             const result = await buildOrganizerAsaasUpdate(adminClient, asaas_api_key.trim());

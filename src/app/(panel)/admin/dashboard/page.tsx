@@ -60,53 +60,86 @@ export default async function AdminDashboard() {
                     Tokens — este mês
                 </h2>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tokens vendidos</CardTitle>
-                            <CoinsIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.tokens.grantedThisMonth)}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tokens consumidos</CardTitle>
-                            <ArrowDownIcon className="h-6 w-6 text-muted-foreground" weight="duotone" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.tokens.consumedThisMonth)}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className={data.tokens.academiesLowBalance > 0 ? "border-yellow-400" : ""}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Saldo baixo</CardTitle>
-                            <WarningIcon
-                                className={`h-6 w-6 ${data.tokens.academiesLowBalance > 0 ? "text-yellow-500" : "text-muted-foreground"}`}
-                                weight="duotone"
-                            />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.tokens.academiesLowBalance)}</p>
-                            <p className="text-xs text-muted-foreground">academias com saldo ≤ 20</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className={data.tokens.academiesNegative > 0 ? "border-red-500" : ""}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Saldo negativo</CardTitle>
-                            <XCircleIcon
-                                className={`h-6 w-6 ${data.tokens.academiesNegative > 0 ? "text-red-500" : "text-muted-foreground"}`}
-                                weight="duotone"
-                            />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{fmt(data.tokens.academiesNegative)}</p>
-                            <p className="text-xs text-muted-foreground">academias com saldo &lt; 0</p>
-                        </CardContent>
-                    </Card>
+                    {(() => {
+                        const lowActive = data.tokens.academiesLowBalance > 0;
+                        const negActive = data.tokens.academiesNegative > 0;
+                        const stats = [
+                            {
+                                label: "Tokens vendidos",
+                                value: data.tokens.grantedThisMonth,
+                                hint: "concedidos no mês",
+                                Icon: CoinsIcon,
+                                iconTint: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+                                accent: "before:bg-emerald-500",
+                                dot: "bg-emerald-500",
+                                chip: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
+                                card: "",
+                            },
+                            {
+                                label: "Tokens consumidos",
+                                value: data.tokens.consumedThisMonth,
+                                hint: "usados no mês",
+                                Icon: ArrowDownIcon,
+                                iconTint: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+                                accent: "before:bg-blue-500",
+                                dot: "bg-blue-500",
+                                chip: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300",
+                                card: "",
+                            },
+                            {
+                                label: "Saldo baixo",
+                                value: data.tokens.academiesLowBalance,
+                                hint: "saldo menor que 20 tokens",
+                                Icon: WarningIcon,
+                                iconTint: lowActive
+                                    ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                    : "bg-muted text-muted-foreground",
+                                accent: lowActive ? "before:bg-amber-500" : "before:bg-border",
+                                dot: lowActive ? "bg-amber-500" : "bg-muted-foreground/40",
+                                chip: lowActive
+                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                                    : "bg-muted text-muted-foreground",
+                                card: lowActive ? "border-amber-400/60 bg-amber-50/40 dark:bg-amber-900/10" : "",
+                            },
+                            {
+                                label: "Saldo negativo",
+                                value: data.tokens.academiesNegative,
+                                hint: "saldo abaixo de zero",
+                                Icon: XCircleIcon,
+                                iconTint: negActive
+                                    ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                    : "bg-muted text-muted-foreground",
+                                accent: negActive ? "before:bg-red-500" : "before:bg-border",
+                                dot: negActive ? "bg-red-500" : "bg-muted-foreground/40",
+                                chip: negActive
+                                    ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300"
+                                    : "bg-muted text-muted-foreground",
+                                card: negActive ? "border-red-400/60 bg-red-50/40 dark:bg-red-900/10" : "",
+                            },
+                        ];
+                        return stats.map(({ label, value, hint, Icon, iconTint, accent, dot, chip, card }) => (
+                            <Card
+                                key={label}
+                                className={`relative overflow-hidden transition-shadow hover:shadow-md before:absolute before:inset-y-0 before:left-0 before:w-1 ${accent} ${card}`}
+                            >
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                        {label}
+                                    </CardTitle>
+                                    <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconTint}`}>
+                                        <Icon className="h-5 w-5" weight="duotone" />
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-3xl font-bold tracking-tight tabular-nums">{fmt(value)}</p>
+                                    <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${chip}`}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                                        {hint}
+                                    </span>
+                                </CardContent>
+                            </Card>
+                        ));
+                    })()}
                 </div>
             </section>
 

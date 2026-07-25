@@ -7,6 +7,8 @@ import { PublicFooter } from "@/components/layout/PublicFooter";
 import { HeroBanners } from "@/components/home/HeroBanners";
 import { getHeroBannersForHome } from "@/lib/dal/hero-banners";
 import { heroBannerImageUrl } from "@/lib/hero-banners";
+import { Sponsors } from "@/components/home/Sponsors";
+import { getSponsorsForHome } from "@/lib/dal/sponsors";
 
 export const revalidate = 60;
 
@@ -39,9 +41,10 @@ export default async function Home() {
     }
   }
 
-  const [events, heroData] = await Promise.all([
+  const [events, heroData, sponsorsData] = await Promise.all([
     getPublishedEvents(),
     getHeroBannersForHome(),
+    getSponsorsForHome(),
   ]);
 
   return (
@@ -101,6 +104,8 @@ export default async function Home() {
           </div>
         )}
       </main>
+
+      <Sponsors title={sponsorsData.title} sponsors={sponsorsData.sponsors} />
 
       <PublicFooter />
     </div>

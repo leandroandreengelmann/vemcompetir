@@ -12,6 +12,7 @@ type AuditLevel = 'info' | 'warn' | 'error';
 
 type AuditEvent =
     | 'PAYMENT_CREATED'
+    | 'ATHLETE_LINK_CREATED'
     | 'PAYMENT_FREE_CONFIRMED'
     | 'PAYMENT_OWN_EVENT_CONFIRMED'
     | 'PAYMENT_FAILED'
@@ -34,7 +35,10 @@ type AuditEvent =
     | 'CRON_EVENT_REMINDER_D3'
     | 'CRON_EVENT_REMINDER_D3_ERROR'
     | 'CRON_CART_ABANDONED'
-    | 'CRON_CART_ABANDONED_ERROR';
+    | 'CRON_CART_ABANDONED_ERROR'
+    | 'IMPERSONATION_START'
+    | 'IMPERSONATION_STOP'
+    | 'IMPERSONATION_ERROR';
 
 export function auditLog(
     event: AuditEvent,

@@ -33,6 +33,7 @@ import {
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatCategoryTitle } from '@/lib/category-utils';
+import { ImpersonateButton } from '@/components/ImpersonateButton';
 
 interface Registration {
     id: string;
@@ -560,6 +561,17 @@ export function CentralAtletasClient({ athletes }: { athletes: Athlete[] }) {
                                                 : <div className="inline-flex items-center gap-1.5 text-panel-sm font-semibold px-3 py-1 rounded-full bg-muted text-muted-foreground"><BuildingsIcon size={16} weight="duotone" /> Criada pela academia</div>
                                             }
                                         </div>
+                                        {selected.has_own_account && (
+                                            <div className="mt-4">
+                                                <ImpersonateButton
+                                                    targetUserId={selected.id}
+                                                    label={selected.full_name}
+                                                    size="sm"
+                                                >
+                                                    Acessar painel do atleta
+                                                </ImpersonateButton>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

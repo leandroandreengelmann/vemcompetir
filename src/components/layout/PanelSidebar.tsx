@@ -30,6 +30,7 @@ import {
     UserPlusIcon,
     StorefrontIcon,
     ImagesIcon,
+    HandshakeIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -226,6 +227,13 @@ export function PanelSidebar({ role, canRegisterAcademies = false, hasActiveCred
             label: "Banners da Home",
             icon: ImagesIcon,
             href: "/admin/dashboard/banners",
+            roles: ['admin_geral'],
+            isNew: true,
+        },
+        {
+            label: "Parceiros",
+            icon: HandshakeIcon,
+            href: "/admin/dashboard/patrocinadores",
             roles: ['admin_geral'],
             isNew: true,
         },

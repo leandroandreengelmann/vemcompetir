@@ -46,6 +46,7 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith('/kibo-test') &&
         !request.nextUrl.pathname.startsWith('/magic-test') &&
         !request.nextUrl.pathname.startsWith('/eventos') &&
+        !request.nextUrl.pathname.startsWith('/parceiros') &&
         !request.nextUrl.pathname.startsWith('/sobre') &&
         !request.nextUrl.pathname.startsWith('/chaveamento') &&
         !request.nextUrl.pathname.startsWith('/privacidade') &&

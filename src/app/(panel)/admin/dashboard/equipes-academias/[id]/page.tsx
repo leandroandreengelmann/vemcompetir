@@ -6,6 +6,7 @@ import { ArrowLeftIcon, PencilSimpleIcon, UserIcon, UsersIcon, ShieldCheckIcon, 
 import DeleteAcademyButton from '../components/DeleteAcademyButton';
 import DeleteAthleteButton from '../components/DeleteAthleteButton';
 import FinancialModuleToggle from '../components/FinancialModuleToggle';
+import { ImpersonateButton } from '@/components/ImpersonateButton';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,12 @@ export default async function AcademyDetailPage(props: PageProps) {
                     <p className="text-panel-sm text-muted-foreground">Visualização detalhada da organização.</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <ImpersonateButton
+                        targetUserId={id}
+                        label={academyUser.user_metadata?.full_name || academyUser.email || 'Academia/Equipe'}
+                    >
+                        Acessar painel
+                    </ImpersonateButton>
                     <Button pill asChild>
                         <Link href={`/admin/dashboard/equipes-academias/${id}/editar`}>
                             <PencilSimpleIcon size={20} weight="duotone" className="mr-2" />
