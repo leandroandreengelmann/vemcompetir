@@ -27,8 +27,8 @@ export default async function PacotesTokensPage() {
         <div className="space-y-6">
             <SectionHeader
                 icon={CoinsIcon}
-                title="Pacotes de Tokens"
-                description="Gerencie os pacotes de tokens de inscrição e acompanhe o saldo das academias."
+                title="Tokens de Inscrição"
+                description="1 token = 1 inscrição confirmada. O saldo é da academia e vale para todos os eventos dela."
             />
             <TokenPackagesClient packages={packages as any} academies={academies as any} />
         </div>
