@@ -19,6 +19,7 @@ const routeMap: Record<string, string> = {
     'eventos': 'Eventos',
     'categorias': 'Categorias',
     'equipes-academias': 'Equipes & Academias',
+    'pacotes-tokens': 'Tokens',
     'comunidade': 'Comunidade',
     'configuracoes': 'Configurações',
     'academia-equipe': 'Academia/Equipe',

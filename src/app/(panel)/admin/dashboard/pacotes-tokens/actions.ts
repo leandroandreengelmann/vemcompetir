@@ -93,13 +93,105 @@ export async function getTokenPackagesAction() {
     return data ?? [];
 }
 
+/**
+ * Lista TODAS as academias (tenants com uma conta academia/equipe), inclusive as
+ * que estão com a gestão por token desligada — a tela deixa ativar o módulo ali
+ * mesmo. Ordena por nome; os filtros e a ordenação por saldo ficam no client.
+ */
 export async function getAcademiesTokenSummaryAction() {
     const adminClient = createAdminClient();
+
+    const { data: academyProfiles } = await adminClient
+        .from('profiles')
+        .select('tenant_id')
+        .eq('role', 'academia/equipe')
+        .not('tenant_id', 'is', null);
+
+    const academyTenantIds = new Set((academyProfiles ?? []).map(p => p.tenant_id as string));
+
     const { data } = await adminClient
         .from('tenants')
         .select('id, name, inscription_token_balance, token_management_enabled, token_alert_sent_at')
-        .eq('token_management_enabled', true)
-        .order('inscription_token_balance', { ascending: true });
+        .order('name', { ascending: true });
+
+    // Um tenant já sob gestão de token nunca some da lista, mesmo que o perfil
+    // dono dele esteja com outro papel.
+    return (data ?? []).filter(t => academyTenantIds.has(t.id) || t.token_management_enabled);
+}
+
+/**
+ * Crédito/débito avulso, sem pacote. Aceita valor negativo para corrigir um
+ * lançamento errado. Como não recebe tokenPackageId, grantTokens registra a
+ * transação como 'adjusted' no extrato da academia.
+ */
+export async function adjustAcademyTokensAction(formData: FormData) {
+    const user = await requireAdmin();
+    if (!user) return { error: 'Sem permissão.' };
+
+    const tenant_id = formData.get('tenant_id') as string;
+    const amount = parseInt(formData.get('amount') as string, 10);
+    const notes = (formData.get('notes') as string)?.trim();
+
+    if (!tenant_id) return { error: 'Academia inválida.' };
+    if (!Number.isInteger(amount) || amount === 0) {
+        return { error: 'Informe uma quantidade diferente de zero.' };
+    }
+    if (!notes) return { error: 'Descreva o motivo do ajuste.' };
+
+    const { grantTokens } = await import('@/lib/token-utils');
+    const result = await grantTokens(tenant_id, amount, {
+        notes,
+        createdBy: user.id,
+    });
+
+    if (!result.success) return { error: result.error };
+
+    revalidatePath('/admin/dashboard/pacotes-tokens');
+    return { success: true, newBalance: result.newBalance, tokensAdded: amount };
+}
+
+/**
+ * Liga/desliga a gestão por token de uma academia. Com o módulo desligado, o
+ * tenant não consome nem estorna tokens (ver token-utils.ts).
+ */
+export async function toggleTokenManagementAction(tenantId: string, enabled: boolean) {
+    const user = await requireAdmin();
+    if (!user) return { error: 'Sem permissão.' };
+
+    const adminClient = createAdminClient();
+    const { error } = await adminClient
+        .from('tenants')
+        .update({ token_management_enabled: enabled })
+        .eq('id', tenantId);
+
+    if (error) {
+        console.error('toggleTokenManagementAction error:', error);
+        return { error: 'Erro ao alterar a gestão por token.' };
+    }
+
+    revalidatePath('/admin/dashboard/pacotes-tokens');
+    revalidatePath(`/admin/dashboard/equipes-academias/${tenantId}`);
+    return { success: true };
+}
+
+/**
+ * Últimos lançamentos de uma academia, exibidos dentro do diálogo de saldo.
+ * A ordenação secundária por balance_after evita o extrato "pular" quando
+ * vários lançamentos compartilham o mesmo created_at.
+ */
+export async function getAcademyTokenHistoryAction(tenantId: string) {
+    const user = await requireAdmin();
+    if (!user) return [];
+
+    const adminClient = createAdminClient();
+    const { data } = await adminClient
+        .from('token_transactions')
+        .select('id, type, amount, balance_after, notes, created_at')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false })
+        .order('balance_after', { ascending: true })
+        .limit(8);
+
     return data ?? [];
 }
 
