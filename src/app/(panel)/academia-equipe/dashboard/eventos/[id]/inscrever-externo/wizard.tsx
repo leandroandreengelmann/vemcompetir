@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import {
     CircleNotchIcon, CheckCircleIcon, MagnifyingGlassIcon, UserPlusIcon,
     QrCodeIcon, HandCoinsIcon, ArrowRightIcon, ArrowLeftIcon,
-    WhatsappLogoIcon, CopyIcon,
+    WhatsappLogoIcon, CopyIcon, GiftIcon,
 } from '@phosphor-icons/react';
 import { showToast } from '@/lib/toast';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ import {
 import { getEligibleCategoriesAction } from '../../registrations-actions';
 import {
     addToCartAction, getCartItemsAction, checkoutOwnEventAction, removeFromCartAction,
+    checkoutCourtesyOwnEventAction,
 } from '../../cart-actions';
 import { sendPixWhatsappAction } from '../../whatsapp-pix-actions';
 
@@ -97,7 +99,7 @@ interface Props {
     academies: AcademyOption[];
 }
 
-type PaymentMethod = 'pix_direto' | 'pix_link';
+type PaymentMethod = 'pix_direto' | 'pix_link' | 'cortesia';
 
 export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props) {
     const [step, setStep] = useState(1); // 1 atleta · 2 categorias · 3 pagamento
@@ -145,6 +147,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
 
     // ── Pagamento ──
     const [method, setMethod] = useState<PaymentMethod>('pix_direto');
+    const [courtesyReason, setCourtesyReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [done, setDone] = useState(false);
     // pix_link: tela de envio
@@ -347,9 +350,25 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     // ───────────────────────── Pagamento ─────────────────────────
     async function handleConfirm() {
         if (cart.length === 0) { toast.error('Adicione ao menos uma categoria.'); return; }
+        if (method === 'cortesia' && !courtesyReason.trim()) {
+            toast.error('Informe o motivo da cortesia.');
+            return;
+        }
         setSubmitting(true);
         try {
-            if (method === 'pix_direto') {
+            if (method === 'cortesia') {
+                const res = await checkoutCourtesyOwnEventAction(
+                    eventId,
+                    cart.map(c => c.registrationId),
+                    courtesyReason,
+                );
+                if (res.error) {
+                    showToast.error('Não foi possível confirmar', res.error);
+                    return;
+                }
+                showToast.success('Cortesia confirmada', 'Inscrição registrada como doada, sem cobrança.');
+                setDone(true);
+            } else if (method === 'pix_direto') {
                 const items = cart.map(c => ({ registrationId: c.registrationId, amount: c.amount }));
                 const res = await checkoutOwnEventAction(eventId, items);
                 if (res.error) {
@@ -501,7 +520,9 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                 <CardContent className="flex flex-col items-center text-center gap-4 py-12">
                     <CheckCircleIcon size={64} weight="duotone" className="text-emerald-500" />
                     <h2 className="text-panel-lg font-bold">
-                        {isLink ? 'Link de pagamento gerado!' : 'Atleta inscrito com sucesso!'}
+                        {isLink ? 'Link de pagamento gerado!'
+                            : method === 'cortesia' ? 'Cortesia confirmada!'
+                            : 'Atleta inscrito com sucesso!'}
                     </h2>
                     <p className="text-muted-foreground max-w-md">
                         {isLink ? (
@@ -510,6 +531,11 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                             <>{resolved?.full_name} foi inscrito em {eventTitle}{resolved?.gym_name ? ` pela equipe ${resolved.gym_name}` : ''}.</>
                         )}
                     </p>
+                    {method === 'cortesia' && (
+                        <p className="text-panel-sm text-muted-foreground max-w-md">
+                            Registrado como <strong>inscrição doada</strong> (R$ {cartTotal.toFixed(2)}). Não entra como receita no financeiro.
+                        </p>
+                    )}
                     <div className="flex gap-3 mt-2">
                         <Button asChild variant="outline" pill>
                             <Link href={`/academia-equipe/dashboard/gestao-evento/${eventId}`}>Voltar à gestão</Link>
@@ -866,10 +892,12 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
 
                         <div className="rounded-2xl border bg-muted/30 p-4 flex justify-between font-black">
                             <span>Total ({cart.length} {cart.length === 1 ? 'categoria' : 'categorias'})</span>
-                            <span>R$ {cartTotal.toFixed(2)}</span>
+                            {method === 'cortesia'
+                                ? <span className="text-emerald-600">R$ 0,00 <span className="font-medium text-panel-sm text-muted-foreground">(R$ {cartTotal.toFixed(2)} doados)</span></span>
+                                : <span>R$ {cartTotal.toFixed(2)}</span>}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <PaymentOption
                                 active={method === 'pix_direto'}
                                 onClick={() => setMethod('pix_direto')}
@@ -884,14 +912,39 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                                 title="Gerar link / QR PIX"
                                 desc="Gera a cobrança PIX para enviar ao atleta pagar a própria inscrição."
                             />
+                            <PaymentOption
+                                active={method === 'cortesia'}
+                                onClick={() => setMethod('cortesia')}
+                                icon={<GiftIcon size={28} weight="duotone" />}
+                                title="Cortesia"
+                                desc="Inscrição doada. O atleta não paga nada e o valor não entra como receita."
+                            />
                         </div>
+
+                        {method === 'cortesia' && (
+                            <div className="space-y-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                                <Label htmlFor="courtesy-reason" className="font-semibold">Motivo da cortesia</Label>
+                                <Textarea
+                                    id="courtesy-reason"
+                                    value={courtesyReason}
+                                    onChange={e => setCourtesyReason(e.target.value)}
+                                    placeholder="Ex.: atleta do projeto social, filho de professor, parceria com a escola..."
+                                    rows={2}
+                                />
+                                <p className="text-panel-sm text-muted-foreground">
+                                    Fica registrado no histórico do evento para prestação de contas. Consome 1 token por categoria, como qualquer inscrição.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="flex justify-between pt-2">
                             <Button variant="outline" pill onClick={() => setStep(2)}>Voltar</Button>
                             <Button pill disabled={submitting} onClick={handleConfirm} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                                 {submitting
                                     ? <><CircleNotchIcon size={16} className="animate-spin mr-2" /> Processando...</>
-                                    : method === 'pix_direto' ? 'Confirmar inscrição' : 'Gerar PIX'}
+                                    : method === 'pix_link' ? 'Gerar PIX'
+                                    : method === 'cortesia' ? 'Confirmar cortesia'
+                                    : 'Confirmar inscrição'}
                             </Button>
                         </div>
                     </CardContent>

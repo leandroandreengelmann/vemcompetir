@@ -5,6 +5,7 @@ import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { consumeTokens } from '@/lib/token-utils';
+import { auditLog } from '@/lib/audit-log';
 import {
     createEventRegistrationReceipt,
     type EventRegistrationReceipt,
@@ -680,4 +681,85 @@ export async function checkoutOwnEventAction(
     revalidatePath('/academia-equipe/dashboard/eventos');
     revalidatePath('/academia-equipe/dashboard/financeiro/recibos');
     return { success: true, payment_id: paymentId, receipts };
+}
+
+// Cortesia em evento proprio: confirma as inscricoes do carrinho sem cobranca.
+// Nao cria registro em `payments` nem emite recibo — nao houve transacao.
+// O `price` (snapshot da categoria) e preservado para medir quanto foi doado;
+// `is_courtesy` mantem a inscricao fora da receita (ver registration-classifier).
+export async function checkoutCourtesyOwnEventAction(
+    eventId: string,
+    registrationIds: string[],
+    reason: string
+) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe') return { error: 'Sem permissao.' };
+    if (registrationIds.length === 0) return { error: 'Nenhuma inscricao selecionada.' };
+
+    const motivo = reason.trim();
+    if (!motivo) return { error: 'Informe o motivo da cortesia.' };
+
+    const admin = createAdminClient();
+
+    const { data: event } = await admin
+        .from('events')
+        .select('tenant_id, title')
+        .eq('id', eventId)
+        .single();
+
+    if (!event || event.tenant_id !== tenant_id) {
+        return { error: 'Evento nao pertence a esta academia.' };
+    }
+
+    // Confirma que os itens estao no carrinho deste usuario
+    const { data: cartItems } = await admin
+        .from('event_registrations')
+        .select('id, athlete_id, athlete:profiles!athlete_id(full_name)')
+        .in('id', registrationIds)
+        .eq('event_id', eventId)
+        .eq('registered_by', profile.id)
+        .eq('status', 'carrinho');
+
+    if (!cartItems || cartItems.length !== registrationIds.length) {
+        return { error: 'Alguns itens nao foram encontrados no carrinho.' };
+    }
+
+    const { error: updateError } = await admin
+        .from('event_registrations')
+        .update({
+            status: 'isento',
+            is_courtesy: true,
+            manual_amount: 0,
+            manual_payment_notes: motivo,
+        })
+        .in('id', registrationIds);
+
+    if (updateError) {
+        console.error('checkoutCourtesyOwnEventAction update error:', updateError);
+        return { error: 'Erro ao confirmar a cortesia.' };
+    }
+
+    const athleteName = (cartItems[0] as any)?.athlete?.full_name ?? 'atleta';
+
+    const tokenResult = await consumeTokens(tenant_id, registrationIds.length, {
+        eventId,
+        notes: `Cortesia: ${athleteName} (${registrationIds.length}) — ${motivo}`,
+        createdBy: profile.id,
+    });
+
+    auditLog('PAYMENT_FREE_CONFIRMED', {
+        type: 'courtesy',
+        event_id: eventId,
+        event_title: event.title,
+        athlete_id: (cartItems[0] as any)?.athlete_id ?? null,
+        athlete_name: athleteName,
+        registration_ids: registrationIds,
+        reason: motivo,
+        registered_by: profile.id,
+    });
+
+    revalidatePath('/academia-equipe/dashboard/eventos');
+    revalidatePath('/academia-equipe/dashboard/cortesias');
+    return { success: true, tokenWarning: tokenResult.warning ?? null };
 }
