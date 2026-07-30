@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useRegistrationCart } from "@/hooks/use-registration-cart";
-import { TrashIcon, ShoppingBagIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon } from "@phosphor-icons/react";
+import { TrashIcon, ShoppingCartIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -196,12 +196,12 @@ export function CartSheet() {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="bg-primary/5 p-2 rounded-full border-2 border-foreground">
-                                    <ShoppingBagIcon size={20} weight="duotone" className="text-primary" />
+                                    <ShoppingCartIcon size={20} weight="duotone" className="text-primary" />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <SheetTitle className="text-panel-md font-semibold">Cesta</SheetTitle>
+                                    <SheetTitle className="text-panel-md font-semibold">Carrinho</SheetTitle>
                                     <p className="text-panel-sm text-muted-foreground">
-                                        {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} na cesta
+                                        {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} no carrinho
                                         {pendingItems.length > 0 && ` • ${pendingItems.length} aguardando pagamento`}
                                     </p>
                                 </div>
@@ -213,10 +213,10 @@ export function CartSheet() {
                         {cartItems.length === 0 && pendingItems.length === 0 ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 space-y-4 animate-in fade-in zoom-in-95 duration-300">
                                 <div className="bg-muted p-6 rounded-full">
-                                    <ShoppingBagIcon size={40} weight="duotone" className="text-muted-foreground/50" />
+                                    <ShoppingCartIcon size={40} weight="duotone" className="text-muted-foreground/50" />
                                 </div>
                                 <div className="space-y-1">
-                                    <h3 className="text-panel-sm font-semibold text-foreground">Sua cesta está vazia</h3>
+                                    <h3 className="text-panel-sm font-semibold text-foreground">Seu carrinho está vazio</h3>
                                     <p className="text-panel-sm text-muted-foreground max-w-[200px] mx-auto">
                                         Seus itens pendentes aparecerão aqui.
                                     </p>
@@ -241,7 +241,7 @@ export function CartSheet() {
                                                 </h3>
                                             </div>
                                             <div className="bg-muted/50 border border-border/60 rounded-lg p-3 text-panel-sm font-semibold text-foreground leading-relaxed mb-3 shadow-sm">
-                                                Clique no botão <strong>Refazer</strong> para devolver a inscrição à cesta e tentar realizar o pagamento novamente.
+                                                Clique no botão <strong>Refazer</strong> para devolver a inscrição ao carrinho e tentar realizar o pagamento novamente.
                                             </div>
                                             {hasPendingCompanion && (
                                                 <div className="flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2.5 text-panel-sm text-amber-800 dark:text-amber-300">

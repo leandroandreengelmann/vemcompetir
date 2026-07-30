@@ -2,7 +2,7 @@
 
 import { useAthleteCart } from '@/hooks/use-athlete-cart';
 import { Button } from '@/components/ui/button';
-import { ShoppingBagIcon } from '@phosphor-icons/react';
+import { ShoppingCartIcon } from '@phosphor-icons/react';
 
 export function AthleteCartTrigger() {
     const { items, setOpen, isOpen } = useAthleteCart();
@@ -31,7 +31,7 @@ export function AthleteCartTrigger() {
             className={btnClasses}
             onClick={() => setOpen(true)}
         >
-            <ShoppingBagIcon size={20} weight="duotone" className={iconClasses} />
+            <ShoppingCartIcon size={20} weight="duotone" className={iconClasses} />
             <span className={badgeClasses}>
                 {displayCount}
             </span>

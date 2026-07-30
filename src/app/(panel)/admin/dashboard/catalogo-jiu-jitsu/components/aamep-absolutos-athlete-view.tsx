@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingBagIcon, CheckIcon, MagnifyingGlassIcon, MedalIcon } from '@phosphor-icons/react';
+import { ShoppingCartIcon, CheckIcon, MagnifyingGlassIcon, MedalIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { AAMEP_ABSOLUTOS } from '../lib/aamep-absolutos';
 
@@ -166,7 +166,7 @@ export function AamepAbsolutosAthleteView() {
                                         {inCart ? (
                                             <><CheckIcon size={14} weight="duotone" /> No carrinho</>
                                         ) : (
-                                            <><ShoppingBagIcon size={14} weight="duotone" /> Inscrever</>
+                                            <><ShoppingCartIcon size={14} weight="duotone" /> Inscrever</>
                                         )}
                                     </button>
                                 </div>
@@ -186,7 +186,7 @@ export function AamepAbsolutosAthleteView() {
                     <Card className="bg-primary text-primary-foreground border-0 shadow-2xl">
                         <CardContent className="py-3 px-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <ShoppingBagIcon size={20} weight="duotone" />
+                                <ShoppingCartIcon size={20} weight="duotone" />
                                 <div>
                                     <p className="text-xs opacity-80">Seu carrinho</p>
                                     <p className="text-sm font-bold">

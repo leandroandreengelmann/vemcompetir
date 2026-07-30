@@ -6,7 +6,7 @@ import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeftIcon, BooksIcon, WarningCircleIcon, ShoppingBagIcon, CheckCircleIcon, KeyIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, BooksIcon, WarningCircleIcon, ShoppingCartIcon, CheckCircleIcon, KeyIcon } from '@phosphor-icons/react';
 import { getEventCategoryDetails } from '../../../../../actions/event-reports';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -154,7 +154,7 @@ export default function DetalhesCategoriaPage({ params }: { params: Promise<{ id
                     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                         <div className="space-y-1">
                             <CardTitle className="text-base font-bold flex items-center gap-2">
-                                <ShoppingBagIcon size={20} weight="duotone" className="text-sky-500" />
+                                <ShoppingCartIcon size={20} weight="duotone" className="text-sky-500" />
                                 No Carrinho
                             </CardTitle>
                             <CardDescription className="text-xs">Atletas que iniciaram a inscrição mas não finalizaram o pedido.</CardDescription>

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAthleteCart } from "@/hooks/use-athlete-cart";
-import { TrashIcon, ShoppingBagIcon, CreditCardIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon, PackageIcon } from "@phosphor-icons/react";
+import { TrashIcon, ShoppingCartIcon, CreditCardIcon, InfoIcon, ArrowCounterClockwiseIcon, GiftIcon, PackageIcon } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -129,7 +129,7 @@ export function AthleteCartSheet() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="h-11 w-11 flex items-center justify-center rounded-full bg-background border-2 border-primary shrink-0">
-                                <ShoppingBagIcon size={20} weight="duotone" className="text-primary" />
+                                <ShoppingCartIcon size={20} weight="duotone" className="text-primary" />
                             </div>
                             <div className="space-y-0.5">
                                 <SheetTitle className="text-panel-lg">Meu Carrinho</SheetTitle>
@@ -146,7 +146,7 @@ export function AthleteCartSheet() {
                     {cartItems.length === 0 && pendingItems.length === 0 ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 space-y-4 animate-in fade-in zoom-in-95 duration-300">
                             <div className="bg-muted p-6 rounded-full">
-                                <ShoppingBagIcon size={40} weight="duotone" className="text-muted-foreground/50" />
+                                <ShoppingCartIcon size={40} weight="duotone" className="text-muted-foreground/50" />
                             </div>
                             <div className="space-y-1">
                                 <h3 className="font-semibold text-foreground">Seu carrinho está vazio</h3>

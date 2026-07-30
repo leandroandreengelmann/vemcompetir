@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ArrowRightIcon, ShoppingBagIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon, InfoIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, ShoppingCartIcon, CircleNotchIcon, CheckIcon, CaretDownIcon, CaretUpIcon, UsersIcon, InfoIcon } from '@phosphor-icons/react';
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { getCategoryEnrolledAthletes } from '@/app/(panel)/actions/event-categories';
@@ -149,7 +149,7 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                             ) : isActuallyInCart ? (
                                 <CheckIcon size={14} weight="duotone" />
                             ) : (
-                                <ShoppingBagIcon size={14} weight="duotone" />
+                                <ShoppingCartIcon size={14} weight="duotone" />
                             )}
                             {isActuallyInCart ? inCartLabel : addToCartLabel}
                         </button>
