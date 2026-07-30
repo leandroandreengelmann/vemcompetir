@@ -183,6 +183,167 @@ export async function dispatchNotification(opts: DispatchOptions): Promise<Dispa
     return { ok: true, status: 'sent', logId: logRow.id };
 }
 
+/**
+ * Envia uma imagem (ex.: QR Code do PIX) com legenda via Evolution API
+ * (POST /message/sendMedia). Envio sob demanda — não usa template.
+ * Logado em notification_logs (best-effort).
+ */
+export async function sendWhatsappMedia(opts: {
+    phone: string | null | undefined;
+    base64Image: string;
+    caption: string;
+    fileName?: string;
+    recipientId?: string | null;
+    relatedEntityType?: string;
+    relatedEntityId?: string;
+}): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+    const admin = createAdminClient();
+
+    const phone = normalizeBrPhone(opts.phone);
+    if (!phone) return { ok: false, error: 'Telefone inválido ou ausente.' };
+
+    const { data: config } = await admin
+        .from('evolution_config')
+        .select('base_url, api_key, instance_name, dry_run, rate_limit_per_hour')
+        .limit(1)
+        .maybeSingle();
+
+    if (!config?.base_url || !config?.api_key || !config?.instance_name) {
+        return { ok: false, error: 'Evolution API não configurada.' };
+    }
+
+    const allowed = await checkRateLimit(admin, phone, config.rate_limit_per_hour ?? 30);
+    if (!allowed) return { ok: false, error: 'Limite de mensagens por hora atingido.' };
+
+    if (config.dry_run) return { ok: true };
+
+    // Evolution aceita base64 puro (sem o prefixo data:)
+    const media = opts.base64Image.replace(/^data:image\/\w+;base64,/, '');
+    const url = `${config.base_url.replace(/\/$/, '')}/message/sendMedia/${config.instance_name}`;
+    const payload = {
+        number: phone,
+        mediatype: 'image',
+        mimetype: 'image/png',
+        media,
+        caption: opts.caption,
+        fileName: opts.fileName ?? 'pix.png',
+    };
+    const headers = { 'Content-Type': 'application/json', apikey: config.api_key };
+
+    let messageId: string | null = null;
+    let lastError: string | null = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const controller = new AbortController();
+            const t = setTimeout(() => controller.abort(), 15_000);
+            const res = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+            clearTimeout(t);
+
+            if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                messageId = data?.key?.id ?? data?.messageId ?? null;
+                lastError = null;
+                break;
+            }
+            const text = await res.text().catch(() => '');
+            lastError = `HTTP ${res.status}: ${text.slice(0, 300)}`;
+        } catch (err: any) {
+            lastError = err?.name === 'AbortError' ? 'Timeout (15s)' : (err?.message ?? 'Erro desconhecido');
+        }
+    }
+
+    // Log best-effort (não bloqueia o resultado)
+    try {
+        await admin.from('notification_logs').insert({
+            template_key: 'payment_confirmed',
+            recipient_phone: phone,
+            recipient_role: 'atleta',
+            recipient_id: opts.recipientId ?? null,
+            payload: { kind: 'pix_qr', fileName: opts.fileName ?? 'pix.png' },
+            rendered_message: opts.caption,
+            status: lastError ? 'failed' : 'sent',
+            error: lastError,
+            sent_at: lastError ? null : new Date().toISOString(),
+            evolution_message_id: messageId,
+            related_entity_type: opts.relatedEntityType ?? null,
+            related_entity_id: opts.relatedEntityId ?? null,
+        });
+    } catch { /* log é complementar */ }
+
+    if (lastError) return { ok: false, error: friendlyEvolutionError(lastError) };
+    return { ok: true, messageId: messageId ?? undefined };
+}
+
+/**
+ * Traduz erros crus da Evolution para mensagens acionáveis ao usuário.
+ */
+function friendlyEvolutionError(raw: string): string {
+    const r = raw.toLowerCase();
+    if (r.includes('connection closed') || r.includes('connection lost') || r.includes('not connected') || r.includes('close')) {
+        return 'O WhatsApp da plataforma está desconectado. Reconecte em Notificações › Conectar e tente novamente — ou use "Abrir no meu WhatsApp".';
+    }
+    if (r.includes('timeout')) {
+        return 'Tempo esgotado ao falar com o WhatsApp. Tente novamente em instantes.';
+    }
+    if (r.includes('exists":false') || r.includes('not exists') || r.includes('número') || r.includes('number')) {
+        return 'Este número não parece ter WhatsApp. Confira o telefone.';
+    }
+    return raw;
+}
+
+/**
+ * Envia mensagem de texto avulsa (sem template) via Evolution API.
+ * Usado como fallback quando o envio de mídia falha.
+ */
+export async function sendWhatsappText(opts: {
+    phone: string | null | undefined;
+    text: string;
+}): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+    const admin = createAdminClient();
+    const phone = normalizeBrPhone(opts.phone);
+    if (!phone) return { ok: false, error: 'Telefone inválido ou ausente.' };
+
+    const { data: config } = await admin
+        .from('evolution_config')
+        .select('base_url, api_key, instance_name, dry_run')
+        .limit(1)
+        .maybeSingle();
+
+    if (!config?.base_url || !config?.api_key || !config?.instance_name) {
+        return { ok: false, error: 'Evolution API não configurada.' };
+    }
+    if (config.dry_run) return { ok: true };
+
+    const url = `${config.base_url.replace(/\/$/, '')}/message/sendText/${config.instance_name}`;
+    const headers = { 'Content-Type': 'application/json', apikey: config.api_key };
+
+    try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 10_000);
+        const res = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ number: phone, text: opts.text }),
+            signal: controller.signal,
+        });
+        clearTimeout(t);
+        if (!res.ok) {
+            const txt = await res.text().catch(() => '');
+            return { ok: false, error: friendlyEvolutionError(`HTTP ${res.status}: ${txt.slice(0, 300)}`) };
+        }
+        const data = await res.json().catch(() => ({}));
+        return { ok: true, messageId: data?.key?.id ?? data?.messageId ?? undefined };
+    } catch (err: any) {
+        return { ok: false, error: friendlyEvolutionError(err?.name === 'AbortError' ? 'Timeout' : (err?.message ?? 'Erro')) };
+    }
+}
+
 export async function testEvolutionConnection(): Promise<{ ok: boolean; message: string }> {
     const admin = createAdminClient();
     const { data: config } = await admin

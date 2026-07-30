@@ -171,6 +171,211 @@ export async function createAthleteAction(formData: FormData) {
     return { success: true };
 }
 
+/**
+ * Busca um atleta existente pelo CPF (para evitar perfis duplicados ao
+ * inscrever um atleta externo). Retorna os dados básicos do perfil e se ele
+ * já pertence à academia que está consultando.
+ */
+export async function findAthleteByCpfAction(cpf: string) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe' && profile.role !== 'admin_geral') {
+        return { error: 'Sem permissão.' as const };
+    }
+
+    const normalizedCpf = (cpf || '').replace(/\D/g, '');
+    if (normalizedCpf.length !== 11) {
+        return { error: 'CPF inválido.' as const };
+    }
+
+    const adminClient = createAdminClient();
+
+    const { data: athlete } = await adminClient
+        .from('profiles')
+        .select('id, full_name, birth_date, sexo, belt_color, weight, cpf, phone, gym_name, master_name, master_id, tenant_id, role')
+        .eq('cpf', normalizedCpf)
+        .eq('role', 'atleta')
+        .maybeSingle();
+
+    if (!athlete) {
+        return { found: false as const };
+    }
+
+    return {
+        found: true as const,
+        athlete,
+        belongsToMyAcademy: athlete.tenant_id === tenant_id,
+    };
+}
+
+/**
+ * Busca atletas por nome (parcial) OU CPF, em toda a base (admin), para o fluxo de
+ * inscrição de atleta externo. Retorna até 20 resultados com flag de conta própria.
+ */
+export async function searchAthletesAction(query: string) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe' && profile.role !== 'admin_geral') {
+        return { error: 'Sem permissão.' as const };
+    }
+
+    const q = (query || '').trim();
+    if (q.length < 3) return { results: [] as any[] };
+
+    const adminClient = createAdminClient();
+    const digits = q.replace(/\D/g, '');
+    // Considera "busca por CPF" quando o texto é majoritariamente numérico
+    const isCpfSearch = digits.length >= 3 && digits.length >= q.replace(/[.\-\s]/g, '').length;
+
+    let dbQuery = adminClient
+        .from('profiles')
+        .select('id, full_name, cpf, belt_color, birth_date, sexo, weight, phone, gym_name, master_name, tenant_id')
+        .eq('role', 'atleta')
+        .limit(20);
+
+    dbQuery = isCpfSearch
+        ? dbQuery.ilike('cpf', `%${digits}%`)
+        : dbQuery.ilike('full_name', `%${q}%`);
+
+    const { data } = await dbQuery.order('full_name', { ascending: true });
+
+    // Flag "tem conta própria" (e-mail real, não dummy) — best-effort
+    let accountIds = new Set<string>();
+    try {
+        const { data: { users } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        accountIds = new Set(
+            users
+                .filter(u => u.email && !u.email.includes('@dummy.competir.com'))
+                .map(u => u.id)
+        );
+    } catch { /* badge é complementar */ }
+
+    const results = (data || []).map((a: any) => ({
+        ...a,
+        hasOwnAccount: accountIds.has(a.id),
+        belongsToMyAcademy: a.tenant_id === tenant_id,
+    }));
+
+    return { results };
+}
+
+/**
+ * Cadastra um atleta "externo" no contexto da academia organizadora de um evento.
+ * Diferente de createAthleteAction: a academia/mestre são ESCOLHIDOS (não forçados
+ * para os da própria academia). O tenant_id permanece o da organizadora (ela gerencia
+ * o atleta), mas gym_name/master_name são os escolhidos — é assim que o atleta aparece
+ * na academia correta no chaveamento e relatórios.
+ */
+export async function createExternalAthleteAction(formData: FormData) {
+    const { profile, tenant_id } = await requireTenantScope();
+
+    if (profile.role !== 'academia/equipe') return { error: 'Sem permissão.' };
+
+    const full_name = formData.get('full_name') as string;
+    const birth_date = formData.get('birth_date') as string;
+    const belt_color = formData.get('belt_color') as string;
+    const weight = formData.get('weight') as string;
+    const phone = formData.get('phone') as string;
+    const sexo = formData.get('sexo') as string;
+    const cpf = (formData.get('cpf') as string || '').replace(/\D/g, '');
+
+    // Academia/mestre ESCOLHIDOS para este atleta
+    const gym_name = (formData.get('gym_name') as string || '').trim() || null;
+    const master_name = (formData.get('master_name') as string || '').trim() || null;
+    const master_id = (formData.get('master_id') as string || null) || null;
+
+    const has_guardian = formData.get('has_guardian') === 'on';
+    const guardian_name = has_guardian ? (formData.get('guardian_name') as string || null) : null;
+    const guardian_phone = has_guardian ? (formData.get('guardian_phone') as string || '').replace(/\D/g, '') || null : null;
+    const guardian_cpf = has_guardian ? (formData.get('guardian_cpf') as string || '').replace(/\D/g, '') || null : null;
+    const guardian_relationship = has_guardian ? (formData.get('guardian_relationship') as string || null) : null;
+
+    if (!full_name) return { error: 'Preencha o nome do atleta.' };
+    if (!gym_name) return { error: 'Selecione a academia/equipe do atleta.' };
+    if (has_guardian && (!guardian_name || !guardian_phone || !guardian_cpf)) {
+        return { error: 'Preencha nome, CPF e telefone do responsável legal.' };
+    }
+
+    const adminClient = createAdminClient();
+
+    const email = `${Math.random().toString(36).substring(2, 10)}-${Date.now()}@dummy.competir.com`;
+    const password = Math.random().toString(36).slice(-10) + 'A1!@';
+
+    const { data: { user }, error } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        user_metadata: {
+            role: 'atleta',
+            full_name,
+            tenant_id,
+            gym_name,
+            birth_date,
+            belt_color,
+            weight: weight ? parseFloat(weight) : null,
+            phone,
+            master_id,
+            master_name,
+            cpf,
+            sexo,
+        },
+        email_confirm: true,
+    });
+
+    if (error) {
+        if (error.message.includes('already been registered') || error.message.includes('already registered')) {
+            return { error: 'Este atleta já possui um cadastro na plataforma. Use a busca por CPF para inscrevê-lo.' };
+        }
+        return { error: 'Não foi possível cadastrar o atleta. Tente novamente.' };
+    }
+
+    if (user) {
+        const { error: profileError } = await adminClient
+            .from('profiles')
+            .upsert({
+                id: user.id,
+                role: 'atleta',
+                full_name,
+                tenant_id,
+                gym_name,
+                birth_date: birth_date || null,
+                belt_color: belt_color || null,
+                weight: weight ? parseFloat(weight) : null,
+                phone,
+                master_id,
+                master_name,
+                cpf,
+                sexo,
+                has_guardian,
+                guardian_name,
+                guardian_phone,
+                guardian_cpf,
+                guardian_relationship,
+            });
+
+        if (profileError) {
+            await adminClient.auth.admin.deleteUser(user.id);
+            return { error: translateProfileError(profileError) };
+        }
+
+        if (isUnder18(birth_date)) {
+            await generateGuardianDeclaration({
+                adminClient,
+                athleteId: user.id,
+                athleteName: full_name,
+                academyName: gym_name,
+                hasGuardian: has_guardian,
+                guardianName: guardian_name,
+                guardianCpf: guardian_cpf,
+                guardianRelationship: guardian_relationship,
+                guardianPhone: guardian_phone,
+            });
+        }
+    }
+
+    revalidatePath('/academia-equipe/dashboard/atletas');
+    return { success: true, athleteId: user?.id };
+}
+
 export async function updateAthleteAction(formData: FormData) {
     const { profile, tenant_id } = await requireTenantScope();
 
