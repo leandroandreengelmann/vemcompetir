@@ -554,10 +554,17 @@ export async function checkoutOwnEventAction(
         registrationId: string;
         amount: number;
         notes?: string;
-    }>
+    }>,
+    // `requireNotes` é usado pelo wizard "Inscrever Atleta", onde a descrição do
+    // pagamento é obrigatória. A cesta (OwnEventConfirmModal) segue com o campo opcional.
+    options?: { requireNotes?: boolean }
 ) {
     const { profile, tenant_id } = await requireTenantScope();
     const admin = createAdminClient();
+
+    if (options?.requireNotes && items.some(i => !i.notes?.trim())) {
+        return { error: 'Informe a descrição do pagamento.' };
+    }
 
     // Verify event belongs to tenant
     const { data: event } = await admin
@@ -663,7 +670,9 @@ export async function checkoutOwnEventAction(
                 paymentMethod: 'pix',
                 payerName: athlete?.full_name ?? null,
                 payerDocument: athlete?.cpf ?? null,
-                description: `Inscrição em ${event.title ?? 'evento'}`,
+                description: item.notes?.trim()
+                    ? `Inscrição em ${event.title ?? 'evento'} — ${item.notes.trim()}`
+                    : `Inscrição em ${event.title ?? 'evento'}`,
                 eventId,
                 eventTitle: event.title ?? null,
                 eventDate: (event as any).event_date ?? null,

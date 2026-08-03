@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { RegistrationProofButton } from '@/components/registration-proof/RegistrationProofButton';
 
 interface RegistrationDetailsDialogProps {
     isOpen: boolean;
@@ -27,6 +28,10 @@ export function RegistrationDetailsDialog({
 
     const athlete = registration.athlete || {};
     const category = registration.category?.categoria_completa || 'Sem categoria';
+
+    const isCourtesy = !!registration.is_courtesy || registration.tipo === 'cortesia';
+    // Comprovante só faz sentido para inscrição efetivada.
+    const canIssueProof = ['pago', 'paga', 'confirmado', 'isento'].includes(registration.status);
 
     const formatCPF = (cpf?: string) => {
         if (!cpf) return '';
@@ -223,8 +228,25 @@ export function RegistrationDetailsDialog({
                                     {registration.created_at ? format(new Date(registration.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR }) : 'Data indisponível'}
                                 </p>
                             </div>
+
+                            {registration.manual_payment_notes && (
+                                <div>
+                                    <span className="text-panel-sm font-bold text-muted-foreground uppercase tracking-widest block mb-1">
+                                        {isCourtesy ? 'MOTIVO DA CORTESIA' : 'DESCRIÇÃO DO PAGAMENTO'}
+                                    </span>
+                                    <p className="text-sm font-medium text-foreground leading-relaxed whitespace-pre-wrap">
+                                        {registration.manual_payment_notes}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {canIssueProof && (
+                        <div className="flex justify-end border-t border-border/40 pt-4">
+                            <RegistrationProofButton registrationIds={[registration.id]} />
+                        </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>

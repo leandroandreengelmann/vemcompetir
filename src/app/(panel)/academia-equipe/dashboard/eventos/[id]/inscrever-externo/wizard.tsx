@@ -13,12 +13,15 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
     CircleNotchIcon, CheckCircleIcon, MagnifyingGlassIcon, UserPlusIcon,
     QrCodeIcon, HandCoinsIcon, ArrowRightIcon, ArrowLeftIcon,
-    WhatsappLogoIcon, CopyIcon, GiftIcon,
+    WhatsappLogoIcon, CopyIcon, GiftIcon, WarningCircleIcon, DownloadSimpleIcon,
+    IdentificationBadgeIcon,
 } from '@phosphor-icons/react';
 import { showToast } from '@/lib/toast';
-import { toast } from 'sonner';
 import { formatCPF, validateCPF, normalizeNumeric, formatPhone } from '@/lib/validation';
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatFullCategoryName } from '@/lib/category-utils';
@@ -32,6 +35,11 @@ import {
     checkoutCourtesyOwnEventAction,
 } from '../../cart-actions';
 import { sendPixWhatsappAction } from '../../whatsapp-pix-actions';
+import { pdf } from '@react-pdf/renderer';
+import { ReceiptPDF } from '@/app/(panel)/academia-equipe/dashboard/financeiro/recibos/ReceiptPDF';
+import type { EventRegistrationReceipt } from '@/lib/receipts/event-registration-receipt';
+import { RegistrationProofButton } from '@/components/registration-proof/RegistrationProofButton';
+import { PassportModal } from '@/components/passport/PassportModal';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela',
@@ -148,8 +156,13 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     // ── Pagamento ──
     const [method, setMethod] = useState<PaymentMethod>('pix_direto');
     const [courtesyReason, setCourtesyReason] = useState('');
+    const [paymentNotes, setPaymentNotes] = useState('');
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [done, setDone] = useState(false);
+    // Documentos gerados no fechamento (recibo só existe quando entrou dinheiro)
+    const [receipts, setReceipts] = useState<EventRegistrationReceipt[]>([]);
+    const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null);
     // pix_link: tela de envio
     const [linkData, setLinkData] = useState<any>(null);
     const [sendPhone, setSendPhone] = useState('');
@@ -177,10 +190,10 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
             try {
                 const res = await searchAthletesAction(q);
                 if (seq !== searchSeq.current) return; // resposta obsoleta
-                if ('error' in res) { toast.error(res.error); return; }
+                if ('error' in res) { showToast.error('Não foi possível buscar', res.error); return; }
                 setResults(res.results as SearchResult[]);
             } catch {
-                if (seq === searchSeq.current) toast.error('Erro ao buscar atletas.');
+                if (seq === searchSeq.current) showToast.error('Erro na busca', 'Não foi possível buscar atletas. Tente novamente.');
             } finally {
                 if (seq === searchSeq.current) setSearching(false);
             }
@@ -196,13 +209,13 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
         try {
             const data = await getEligibleCategoriesAction(eventId, id);
             if (data.error) {
-                toast.error(data.error);
+                showToast.error('Não foi possível carregar as categorias', data.error);
             } else {
                 setAllCategories(data.all || []);
                 setEnrolled(data.enrolledCategories || []);
             }
         } catch {
-            toast.error('Erro ao buscar categorias.');
+            showToast.error('Erro ao carregar categorias', 'Tente novamente.');
         } finally {
             setLoadingCats(false);
         }
@@ -293,7 +306,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     async function handleAddCategory(categoryId: string) {
         if (!athleteId) return;
         if (cart.some(c => c.categoryId === categoryId)) {
-            toast.error('Categoria já adicionada.');
+            showToast.warning('Categoria já adicionada', 'Ela já está na lista deste atleta.');
             return;
         }
         const cat = allCategories.find(c => c.id === categoryId);
@@ -301,7 +314,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
         try {
             const res = await addToCartAction({ eventId, athleteId, categoryId, price: cat?.registration_fee ?? 0 });
             if (res.error) {
-                toast.error(res.error);
+                showToast.error('Não foi possível adicionar', res.error);
                 return;
             }
             const items = await getCartItemsAction();
@@ -320,7 +333,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                 showToast.success('Categoria adicionada', cat ? formatFullCategoryName(cat) : '');
             }
         } catch {
-            toast.error('Erro ao adicionar categoria.');
+            showToast.error('Erro ao adicionar categoria', 'Tente novamente.');
         } finally {
             setAdding(false);
         }
@@ -329,7 +342,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     async function handleRemoveCategory(line: CartLine) {
         const res = await removeFromCartAction(line.registrationId);
         if (res.error) {
-            toast.error(res.error);
+            showToast.error('Não foi possível remover', res.error);
             return;
         }
         setCart(prev => prev.filter(c => c.registrationId !== line.registrationId));
@@ -348,12 +361,35 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     }
 
     // ───────────────────────── Pagamento ─────────────────────────
-    async function handleConfirm() {
-        if (cart.length === 0) { toast.error('Adicione ao menos uma categoria.'); return; }
+    function validatePayment(): boolean {
+        if (cart.length === 0) {
+            showToast.warning('Nenhuma categoria', 'Adicione ao menos uma categoria para continuar.');
+            return false;
+        }
         if (method === 'cortesia' && !courtesyReason.trim()) {
-            toast.error('Informe o motivo da cortesia.');
+            showToast.warning('Motivo obrigatório', 'Informe o motivo da cortesia para confirmar.');
+            return false;
+        }
+        if (method === 'pix_direto' && !paymentNotes.trim()) {
+            showToast.warning('Descrição obrigatória', 'Informe a descrição do pagamento para confirmar.');
+            return false;
+        }
+        return true;
+    }
+
+    // Botão do passo 3: valida e abre o aviso de confirmação.
+    // O link/QR PIX não precisa de confirmação — nada é marcado como pago ainda.
+    function handleSubmitClick() {
+        if (!validatePayment()) return;
+        if (method === 'pix_link') {
+            handleConfirm();
             return;
         }
+        setConfirmOpen(true);
+    }
+
+    async function handleConfirm() {
+        if (!validatePayment()) return;
         setSubmitting(true);
         try {
             if (method === 'cortesia') {
@@ -366,15 +402,19 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                     showToast.error('Não foi possível confirmar', res.error);
                     return;
                 }
+                setConfirmOpen(false);
                 showToast.success('Cortesia confirmada', 'Inscrição registrada como doada, sem cobrança.');
                 setDone(true);
             } else if (method === 'pix_direto') {
-                const items = cart.map(c => ({ registrationId: c.registrationId, amount: c.amount }));
-                const res = await checkoutOwnEventAction(eventId, items);
+                const notes = paymentNotes.trim();
+                const items = cart.map(c => ({ registrationId: c.registrationId, amount: c.amount, notes }));
+                const res = await checkoutOwnEventAction(eventId, items, { requireNotes: true });
                 if (res.error) {
                     showToast.error('Não foi possível confirmar', res.error);
                     return;
                 }
+                setReceipts(res.receipts ?? []);
+                setConfirmOpen(false);
                 showToast.success('Inscrição confirmada', 'Pagamento marcado como PIX direto na conta.');
                 setDone(true);
             } else {
@@ -433,6 +473,24 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
         ].filter(Boolean).join('\n');
         const base = digits.length >= 10 ? `https://wa.me/55${digits}` : 'https://wa.me/';
         window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    async function downloadReceipt(receipt: EventRegistrationReceipt) {
+        setDownloadingReceiptId(receipt.id);
+        try {
+            const blob = await pdf(<ReceiptPDF receipt={receipt} />).toBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recibo-${receipt.receipt_number}-${receipt.receipt_year}.pdf`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            console.error(err);
+            showToast.error('Falha ao gerar o PDF', 'Não foi possível montar o recibo.');
+        } finally {
+            setDownloadingReceiptId(null);
+        }
     }
 
     async function copyPixCode() {
@@ -536,6 +594,69 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                             Registrado como <strong>inscrição doada</strong> (R$ {cartTotal.toFixed(2)}). Não entra como receita no financeiro.
                         </p>
                     )}
+
+                    {/* Documentos — comprovante sempre; recibo só quando entrou dinheiro */}
+                    {!isLink && (
+                        <div className="w-full max-w-md rounded-2xl border bg-card p-4 space-y-3 text-left">
+                            <p className="text-panel-sm font-bold uppercase text-muted-foreground">Documentos</p>
+
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-panel-sm font-bold">Comprovante de inscrição</p>
+                                    <p className="text-panel-sm text-muted-foreground">
+                                        Prova que o atleta está inscrito, com categorias e forma de pagamento.
+                                    </p>
+                                </div>
+                                <RegistrationProofButton
+                                    registrationIds={cart.map(c => c.registrationId)}
+                                    className="shrink-0 gap-1.5 font-semibold"
+                                />
+                            </div>
+
+                            {receipts.map(r => (
+                                <div key={r.id} className="flex items-center justify-between gap-3 border-t pt-3">
+                                    <div className="min-w-0">
+                                        <p className="text-panel-sm font-bold">Recibo {r.receipt_number}/{r.receipt_year}</p>
+                                        <p className="text-panel-sm text-muted-foreground">
+                                            R$ {Number(r.amount).toFixed(2)} · também fica em Financeiro → Recibos.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        pill
+                                        size="sm"
+                                        className="shrink-0 gap-1.5 font-semibold"
+                                        onClick={() => downloadReceipt(r)}
+                                        disabled={downloadingReceiptId === r.id}
+                                    >
+                                        {downloadingReceiptId === r.id
+                                            ? <CircleNotchIcon size={15} className="animate-spin" />
+                                            : <DownloadSimpleIcon size={15} weight="duotone" />}
+                                        Recibo
+                                    </Button>
+                                </div>
+                            ))}
+
+                            <div className="border-t pt-3 space-y-2">
+                                <p className="text-panel-sm font-bold">Passaporte do atleta</p>
+                                {cart.map(line => (
+                                    <div key={line.registrationId} className="flex items-center justify-between gap-3">
+                                        <span className="text-panel-sm text-muted-foreground truncate">{line.categoryTitle}</span>
+                                        <PassportModal
+                                            registrationId={line.registrationId}
+                                            trigger={
+                                                <Button variant="outline" pill size="sm" className="shrink-0 gap-1.5 font-semibold">
+                                                    <IdentificationBadgeIcon size={15} weight="duotone" />
+                                                    Abrir
+                                                </Button>
+                                            }
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex gap-3 mt-2">
                         <Button asChild variant="outline" pill>
                             <Link href={`/academia-equipe/dashboard/gestao-evento/${eventId}`}>Voltar à gestão</Link>
@@ -921,9 +1042,29 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                             />
                         </div>
 
+                        {method === 'pix_direto' && (
+                            <div className="space-y-2 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                                <Label htmlFor="payment-notes" className="font-semibold">
+                                    Descrição do pagamento <span className="text-destructive">*</span>
+                                </Label>
+                                <Textarea
+                                    id="payment-notes"
+                                    value={paymentNotes}
+                                    onChange={e => setPaymentNotes(e.target.value)}
+                                    placeholder="Ex.: PIX recebido na conta da academia em 03/08, comprovante enviado no grupo."
+                                    rows={2}
+                                />
+                                <p className="text-panel-sm text-muted-foreground">
+                                    Obrigatório. Fica registrado na inscrição e no recibo, para prestação de contas.
+                                </p>
+                            </div>
+                        )}
+
                         {method === 'cortesia' && (
                             <div className="space-y-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                                <Label htmlFor="courtesy-reason" className="font-semibold">Motivo da cortesia</Label>
+                                <Label htmlFor="courtesy-reason" className="font-semibold">
+                                    Motivo da cortesia <span className="text-destructive">*</span>
+                                </Label>
                                 <Textarea
                                     id="courtesy-reason"
                                     value={courtesyReason}
@@ -932,14 +1073,14 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                                     rows={2}
                                 />
                                 <p className="text-panel-sm text-muted-foreground">
-                                    Fica registrado no histórico do evento para prestação de contas. Consome 1 token por categoria, como qualquer inscrição.
+                                    Obrigatório. Fica registrado no histórico do evento para prestação de contas. Consome 1 token por categoria, como qualquer inscrição.
                                 </p>
                             </div>
                         )}
 
                         <div className="flex justify-between pt-2">
                             <Button variant="outline" pill onClick={() => setStep(2)}>Voltar</Button>
-                            <Button pill disabled={submitting} onClick={handleConfirm} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                            <Button pill disabled={submitting} onClick={handleSubmitClick} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                                 {submitting
                                     ? <><CircleNotchIcon size={16} className="animate-spin mr-2" /> Processando...</>
                                     : method === 'pix_link' ? 'Gerar PIX'
@@ -950,6 +1091,95 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                     </CardContent>
                 </Card>
             )}
+
+            {/* Aviso de confirmação — última checagem antes de gravar */}
+            <Dialog open={confirmOpen} onOpenChange={(o) => { if (!submitting) setConfirmOpen(o); }}>
+                <DialogContent className="sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-full bg-amber-500/10 shrink-0">
+                                <WarningCircleIcon size={22} weight="duotone" className="text-amber-500" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-panel-md font-bold">
+                                    {method === 'cortesia' ? 'Confirmar cortesia' : 'Confirmar inscrição'}
+                                </DialogTitle>
+                                <DialogDescription className="text-panel-sm mt-0.5">
+                                    Confira antes de gravar. Depois de confirmada, a inscrição consome token.
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="space-y-3 rounded-2xl border bg-muted/30 p-4 text-panel-sm">
+                        <div className="flex justify-between gap-3">
+                            <span className="text-muted-foreground">Atleta</span>
+                            <span className="font-bold text-right truncate">{resolved?.full_name}</span>
+                        </div>
+                        {resolved?.gym_name && (
+                            <div className="flex justify-between gap-3">
+                                <span className="text-muted-foreground">Equipe</span>
+                                <span className="font-medium text-right truncate">{resolved.gym_name}</span>
+                            </div>
+                        )}
+                        <div className="space-y-1">
+                            <span className="text-muted-foreground">
+                                {cart.length} {cart.length === 1 ? 'categoria' : 'categorias'}
+                            </span>
+                            {cart.map(line => (
+                                <div key={line.registrationId} className="flex justify-between gap-3">
+                                    <span className="font-medium truncate">{line.categoryTitle}</span>
+                                    <span className="tabular-nums shrink-0">
+                                        {method === 'cortesia' ? 'R$ 0,00' : `R$ ${line.amount.toFixed(2)}`}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-between gap-3 border-t pt-3">
+                            <span className="text-muted-foreground">Forma</span>
+                            <span className="font-bold text-right">
+                                {method === 'cortesia' ? 'Cortesia (sem cobrança)' : 'PIX direto na conta'}
+                            </span>
+                        </div>
+                        <div className="space-y-1 border-t pt-3">
+                            <span className="text-muted-foreground">
+                                {method === 'cortesia' ? 'Motivo' : 'Descrição do pagamento'}
+                            </span>
+                            <p className="font-medium break-words">
+                                {method === 'cortesia' ? courtesyReason.trim() : paymentNotes.trim()}
+                            </p>
+                        </div>
+                        <div className="flex justify-between gap-3 border-t pt-3">
+                            <span className="font-bold uppercase text-muted-foreground">Total</span>
+                            <span className="text-panel-md font-black tabular-nums">
+                                {method === 'cortesia' ? 'R$ 0,00' : `R$ ${cartTotal.toFixed(2)}`}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            pill
+                            className="flex-1"
+                            disabled={submitting}
+                            onClick={() => setConfirmOpen(false)}
+                        >
+                            Voltar
+                        </Button>
+                        <Button
+                            pill
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            disabled={submitting}
+                            onClick={handleConfirm}
+                        >
+                            {submitting
+                                ? <><CircleNotchIcon size={16} className="animate-spin mr-2" /> Gravando...</>
+                                : <><CheckCircleIcon size={18} weight="fill" className="mr-2" /> Confirmar</>}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
