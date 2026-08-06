@@ -18,7 +18,7 @@ import {
 import {
     CircleNotchIcon, CheckCircleIcon, MagnifyingGlassIcon, UserPlusIcon,
     QrCodeIcon, HandCoinsIcon, ArrowRightIcon, ArrowLeftIcon,
-    WhatsappLogoIcon, CopyIcon, GiftIcon, WarningCircleIcon, DownloadSimpleIcon,
+    CopyIcon, GiftIcon, WarningCircleIcon, DownloadSimpleIcon,
     IdentificationBadgeIcon,
 } from '@phosphor-icons/react';
 import { showToast } from '@/lib/toast';
@@ -34,7 +34,6 @@ import {
     addToCartAction, getCartItemsAction, checkoutOwnEventAction, removeFromCartAction,
     checkoutCourtesyOwnEventAction,
 } from '../../cart-actions';
-import { sendPixWhatsappAction } from '../../whatsapp-pix-actions';
 import { pdf } from '@react-pdf/renderer';
 import { ReceiptPDF } from '@/app/(panel)/academia-equipe/dashboard/financeiro/recibos/ReceiptPDF';
 import type { EventRegistrationReceipt } from '@/lib/receipts/event-registration-receipt';
@@ -165,9 +164,6 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null);
     // pix_link: tela de envio
     const [linkData, setLinkData] = useState<any>(null);
-    const [sendPhone, setSendPhone] = useState('');
-    const [sending, setSending] = useState(false);
-    const [sentOk, setSentOk] = useState(false);
     const [copied, setCopied] = useState(false);
 
     const athleteSex = resolved?.sexo ?? null;
@@ -429,50 +425,12 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                     return;
                 }
                 setLinkData(data);
-                setSendPhone(resolved?.phone ? formatPhone(resolved.phone) : '');
             }
         } catch {
             showToast.error('Falha ao processar', 'Tente novamente.');
         } finally {
             setSubmitting(false);
         }
-    }
-
-    // ───────────────────────── Envio do link (WhatsApp) ─────────────────────────
-    async function handleSendWhatsapp() {
-        if (!linkData?.payment_id) return;
-        const digits = sendPhone.replace(/\D/g, '');
-        if (digits.length < 10) { showToast.error('Telefone inválido', 'Informe DDD + número.'); return; }
-        setSending(true);
-        try {
-            const res = await sendPixWhatsappAction({
-                paymentId: linkData.payment_id,
-                phone: digits,
-                invoiceUrl: linkData.invoice_url ?? null,
-            });
-            if (!res.ok) {
-                showToast.error('Não foi possível enviar', res.error);
-                return;
-            }
-            setSentOk(true);
-            showToast.success('Enviado pelo WhatsApp', ('note' in res && res.note) ? res.note : (resolved?.full_name ?? ''));
-        } finally {
-            setSending(false);
-        }
-    }
-
-    function openWaMe() {
-        const digits = sendPhone.replace(/\D/g, '');
-        const valor = `R$ ${Number(linkData?.total_inscricoes || 0).toFixed(2).replace('.', ',')}`;
-        const msg = [
-            `🥋 Olá ${resolved?.full_name || 'atleta'}! Sua inscrição${eventTitle ? ` em ${eventTitle}` : ''} está reservada.`,
-            `Valor: ${valor}`,
-            linkData?.pix_payload ? `\nCódigo PIX:\n${linkData.pix_payload}` : '',
-            linkData?.invoice_url ? `\nOu pague pelo link: ${linkData.invoice_url}` : '',
-            `\nAssim que pagar, sua vaga é confirmada.`,
-        ].filter(Boolean).join('\n');
-        const base = digits.length >= 10 ? `https://wa.me/55${digits}` : 'https://wa.me/';
-        window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     async function downloadReceipt(receipt: EventRegistrationReceipt) {
@@ -511,55 +469,28 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                             <QrCodeIcon size={22} weight="duotone" className="text-primary" />
                             Cobrança PIX gerada
                         </div>
-                        {linkData.pix_qr_code && (
-                            <div className="p-3 bg-white rounded-xl border">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img alt="QR Code PIX" className="w-48 h-48" src={`data:image/png;base64,${linkData.pix_qr_code}`} />
-                            </div>
-                        )}
                         <div>
                             <p className="text-panel-sm text-muted-foreground">Valor</p>
                             <p className="text-panel-lg font-black tabular-nums">R$ {Number(linkData.total_inscricoes || 0).toFixed(2)}</p>
                         </div>
-                        <Button variant="outline" pill size="sm" onClick={copyPixCode} className="gap-2">
-                            <CopyIcon size={16} weight="duotone" />
-                            {copied ? 'Código copiado!' : 'Copiar código PIX'}
-                        </Button>
                     </div>
 
                     <div className="rounded-2xl border bg-muted/30 p-4 space-y-3">
-                        <p className="text-panel-sm font-bold">Enviar para o atleta pagar</p>
-                        <div className="space-y-2">
-                            <Label htmlFor="sendphone">WhatsApp do atleta</Label>
-                            <Input
-                                variant="lg"
-                                id="sendphone"
-                                className="bg-background"
-                                value={sendPhone}
-                                onChange={(e) => setSendPhone(formatPhone(e.target.value))}
-                                placeholder="(00) 00000-0000"
-                            />
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <Button
-                                pill
-                                onClick={handleSendWhatsapp}
-                                disabled={sending}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-                            >
-                                {sending
-                                    ? <><CircleNotchIcon size={16} className="animate-spin" /> Enviando...</>
-                                    : sentOk
-                                        ? <><CheckCircleIcon size={18} weight="fill" /> Enviado!</>
-                                        : <><WhatsappLogoIcon size={18} weight="fill" /> Enviar no WhatsApp</>}
-                            </Button>
-                            <Button variant="outline" pill onClick={openWaMe} className="gap-2">
-                                <WhatsappLogoIcon size={18} weight="duotone" />
-                                Abrir no meu WhatsApp
-                            </Button>
-                        </div>
+                        <p className="text-panel-sm font-bold">Código PIX (copia e cola)</p>
+                        {linkData.pix_payload && (
+                            <div className="rounded-xl border bg-background p-3">
+                                <p className="text-panel-sm font-mono break-all text-muted-foreground">
+                                    {linkData.pix_payload}
+                                </p>
+                            </div>
+                        )}
+                        <Button pill onClick={copyPixCode} className="w-full gap-2">
+                            {copied
+                                ? <><CheckCircleIcon size={18} weight="fill" /> Código copiado!</>
+                                : <><CopyIcon size={18} weight="duotone" /> Copiar código PIX</>}
+                        </Button>
                         <p className="text-panel-sm text-muted-foreground">
-                            “Enviar no WhatsApp” manda o QR Code automaticamente pelo número da plataforma. “Abrir no meu WhatsApp” abre o seu app com a mensagem (sem a imagem).
+                            Copie o código e envie para quem vai pagar (WhatsApp, SMS etc.).
                         </p>
                     </div>
 
@@ -578,7 +509,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                 <CardContent className="flex flex-col items-center text-center gap-4 py-12">
                     <CheckCircleIcon size={64} weight="duotone" className="text-emerald-500" />
                     <h2 className="text-panel-lg font-bold">
-                        {isLink ? 'Link de pagamento gerado!'
+                        {isLink ? 'Cobrança PIX gerada!'
                             : method === 'cortesia' ? 'Cortesia confirmada!'
                             : 'Atleta inscrito com sucesso!'}
                     </h2>
@@ -1030,8 +961,8 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
                                 active={method === 'pix_link'}
                                 onClick={() => setMethod('pix_link')}
                                 icon={<QrCodeIcon size={28} weight="duotone" />}
-                                title="Gerar link / QR PIX"
-                                desc="Gera a cobrança PIX para enviar ao atleta pagar a própria inscrição."
+                                title="Gerar código PIX"
+                                desc="Gera o código PIX (copia e cola) para enviar a quem vai pagar a inscrição."
                             />
                             <PaymentOption
                                 active={method === 'cortesia'}
