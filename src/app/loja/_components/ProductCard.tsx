@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ImageIcon } from '@phosphor-icons/react/dist/ssr';
 import { storeImageUrl, formatBRL, effectivePrice } from '@/lib/store';
