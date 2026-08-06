@@ -9,6 +9,8 @@ import { getHeroBannersForHome } from "@/lib/dal/hero-banners";
 import { heroBannerImageUrl } from "@/lib/hero-banners";
 import { Sponsors } from "@/components/home/Sponsors";
 import { getSponsorsForHome } from "@/lib/dal/sponsors";
+import { ProductsCarousel } from "@/components/home/ProductsCarousel";
+import { getStoreProductsForHome } from "@/lib/dal/store-home";
 
 export const revalidate = 60;
 
@@ -41,10 +43,11 @@ export default async function Home() {
     }
   }
 
-  const [events, heroData, sponsorsData] = await Promise.all([
+  const [events, heroData, sponsorsData, storeProducts] = await Promise.all([
     getPublishedEvents(),
     getHeroBannersForHome(),
     getSponsorsForHome(),
+    getStoreProductsForHome(),
   ]);
 
   return (
@@ -97,13 +100,17 @@ export default async function Home() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 justify-center">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <div key={event.id} className="w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.333rem)]">
+                <EventCard event={event} />
+              </div>
             ))}
           </div>
         )}
       </main>
+
+      <ProductsCarousel products={storeProducts} />
 
       <Sponsors title={sponsorsData.title} sponsors={sponsorsData.sponsors} />
 

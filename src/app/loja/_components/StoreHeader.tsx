@@ -86,14 +86,21 @@ function CartDrawer() {
                                             onClick={() => setOpen(false)}
                                             className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted"
                                         >
-                                            {i.image ? (
+                                            {i.image && (
                                                 // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={i.image} alt={i.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                                    <StorefrontIcon size={22} weight="thin" />
-                                                </div>
+                                                <img
+                                                    src={i.image}
+                                                    alt={i.name}
+                                                    className="h-full w-full object-cover"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                                    }}
+                                                />
                                             )}
+                                            <div className={`h-full w-full items-center justify-center text-muted-foreground ${i.image ? 'hidden' : 'flex'}`}>
+                                                <StorefrontIcon size={22} weight="thin" />
+                                            </div>
                                         </Link>
 
                                         <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">

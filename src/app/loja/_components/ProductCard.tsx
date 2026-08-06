@@ -21,12 +21,19 @@ export function ProductCard({ p }: { p: ProductCardData }) {
             className="group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/40"
         >
             <div className="relative aspect-square w-full overflow-hidden bg-muted">
-                {img ? (
+                {img && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={p.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                ) : (
-                    <ImageIcon size={40} className="absolute inset-0 m-auto text-muted-foreground" />
+                    <img
+                        src={img}
+                        alt={p.name}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                    />
                 )}
+                <ImageIcon size={40} className={`absolute inset-0 m-auto text-muted-foreground ${img ? 'hidden' : ''}`} />
                 {hasPromo && (
                     <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground">
                         Promoção
