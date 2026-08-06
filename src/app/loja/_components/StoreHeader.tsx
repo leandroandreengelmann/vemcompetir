@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ShoppingCartIcon, TrashIcon, WhatsappLogoIcon, PlusIcon, MinusIcon, StorefrontIcon } from '@phosphor-icons/react';
+import { ShoppingCartIcon, TrashIcon, WhatsappLogoIcon, PlusIcon, MinusIcon, StorefrontIcon, HouseIcon } from '@phosphor-icons/react';
 import { useCart, buildWhatsAppUrl } from './cart-context';
 
 function formatBRL(v: number) {
@@ -17,11 +17,22 @@ export function StoreHeader() {
     return (
         <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
             <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-                <Link href="/loja" className="flex items-center gap-2 font-bold text-lg">
-                    <StorefrontIcon size={26} weight="duotone" className="text-primary" />
-                    <span className="truncate">{store.storeName || 'Loja'}</span>
-                </Link>
-                <Button variant="outline" pill className="relative gap-2" onClick={() => setOpen(true)}>
+                <div className="flex min-w-0 items-center gap-3">
+                    <Link
+                        href="/"
+                        title="Voltar ao Competir"
+                        className="flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                        <HouseIcon size={18} weight="bold" />
+                        <span className="hidden sm:inline">Início</span>
+                    </Link>
+                    <div className="h-6 w-px shrink-0 bg-border" />
+                    <Link href="/loja" className="flex min-w-0 items-center gap-2 font-bold text-lg">
+                        <StorefrontIcon size={26} weight="duotone" className="text-primary shrink-0" />
+                        <span className="truncate">{store.storeName || 'Loja'}</span>
+                    </Link>
+                </div>
+                <Button variant="outline" pill className="relative shrink-0 gap-2" onClick={() => setOpen(true)}>
                     <ShoppingCartIcon size={20} weight="bold" />
                     <span className="hidden sm:inline">Carrinho</span>
                     {count > 0 && (
