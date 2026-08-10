@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -10,8 +11,13 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RegistrationProofButton } from '@/components/registration-proof/RegistrationProofButton';
+import { getPaymentReceiptDetailsAction, type PaymentReceiptDetails } from '../../../payment-receipt-actions';
+import { BankReceiptDialog } from './BankReceiptDialog';
+import { showToast } from '@/lib/toast';
+import { BankIcon, CircleNotchIcon } from '@phosphor-icons/react';
 
 interface RegistrationDetailsDialogProps {
     isOpen: boolean;
@@ -24,6 +30,10 @@ export function RegistrationDetailsDialog({
     onOpenChange,
     registration,
 }: RegistrationDetailsDialogProps) {
+    const [isFetchingReceipt, startReceiptFetch] = useTransition();
+    const [receiptData, setReceiptData] = useState<PaymentReceiptDetails | null>(null);
+    const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
+
     if (!registration) return null;
 
     const athlete = registration.athlete || {};
@@ -32,6 +42,20 @@ export function RegistrationDetailsDialog({
     const isCourtesy = !!registration.is_courtesy || registration.tipo === 'cortesia';
     // Comprovante só faz sentido para inscrição efetivada.
     const canIssueProof = ['pago', 'paga', 'confirmado', 'isento'].includes(registration.status);
+    // Comprovante bancário (Asaas) só existe pra inscrições que passaram pelo checkout PIX da plataforma.
+    const canViewBankReceipt = ['pago', 'agendado'].includes(registration.tipo);
+
+    const handleViewBankReceipt = () => {
+        startReceiptFetch(async () => {
+            const res = await getPaymentReceiptDetailsAction(registration.id);
+            if ('error' in res) {
+                showToast.error('Comprovante indisponível', res.error);
+                return;
+            }
+            setReceiptData(res.data);
+            setIsReceiptDialogOpen(true);
+        });
+    };
 
     const formatCPF = (cpf?: string) => {
         if (!cpf) return '';
@@ -242,13 +266,37 @@ export function RegistrationDetailsDialog({
                         </div>
                     </div>
 
-                    {canIssueProof && (
-                        <div className="flex justify-end border-t border-border/40 pt-4">
-                            <RegistrationProofButton registrationIds={[registration.id]} />
+                    {(canIssueProof || canViewBankReceipt) && (
+                        <div className="flex flex-wrap justify-end gap-2 border-t border-border/40 pt-4">
+                            {canViewBankReceipt && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    pill
+                                    className="gap-1.5 font-semibold"
+                                    onClick={handleViewBankReceipt}
+                                    disabled={isFetchingReceipt}
+                                >
+                                    {isFetchingReceipt
+                                        ? <CircleNotchIcon size={15} className="animate-spin" />
+                                        : <BankIcon size={15} weight="duotone" />}
+                                    {isFetchingReceipt ? 'Buscando...' : 'Comprovante bancário'}
+                                </Button>
+                            )}
+                            {canIssueProof && (
+                                <RegistrationProofButton registrationIds={[registration.id]} />
+                            )}
                         </div>
                     )}
                 </div>
             </DialogContent>
+
+            <BankReceiptDialog
+                isOpen={isReceiptDialogOpen}
+                onOpenChange={setIsReceiptDialogOpen}
+                data={receiptData}
+            />
         </Dialog>
     );
 }
