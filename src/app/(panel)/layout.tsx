@@ -3,7 +3,10 @@ import { PanelHeader } from "@/components/layout/PanelHeader";
 import { PanelSidebar } from "@/components/layout/PanelSidebar";
 import React from 'react';
 import { PanelLayoutClient } from "@/components/layout/PanelLayoutClient";
+import { TokenCriticalBanner } from "@/components/layout/TokenCriticalBanner";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { CRITICAL_BALANCE_THRESHOLD } from "@/lib/token-utils";
 
 export default async function PanelLayout({
     children,
@@ -19,6 +22,7 @@ export default async function PanelLayout({
     let hasTokenManagement = false;
     let hasFinancialModule = false;
     let tokenBalance = 0;
+    let banner: React.ReactNode = null;
 
     if (profile.role === 'academia/equipe' && profile.tenant_id) {
         const supabase = await createClient();
@@ -47,12 +51,38 @@ export default async function PanelLayout({
         hasTokenManagement = tenant?.token_management_enabled ?? false;
         hasFinancialModule = tenant?.financial_module_enabled ?? false;
         tokenBalance = tenant?.inscription_token_balance ?? 0;
+
+        if (hasTokenManagement && tokenBalance <= CRITICAL_BALANCE_THRESHOLD) {
+            banner = <TokenCriticalBanner variant="organizer" balance={tokenBalance} />;
+        }
+    }
+
+    if (profile.role === 'admin_geral') {
+        const adminClient = createAdminClient();
+        const { data: lowBalanceTenants } = await adminClient
+            .from('tenants')
+            .select('id, name, inscription_token_balance')
+            .eq('token_management_enabled', true)
+            .lte('inscription_token_balance', CRITICAL_BALANCE_THRESHOLD)
+            .order('inscription_token_balance', { ascending: true })
+            .limit(20);
+
+        const academies = (lowBalanceTenants ?? []).map(t => ({
+            id: t.id,
+            name: t.name,
+            balance: t.inscription_token_balance,
+        }));
+
+        if (academies.length > 0) {
+            banner = <TokenCriticalBanner variant="admin" academies={academies} />;
+        }
     }
 
     return (
         <PanelLayoutClient
             sidebar={<PanelSidebar role={profile.role} canRegisterAcademies={canRegisterAcademies} hasActiveCredits={hasActiveCredits} hasOwnedEvents={hasOwnedEvents} hasTokenManagement={hasTokenManagement} hasFinancialModule={hasFinancialModule} tokenBalance={tokenBalance} />}
             header={<PanelHeader user={{ ...profile, email: userEmail }} role={profile.role} />}
+            banner={banner}
         >
             {children}
         </PanelLayoutClient>

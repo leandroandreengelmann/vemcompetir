@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const LOW_BALANCE_THRESHOLD = 20;
 export const MIN_TOKEN_BALANCE = -20;
+/** Nível crítico: dispara o banner grande no painel (admin e organizador) pedindo contato p/ recarga. */
+export const CRITICAL_BALANCE_THRESHOLD = 10;
 
 interface TokenContext {
     registrationId?: string;
