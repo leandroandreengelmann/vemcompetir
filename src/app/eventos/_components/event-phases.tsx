@@ -16,6 +16,19 @@ interface Phase {
     description: string;
     icon: React.ElementType;
     status: PhaseStatus;
+    daysLeft?: number | null;
+}
+
+// Datas "somente-dia" (ex: "2026-08-20") vêm do banco sem horário. `new Date(...)`
+// as interpreta como meia-noite UTC, o que "puxa" um dia pra trás em fusos negativos
+// (Brasil). Aqui montamos a data direto no fuso local pra não perder esse dia.
+function parseLocalDate(dateStr: string): Date {
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    return new Date(dateStr);
 }
 
 function endOfDay(date: Date): Date {
@@ -31,15 +44,15 @@ function startOfDay(date: Date): Date {
 }
 
 function formatDate(date: Date): string {
-    return format(date, "dd 'de' MMM", { locale: ptBR });
+    return format(date, "dd 'de' MMMM", { locale: ptBR });
 }
 
 export function EventPhases({ event }: EventPhasesProps) {
     const now = new Date();
 
-    const eventStart = event.starts_at ? new Date(event.starts_at) : null;
-    const eventEnd = event.event_end_date ? new Date(event.event_end_date) : eventStart;
-    const registrationEnd = event.registration_end_date ? new Date(event.registration_end_date) : null;
+    const eventStart = event.starts_at ? parseLocalDate(event.starts_at) : null;
+    const eventEnd = event.event_end_date ? parseLocalDate(event.event_end_date) : eventStart;
+    const registrationEnd = event.registration_end_date ? parseLocalDate(event.registration_end_date) : null;
     const deadlineDays = event.category_change_deadline_days ?? 0;
 
     const checagemDeadline = eventStart && deadlineDays > 0
@@ -54,6 +67,10 @@ export function EventPhases({ event }: EventPhasesProps) {
     // cada uma fica "atual" independentemente até o próprio prazo vencer.
     const inscricoesPast = !!event.inscricoes_encerradas || (registrationEnd ? now > endOfDay(registrationEnd) : false);
 
+    const daysUntilRegistrationEnd = registrationEnd
+        ? Math.ceil((startOfDay(registrationEnd).getTime() - startOfDay(now).getTime()) / 86400000)
+        : null;
+
     const phases: Phase[] = [
         {
             key: 'inscricoes',
@@ -65,6 +82,7 @@ export function EventPhases({ event }: EventPhasesProps) {
                     : 'Sem prazo definido',
             icon: Ticket,
             status: inscricoesPast ? 'completed' : 'current',
+            daysLeft: !inscricoesPast ? daysUntilRegistrationEnd : null,
         },
     ];
 
@@ -98,16 +116,53 @@ export function EventPhases({ event }: EventPhasesProps) {
         status: competicaoStatus,
     });
 
+    // Contagem regressiva até o início do evento
+    const daysUntilEvent = eventStart
+        ? Math.ceil((startOfDay(eventStart).getTime() - startOfDay(now).getTime()) / 86400000)
+        : null;
+
     const n = phases.length;
     const lineInset = `${100 / (n * 2)}%`;
 
     return (
         <div className="max-w-4xl mx-auto w-full">
-            <div className="flex flex-col gap-2 mb-12 px-6">
-                <h2 className="text-h1 font-black uppercase tracking-widest text-foreground">
-                    Fases do Evento
-                </h2>
-                <div className="h-2 w-16 bg-foreground rounded-full" />
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-12 px-6">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-h1 font-black uppercase tracking-widest text-foreground">
+                        Fases do Evento
+                    </h2>
+                    <div className="h-2 w-16 bg-foreground rounded-full" />
+                </div>
+
+                {competicaoStatus === 'upcoming' && daysUntilEvent !== null && daysUntilEvent > 0 && (
+                    <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-center justify-center h-16 w-16 rounded-2xl bg-success text-white shrink-0 shadow-lg shadow-success/30">
+                            <span className="text-2xl font-black leading-none tabular-nums">
+                                {daysUntilEvent}
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-wider leading-none mt-1">
+                                {daysUntilEvent === 1 ? 'dia' : 'dias'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-panel-sm font-black uppercase tracking-widest text-foreground">
+                                Faltam
+                            </span>
+                            <span className="text-panel-sm text-muted-foreground">
+                                para o evento
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {competicaoStatus === 'current' && (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-success/10 shrink-0">
+                        <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                        <span className="text-panel-sm font-black uppercase tracking-widest text-success">
+                            Evento em andamento
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="relative px-6">
@@ -135,7 +190,7 @@ export function EventPhases({ event }: EventPhasesProps) {
                                     className={cn(
                                         'flex items-center justify-center h-12 w-12 rounded-full border-2 shrink-0 transition-all',
                                         phase.status === 'completed' && 'bg-foreground border-foreground text-background',
-                                        phase.status === 'current' && 'bg-primary border-primary text-white shadow-lg shadow-primary/30 scale-110',
+                                        phase.status === 'current' && 'bg-success border-success text-white shadow-lg shadow-success/30 scale-110',
                                         phase.status === 'upcoming' && 'bg-background border-black/20 text-muted-foreground/50'
                                     )}
                                 >
@@ -150,13 +205,13 @@ export function EventPhases({ event }: EventPhasesProps) {
                                         <p
                                             className={cn(
                                                 'text-ui font-black uppercase tracking-widest',
-                                                phase.status === 'current' ? 'text-primary' : 'text-foreground'
+                                                phase.status === 'current' ? 'text-success' : 'text-foreground'
                                             )}
                                         >
                                             {phase.label}
                                         </p>
                                         {phase.status === 'current' && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-success/10 text-success text-[9px] font-black uppercase tracking-wider">
                                                 Agora
                                             </span>
                                         )}
@@ -164,6 +219,26 @@ export function EventPhases({ event }: EventPhasesProps) {
                                     <p className="text-panel-sm text-muted-foreground mt-1">
                                         {phase.description}
                                     </p>
+                                    {typeof phase.daysLeft === 'number' && phase.daysLeft >= 0 && (
+                                        <div className="flex items-center gap-3 mt-3 sm:justify-center">
+                                            <div className="flex flex-col items-center justify-center h-16 w-16 rounded-2xl bg-success text-white shrink-0 shadow-lg shadow-success/30">
+                                                <span className="text-2xl font-black leading-none tabular-nums">
+                                                    {phase.daysLeft}
+                                                </span>
+                                                <span className="text-[9px] font-black uppercase tracking-wider leading-none mt-1">
+                                                    {phase.daysLeft === 1 ? 'dia' : 'dias'}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-panel-sm font-black uppercase tracking-widest text-foreground">
+                                                    {phase.daysLeft === 0 ? 'Último dia' : 'Faltam'}
+                                                </span>
+                                                <span className="text-panel-sm text-muted-foreground">
+                                                    para as inscrições
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
