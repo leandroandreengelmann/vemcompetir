@@ -266,27 +266,30 @@ export function RegistrationDetailsDialog({
                         </div>
                     </div>
 
-                    {(canIssueProof || canViewBankReceipt) && (
+                    {canIssueProof && (
                         <div className="flex flex-wrap justify-end gap-2 border-t border-border/40 pt-4">
-                            {canViewBankReceipt && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    pill
-                                    className="gap-1.5 font-semibold"
-                                    onClick={handleViewBankReceipt}
-                                    disabled={isFetchingReceipt}
-                                >
-                                    {isFetchingReceipt
-                                        ? <CircleNotchIcon size={15} className="animate-spin" />
-                                        : <BankIcon size={15} weight="duotone" />}
-                                    {isFetchingReceipt ? 'Buscando...' : 'Comprovante bancário'}
-                                </Button>
-                            )}
-                            {canIssueProof && (
-                                <RegistrationProofButton registrationIds={[registration.id]} />
-                            )}
+                            {/* Botão "Comprovante bancário" removido da tela a pedido — lógica mantida
+                                intacta abaixo (handleViewBankReceipt, canViewBankReceipt, BankReceiptDialog).
+                                Para reativar, devolva este bloco:
+                                {canViewBankReceipt && (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        pill
+                                        className="gap-1.5 font-semibold"
+                                        onClick={handleViewBankReceipt}
+                                        disabled={isFetchingReceipt}
+                                    >
+                                        {isFetchingReceipt
+                                            ? <CircleNotchIcon size={15} className="animate-spin" />
+                                            : <BankIcon size={15} weight="duotone" />}
+                                        {isFetchingReceipt ? 'Buscando...' : 'Comprovante bancário'}
+                                    </Button>
+                                )}
+                                ...e troque a condição do wrapper de volta para
+                                (canIssueProof || canViewBankReceipt). */}
+                            <RegistrationProofButton registrationIds={[registration.id]} />
                         </div>
                     )}
                 </div>
