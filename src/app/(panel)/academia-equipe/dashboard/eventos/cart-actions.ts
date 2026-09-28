@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { consumeTokens } from '@/lib/token-utils';
 import { auditLog } from '@/lib/audit-log';
+import { cancelPendingAsaasPayment } from '@/lib/asaas-payment-utils';
 import {
     createEventRegistrationReceipt,
     type EventRegistrationReceipt,
@@ -455,13 +456,19 @@ export async function reactivateCartItemAction(registrationId: string) {
     // Check if this is a companion — block individual reactivation
     const { data: reg } = await supabaseAdmin
         .from('event_registrations')
-        .select('promo_source_id')
+        .select('promo_source_id, payment_id')
         .eq('id', registrationId)
         .eq('registered_by', profile.id)
         .single();
 
     if (reg?.promo_source_id) {
         return { error: 'Esta categoria foi adicionada gratuitamente com o Absoluto. Para reativá-la sem o Absoluto, cancele-a e adicione-a normalmente pelo valor cheio.' };
+    }
+
+    // Cancela o PIX pendente no Asaas antes de desvincular — evita que o QR code
+    // fique pagável "fantasma" depois que o item volta pro carrinho.
+    if (reg?.payment_id) {
+        await cancelPendingAsaasPayment(reg.payment_id);
     }
 
     // Reactivate the source item

@@ -265,10 +265,19 @@ export async function POST(request: NextRequest) {
                 .eq('id', paymentRecord.id);
 
             // Update linked registrations
-            await admin
+            const { data: updatedRegs } = await admin
                 .from('event_registrations')
                 .update({ status: 'pago' })
-                .eq('payment_id', paymentRecord.id);
+                .eq('payment_id', paymentRecord.id)
+                .select('id');
+
+            if (!updatedRegs || updatedRegs.length === 0) {
+                auditLog('WEBHOOK_PAYMENT_CONFIRMED_ORPHAN', {
+                    payment_id: paymentRecord.id,
+                    asaas_payment_id: asaasPaymentId,
+                    reason: 'payment confirmed but no registration is linked to it (payment_id already null) — needs manual reconciliation',
+                }, 'error');
+            }
 
             // Consome tokens do organizador (1 token por inscrição confirmada)
             if (paymentRecord.tenant_id_organizer && paymentRecord.qtd_inscricoes) {

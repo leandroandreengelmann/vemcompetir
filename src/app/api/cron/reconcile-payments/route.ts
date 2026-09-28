@@ -117,7 +117,19 @@ export async function GET(request: NextRequest) {
                     }
 
                     await admin.from('payments').update(updatePayment).eq('id', payment.id);
-                    await admin.from('event_registrations').update({ status: 'pago' }).eq('payment_id', payment.id);
+                    const { data: updatedRegs } = await admin
+                        .from('event_registrations')
+                        .update({ status: 'pago' })
+                        .eq('payment_id', payment.id)
+                        .select('id');
+
+                    if (!updatedRegs || updatedRegs.length === 0) {
+                        auditLog('RECONCILE_PAYMENT_CONFIRMED_ORPHAN', {
+                            payment_id: payment.id,
+                            asaas_payment_id: payment.asaas_payment_id,
+                            reason: 'payment confirmed but no registration is linked to it (payment_id already null) — needs manual reconciliation',
+                        }, 'error');
+                    }
 
                     if (payment.tenant_id_organizer && payment.qtd_inscricoes) {
                         await consumeTokens(payment.tenant_id_organizer, payment.qtd_inscricoes, {

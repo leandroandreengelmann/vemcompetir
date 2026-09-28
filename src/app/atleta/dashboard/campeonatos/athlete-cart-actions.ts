@@ -11,6 +11,7 @@ import {
     CategoryRow,
 } from './lib/eligible-categories';
 import { applyComboBundle } from '@/lib/apply-combo-bundle-to-cart';
+import { cancelPendingAsaasPayment } from '@/lib/asaas-payment-utils';
 
 export async function addToAthleteCartAction(item: {
     eventId: string;
@@ -448,7 +449,7 @@ export async function reactivateAthleteCartItemAction(registrationId: string) {
     // Fetch the registration to check if it's a promo companion and get event_id
     const { data: reg } = await supabaseAdmin
         .from('event_registrations')
-        .select('promo_source_id, event_id')
+        .select('promo_source_id, event_id, payment_id')
         .eq('id', registrationId)
         .eq('athlete_id', user.id)
         .single();
@@ -457,6 +458,12 @@ export async function reactivateAthleteCartItemAction(registrationId: string) {
     // The athlete must either reactivate via the source (Absoluto) or cancel and re-add at full price
     if (reg?.promo_source_id) {
         throw new Error('Esta categoria foi adicionada gratuitamente com o Absoluto. Para reativá-la sem o Absoluto, cancele-a e adicione-a normalmente na lista de categorias pelo valor cheio.');
+    }
+
+    // Cancela o PIX pendente no Asaas antes de desvincular — evita que o QR code
+    // fique pagável "fantasma" depois que o item volta pro carrinho.
+    if (reg?.payment_id) {
+        await cancelPendingAsaasPayment(reg.payment_id);
     }
 
     // Reactivate the item itself using admin to avoid RLS issues
