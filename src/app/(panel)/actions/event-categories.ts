@@ -319,6 +319,50 @@ export async function updateEventCategoryPromo(eventId: string, categoryId: stri
     return { success: true };
 }
 
+export async function updateEventCategoryDisabled(eventId: string, categoryId: string, disabled: boolean) {
+    const { profile, tenant_id } = await requireTenantScope();
+    const supabase = await createClient();
+
+    if (profile.role !== 'admin_geral') {
+        const { data: event } = await supabase
+            .from('events')
+            .select('id')
+            .eq('id', eventId)
+            .eq('tenant_id', tenant_id)
+            .single();
+
+        if (!event) return { error: 'Evento não encontrado ou sem permissão.' };
+    }
+
+    const { data: existing } = await supabase
+        .from('event_category_overrides')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('category_id', categoryId)
+        .single();
+
+    if (existing) {
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .update({ disabled, updated_at: new Date().toISOString() })
+            .eq('event_id', eventId)
+            .eq('category_id', categoryId);
+
+        if (error) return { error: 'Erro ao atualizar categoria.' };
+    } else if (disabled) {
+        // Only create a new override row if we're actually disabling it
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .insert({ event_id: eventId, category_id: categoryId, disabled: true });
+
+        if (error) return { error: 'Erro ao atualizar categoria.' };
+    }
+
+    revalidatePath(`/admin/dashboard/eventos/${eventId}/categorias`);
+    revalidatePath(`/academia-equipe/dashboard/eventos/${eventId}/categorias`);
+    return { success: true };
+}
+
 export async function updateEventCategoryDescription(eventId: string, categoryId: string, description: string | null) {
     const { profile, tenant_id } = await requireTenantScope();
     const supabase = await createClient();
@@ -418,13 +462,14 @@ export async function getEventCategoriesWithPrices(
     const categoryIds = categories.map(c => c.id);
     const { data: pageOverrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee, description, promo_type')
+        .select('category_id, registration_fee, description, promo_type, disabled')
         .eq('event_id', eventId)
         .in('category_id', categoryIds);
 
     const pageOverridesMap = new Map(pageOverrides?.map(o => [o.category_id, o.registration_fee]));
     const pageDescMap = new Map(pageOverrides?.map(o => [o.category_id, o.description]));
     const pagePromoMap = new Map(pageOverrides?.map(o => [o.category_id, o.promo_type]));
+    const pageDisabledMap = new Map(pageOverrides?.map(o => [o.category_id, o.disabled]));
 
     // 5. Get TOTAL overrides count for this table (for the summary card)
     // ONLY count categories where registration_fee is DIFFERENT from defaultPrice
@@ -484,6 +529,7 @@ export async function getEventCategoriesWithPrices(
                 is_override: isDifferent,
                 override_description: pageDescMap.get(cat.id) || null,
                 promo_type: pagePromoMap.get(cat.id) || null,
+                disabled: pageDisabledMap.get(cat.id) || false,
                 registered_count: countMap.get(cat.id) || 0,
                 preview_athletes: previewMap.get(cat.id) || []
             };
@@ -535,12 +581,13 @@ export async function searchEventCategories(eventId: string, query: string) {
     // 3. Get all overrides for this event
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee, description, promo_type')
+        .select('category_id, registration_fee, description, promo_type, disabled')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
     const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
     const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
+    const disabledCategoryIds = new Set(overrides?.filter(o => o.disabled).map(o => o.category_id));
 
     // 3.5 Get enrolled athlete counts and previews for this event
     const { data: { user } } = await supabase.auth.getUser();
@@ -583,9 +630,9 @@ export async function searchEventCategories(eventId: string, query: string) {
         }
     });
 
-    // 4. Merge prices and counts, and filter out already enrolled categories
+    // 4. Merge prices and counts, and filter out already enrolled and disabled categories
     return rows
-        .filter(row => !myEnrolledCategoryIds.has(row.id))
+        .filter(row => !myEnrolledCategoryIds.has(row.id) && !disabledCategoryIds.has(row.id))
         .map(row => {
             const defaultPrice = tablePriceMap.get(row.table_id) || 0;
             const overridePrice = overridesMap.get(row.id);

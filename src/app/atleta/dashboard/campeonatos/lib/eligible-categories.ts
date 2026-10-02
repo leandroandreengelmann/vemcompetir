@@ -417,12 +417,13 @@ export async function getEligibleCategories(eventId: string) {
     // 4. Overrides
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee, description, promo_type')
+        .select('category_id, registration_fee, description, promo_type, disabled')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
     const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
     const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
+    const disabledCategoryIds = new Set(overrides?.filter(o => o.disabled).map(o => o.category_id));
 
     // 4b. Athlete pricing — preço diferenciado por gym_name/master_name
     let athletePricingFee: number | null = null;
@@ -543,8 +544,8 @@ export async function getEligibleCategories(eventId: string) {
         };
     }));
 
-    // Filter out categories where the user is already successfully enrolled
-    const results = rawResults.filter(r => !myEnrolledCategoryIds.has(r.id));
+    // Filter out categories where the user is already successfully enrolled, or that were disabled by the organizer
+    const results = rawResults.filter(r => !myEnrolledCategoryIds.has(r.id) && !disabledCategoryIds.has(r.id));
 
     const suggestions = results
         .filter(r => r.match.eligible)
@@ -560,7 +561,7 @@ export async function getEligibleCategories(eventId: string) {
 
     return {
         suggestions,
-        all: categories.filter(c => !myEnrolledCategoryIds.has(c.id)),
+        all: categories.filter(c => !myEnrolledCategoryIds.has(c.id) && !disabledCategoryIds.has(c.id)),
         allWithMeta: results,
         isIncomplete,
         profile: athlete,

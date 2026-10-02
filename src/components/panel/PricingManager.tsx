@@ -17,7 +17,8 @@ import {
     Check,
     AlertCircle,
     Info,
-    RefreshCcw
+    RefreshCcw,
+    EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -25,7 +26,8 @@ import {
     updateEventCategoryTablePrice,
     updateEventCategoryIndividualPrice,
     updateEventCategoryDescription,
-    updateEventCategoryPromo
+    updateEventCategoryPromo,
+    updateEventCategoryDisabled
 } from '@/app/(panel)/actions/event-categories';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Separator } from "@/components/ui/separator";
@@ -51,6 +53,7 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
     const [individualPrices, setIndividualPrices] = useState<Record<string, string>>({});
     const [individualDescriptions, setIndividualDescriptions] = useState<Record<string, string>>({});
     const [individualPromos, setIndividualPromos] = useState<Record<string, boolean>>({});
+    const [individualDisabled, setIndividualDisabled] = useState<Record<string, boolean>>({});
 
     const debouncedSearch = useSimpleDebounce(searchTerm, 500);
 
@@ -66,6 +69,7 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             const initialOverrides: Record<string, string> = {};
             const initialDescriptions: Record<string, string> = {};
             const initialPromos: Record<string, boolean> = {};
+            const initialDisabled: Record<string, boolean> = {};
             result.categories.forEach((cat: any) => {
                 if (cat.override_price !== null) {
                     initialOverrides[cat.id] = cat.override_price.toString();
@@ -76,10 +80,14 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                 if (cat.promo_type === 'free_second_registration') {
                     initialPromos[cat.id] = true;
                 }
+                if (cat.disabled) {
+                    initialDisabled[cat.id] = true;
+                }
             });
             setIndividualPrices(initialOverrides);
             setIndividualDescriptions(initialDescriptions);
             setIndividualPromos(initialPromos);
+            setIndividualDisabled(initialDisabled);
         } catch (error) {
             toast.error("Erro ao carregar dados.");
         } finally {
@@ -120,6 +128,18 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             toast.error(result.error);
             // Revert on error
             setIndividualPromos(prev => ({ ...prev, [categoryId]: !enabled }));
+        }
+    };
+
+    const handleDisabledToggle = async (categoryId: string, disabled: boolean) => {
+        setIndividualDisabled(prev => ({ ...prev, [categoryId]: disabled }));
+        const result = await updateEventCategoryDisabled(eventId, categoryId, disabled);
+        if (result.success) {
+            toast.success(disabled ? "Categoria desativada — não aparece mais para inscrição." : "Categoria reativada.");
+        } else {
+            toast.error(result.error);
+            // Revert on error
+            setIndividualDisabled(prev => ({ ...prev, [categoryId]: !disabled }));
         }
     };
 
@@ -264,7 +284,7 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                                 categories.map((cat) => (
                                     <div
                                         key={cat.id}
-                                        className="group p-4 flex flex-col gap-3 hover:bg-primary/[0.02] transition-colors border-b border-primary/5 last:border-0"
+                                        className={`group p-4 flex flex-col gap-3 hover:bg-primary/[0.02] transition-colors border-b border-primary/5 last:border-0 ${individualDisabled[cat.id] ? 'opacity-50' : ''}`}
                                     >
                                         {/* Row 1: title + price */}
                                         <div className="flex items-center justify-between">
@@ -273,6 +293,11 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                                                     <h5 className="text-ui font-bold truncate">{cat.categoria_completa}</h5>
                                                     {cat.override_price !== null && (
                                                         <span className="text-label px-1.5 py-0.5 bg-amber-100 text-amber-700 font-bold rounded">Específico</span>
+                                                    )}
+                                                    {individualDisabled[cat.id] && (
+                                                        <span className="text-label px-1.5 py-0.5 bg-red-100 text-red-700 font-bold rounded flex items-center gap-1">
+                                                            <EyeOff className="h-2.5 w-2.5" /> Desativada
+                                                        </span>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-1.5">
@@ -346,6 +371,23 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                                                 )}
                                             </label>
                                         )}
+
+                                        {/* Row 4: disable toggle — hides category from athlete registration */}
+                                        <label className="flex items-center gap-3 cursor-pointer select-none px-1">
+                                            <div className="relative">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only"
+                                                    checked={individualDisabled[cat.id] ?? false}
+                                                    onChange={(e) => handleDisabledToggle(cat.id, e.target.checked)}
+                                                />
+                                                <div className={`w-9 h-5 rounded-full transition-colors ${individualDisabled[cat.id] ? 'bg-red-500' : 'bg-muted-foreground/20'}`} />
+                                                <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${individualDisabled[cat.id] ? 'translate-x-4' : ''}`} />
+                                            </div>
+                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                                <EyeOff className="h-3 w-3" /> Desativar categoria (some da inscrição)
+                                            </span>
+                                        </label>
                                     </div>
                                 ))
                             ) : (

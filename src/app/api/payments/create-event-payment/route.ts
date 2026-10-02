@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
         // Buscar overrides individuais por categoria
         const { data: allOverrides } = await admin
             .from('event_category_overrides')
-            .select('category_id, registration_fee, promo_type')
+            .select('category_id, registration_fee, promo_type, disabled')
             .eq('event_id', event_id);
 
         const overridePriceMap = new Map(
@@ -225,6 +225,18 @@ export async function POST(request: NextRequest) {
         const overridePromoMap = new Map(
             (allOverrides || []).map(o => [o.category_id, o.promo_type])
         );
+        const disabledCategoryIds = new Set(
+            (allOverrides || []).filter(o => o.disabled).map(o => o.category_id)
+        );
+
+        // Bloquear pagamento se alguma categoria do carrinho foi desativada pelo organizador
+        // depois que o item já estava no carrinho
+        if (cartItems.some(item => disabledCategoryIds.has(item.category_id))) {
+            return NextResponse.json(
+                { error: 'Uma das categorias do carrinho foi desativada pelo organizador. Remova-a e tente novamente.' },
+                { status: 400 }
+            );
+        }
 
         // Buscar preço diferenciado por academia (aplica quando a academia é o pagador)
         let tenantPricingData: { registration_fee: number; promo_registration_fee: number | null } | null = null;
