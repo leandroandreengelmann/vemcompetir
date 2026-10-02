@@ -31,6 +31,18 @@ export async function registerAthleteAction(
         return { error: 'Atleta já inscrito nesta categoria.' };
     }
 
+    // Bloqueia se a categoria foi desativada pelo organizador
+    const { data: override } = await supabase
+        .from('event_category_overrides')
+        .select('disabled')
+        .eq('event_id', eventId)
+        .eq('category_id', categoryId)
+        .single();
+
+    if (override?.disabled) {
+        return { error: 'Esta categoria foi desativada pelo organizador e não aceita novas inscrições.' };
+    }
+
     const eventTenantId = await getEventTenantId(eventId);
 
     const { data: registration, error } = await supabase
@@ -159,10 +171,24 @@ export async function registerBatchAction(
     );
 
     // Filter out athletes already registered IN THAT CATEGORY
-    const newRegistrations = uniqueRegistrations.filter(r => !existingSet.has(`${r.athleteId}-${r.categoryId}`));
+    let newRegistrations = uniqueRegistrations.filter(r => !existingSet.has(`${r.athleteId}-${r.categoryId}`));
 
     if (newRegistrations.length === 0) {
         return { error: 'Todos os atletas selecionados já estão inscritos nas categorias indicadas.' };
+    }
+
+    // Bloqueia categorias desativadas pelo organizador
+    const { data: overridesForBatch } = await supabase
+        .from('event_category_overrides')
+        .select('category_id, disabled')
+        .eq('event_id', eventId)
+        .in('category_id', [...new Set(newRegistrations.map(r => r.categoryId))]);
+
+    const disabledCategoryIds = new Set((overridesForBatch || []).filter(o => o.disabled).map(o => o.category_id));
+    newRegistrations = newRegistrations.filter(r => !disabledCategoryIds.has(r.categoryId));
+
+    if (newRegistrations.length === 0) {
+        return { error: 'Todas as categorias selecionadas foram desativadas pelo organizador.' };
     }
 
     // 3. Verifica saldo de tokens do organizador antes de inserir
@@ -312,12 +338,13 @@ export async function getEligibleCategoriesAction(
     // 4. Overrides
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee, description, promo_type')
+        .select('category_id, registration_fee, description, promo_type, disabled')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
     const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
     const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
+    const disabledCategoryIds = new Set(overrides?.filter(o => o.disabled).map(o => o.category_id));
 
     // 4.1 Preço diferenciado por academia (tenant pricing)
     const { data: tenantPricing } = await supabase
@@ -440,8 +467,8 @@ export async function getEligibleCategoriesAction(
             status: enrolledCategoryMap.get(p.id)!,
         }));
 
-    // Filter out categories where the athlete is already enrolled (any status)
-    const results = processed.filter(p => !myEnrolledCategoryIds.has(p.id) && !enrolledCategoryMap.has(p.id));
+    // Filter out categories where the athlete is already enrolled (any status), or that were disabled by the organizer
+    const results = processed.filter(p => !myEnrolledCategoryIds.has(p.id) && !enrolledCategoryMap.has(p.id) && !disabledCategoryIds.has(p.id));
 
     // Split into Suggestions (Matches) and All
     const suggestions = results

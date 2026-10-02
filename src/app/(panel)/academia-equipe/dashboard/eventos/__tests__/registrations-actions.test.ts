@@ -139,6 +139,7 @@ describe('registerAthleteAction', () => {
     it('should register athlete successfully when no duplicate exists', async () => {
         supabaseMock.single
             .mockResolvedValueOnce({ data: null, error: null })          // duplicate check
+            .mockResolvedValueOnce({ data: null, error: null })          // disabled-category check
             .mockResolvedValueOnce({ data: { id: 'reg-1' }, error: null }); // insert result
 
         const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
@@ -160,9 +161,21 @@ describe('registerAthleteAction', () => {
         );
     });
 
+    it('should return error when the category was disabled by the organizer', async () => {
+        supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })              // duplicate check
+            .mockResolvedValueOnce({ data: { disabled: true }, error: null }); // disabled-category check
+
+        const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
+
+        expect(result).toEqual({ error: 'Esta categoria foi desativada pelo organizador e não aceita novas inscrições.' });
+        expect(supabaseMock.insert).not.toHaveBeenCalled();
+    });
+
     it('should return error when database insert fails', async () => {
         supabaseMock.single
             .mockResolvedValueOnce({ data: null, error: null })  // duplicate check
+            .mockResolvedValueOnce({ data: null, error: null })  // disabled-category check
             .mockResolvedValueOnce({ data: null, error: { message: 'DB insert failed' } }); // insert
 
         const result = await registerAthleteAction('event-1', 'athlete-1', 'cat-1');
@@ -172,6 +185,7 @@ describe('registerAthleteAction', () => {
 
     it('should rollback registration and return error when consumeTokens fails', async () => {
         supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })
             .mockResolvedValueOnce({ data: null, error: null })
             .mockResolvedValueOnce({ data: { id: 'reg-1' }, error: null });
         (getEventTenantId as any).mockResolvedValueOnce('event-tenant-1');
@@ -186,6 +200,7 @@ describe('registerAthleteAction', () => {
     it('should succeed without token consumption when event has no tenant', async () => {
         supabaseMock.single
             .mockResolvedValueOnce({ data: null, error: null })
+            .mockResolvedValueOnce({ data: null, error: null })
             .mockResolvedValueOnce({ data: { id: 'reg-2' }, error: null });
         (getEventTenantId as any).mockResolvedValueOnce(null);
 
@@ -197,6 +212,7 @@ describe('registerAthleteAction', () => {
 
     it('should set registered_by to the current user profile id', async () => {
         supabaseMock.single
+            .mockResolvedValueOnce({ data: null, error: null })
             .mockResolvedValueOnce({ data: null, error: null })
             .mockResolvedValueOnce({ data: { id: 'reg-3' }, error: null });
 
