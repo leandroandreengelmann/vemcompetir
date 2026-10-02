@@ -19,7 +19,7 @@ export async function getEventReportInscricoesSummary(eventId: string) {
 
     const { data: regs } = await adminSupabase
         .from('event_registrations')
-        .select('status, price, payment_id, promo_type_applied, manual_payment_method, is_courtesy')
+        .select('status, price, manual_amount, payment_id, promo_type_applied, manual_payment_method, is_courtesy')
         .eq('event_id', eventId);
 
     const allRegs = regs || [];
@@ -32,7 +32,7 @@ export async function getEventReportInscricoesSummary(eventId: string) {
     let paid_by_academy = 0, paid_by_athlete = 0;
 
     for (const reg of allRegs) {
-        const price = Number(reg.price || 0);
+        const price = Number((reg as any).manual_amount ?? reg.price ?? 0);
         const payment = reg.payment_id ? paymentsMap[reg.payment_id] : null;
         const { tipo } = classifyRegistration(reg.status, payment, (reg as any).manual_payment_method, (reg as any).is_courtesy);
 
