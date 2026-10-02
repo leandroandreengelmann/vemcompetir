@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
         // Buscar overrides individuais por categoria
         const { data: allOverrides } = await admin
             .from('event_category_overrides')
-            .select('category_id, registration_fee, promo_type, disabled')
+            .select('category_id, registration_fee, promo_type, promo_value, disabled')
             .eq('event_id', event_id);
 
         const overridePriceMap = new Map(
@@ -224,6 +224,9 @@ export async function POST(request: NextRequest) {
         );
         const overridePromoMap = new Map(
             (allOverrides || []).map(o => [o.category_id, o.promo_type])
+        );
+        const overridePromoValueMap = new Map(
+            (allOverrides || []).map(o => [o.category_id, o.promo_value != null ? Number(o.promo_value) : null])
         );
         const disabledCategoryIds = new Set(
             (allOverrides || []).filter(o => o.disabled).map(o => o.category_id)
@@ -336,7 +339,13 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            if (Math.abs(Number(item.price) - expectedPrice) > 0.01) {
+            // Absoluto avulso: o atleta optou por não levar a categoria companheira de graça
+            // e pagar o preço avulso (promo_value) em vez do preço do combo.
+            const promoValue = overridePromoValueMap.get(item.category_id);
+            const matchesAvulso = promoType === 'free_second_registration' && promoValue != null
+                && Math.abs(Number(item.price) - promoValue) <= 0.01;
+
+            if (!matchesAvulso && Math.abs(Number(item.price) - expectedPrice) > 0.01) {
                 return NextResponse.json(
                     { error: 'O preço de uma inscrição no carrinho diverge do valor atual. Remova os itens e adicione novamente.' },
                     { status: 400 }

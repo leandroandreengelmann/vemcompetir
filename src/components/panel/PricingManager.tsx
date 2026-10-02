@@ -27,6 +27,7 @@ import {
     updateEventCategoryIndividualPrice,
     updateEventCategoryDescription,
     updateEventCategoryPromo,
+    updateEventCategoryPromoValue,
     updateEventCategoryDisabled
 } from '@/app/(panel)/actions/event-categories';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -53,6 +54,7 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
     const [individualPrices, setIndividualPrices] = useState<Record<string, string>>({});
     const [individualDescriptions, setIndividualDescriptions] = useState<Record<string, string>>({});
     const [individualPromos, setIndividualPromos] = useState<Record<string, boolean>>({});
+    const [individualPromoValues, setIndividualPromoValues] = useState<Record<string, string>>({});
     const [individualDisabled, setIndividualDisabled] = useState<Record<string, boolean>>({});
 
     const debouncedSearch = useSimpleDebounce(searchTerm, 500);
@@ -69,6 +71,7 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             const initialOverrides: Record<string, string> = {};
             const initialDescriptions: Record<string, string> = {};
             const initialPromos: Record<string, boolean> = {};
+            const initialPromoValues: Record<string, string> = {};
             const initialDisabled: Record<string, boolean> = {};
             result.categories.forEach((cat: any) => {
                 if (cat.override_price !== null) {
@@ -80,6 +83,9 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                 if (cat.promo_type === 'free_second_registration') {
                     initialPromos[cat.id] = true;
                 }
+                if (cat.promo_value !== null && cat.promo_value !== undefined) {
+                    initialPromoValues[cat.id] = cat.promo_value.toString();
+                }
                 if (cat.disabled) {
                     initialDisabled[cat.id] = true;
                 }
@@ -87,6 +93,7 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             setIndividualPrices(initialOverrides);
             setIndividualDescriptions(initialDescriptions);
             setIndividualPromos(initialPromos);
+            setIndividualPromoValues(initialPromoValues);
             setIndividualDisabled(initialDisabled);
         } catch (error) {
             toast.error("Erro ao carregar dados.");
@@ -128,6 +135,23 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
             toast.error(result.error);
             // Revert on error
             setIndividualPromos(prev => ({ ...prev, [categoryId]: !enabled }));
+        }
+    };
+
+    const handlePromoValueSave = async (categoryId: string) => {
+        const valueStr = individualPromoValues[categoryId];
+        const valueNum = (valueStr === undefined || valueStr === '') ? null : parseFloat(valueStr.replace(',', '.'));
+
+        if (valueNum !== null && isNaN(valueNum)) {
+            toast.error('Valor avulso inválido.');
+            return;
+        }
+
+        const result = await updateEventCategoryPromoValue(eventId, categoryId, valueNum);
+        if (result.success) {
+            toast.success('Preço avulso salvo.');
+        } else {
+            toast.error(result.error);
         }
     };
 
@@ -370,6 +394,28 @@ export function PricingManager({ eventId, tableId, tableName }: PricingManagerPr
                                                     </span>
                                                 )}
                                             </label>
+                                        )}
+
+                                        {/* Row 3.5: preço avulso — só o Absoluto, sem a categoria de graça */}
+                                        {isAbsolutoName(cat.categoria_completa) && individualPromos[cat.id] && (
+                                            <div className="flex items-center gap-2 pl-1">
+                                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                                    Preço avulso (só o Absoluto):
+                                                </span>
+                                                <div className="relative w-28">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">R$</span>
+                                                    <Input
+                                                        value={individualPromoValues[cat.id] ?? ''}
+                                                        onChange={(e) => setIndividualPromoValues(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                                                        onBlur={() => handlePromoValueSave(cat.id)}
+                                                        className="pl-8 h-8 rounded-xl border-primary/5 bg-muted/20 text-xs focus:border-primary/20 focus:bg-white text-right font-semibold"
+                                                        placeholder="opcional"
+                                                    />
+                                                </div>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    Se vazio, o atleta só vê a opção de combo.
+                                                </span>
+                                            </div>
                                         )}
 
                                         {/* Row 4: disable toggle — hides category from athlete registration */}

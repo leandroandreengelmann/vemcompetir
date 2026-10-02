@@ -319,6 +319,47 @@ export async function updateEventCategoryPromo(eventId: string, categoryId: stri
     return { success: true };
 }
 
+export async function updateEventCategoryPromoValue(eventId: string, categoryId: string, promoValue: number | null) {
+    const { profile, tenant_id } = await requireTenantScope();
+    const supabase = await createClient();
+
+    if (profile.role !== 'admin_geral') {
+        const { data: event } = await supabase
+            .from('events')
+            .select('id')
+            .eq('id', eventId)
+            .eq('tenant_id', tenant_id)
+            .single();
+
+        if (!event) return { error: 'Evento não encontrado ou sem permissão.' };
+    }
+
+    const { data: existing } = await supabase
+        .from('event_category_overrides')
+        .select('registration_fee')
+        .eq('event_id', eventId)
+        .eq('category_id', categoryId)
+        .single();
+
+    if (existing) {
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .update({ promo_value: promoValue, updated_at: new Date().toISOString() })
+            .eq('event_id', eventId)
+            .eq('category_id', categoryId);
+
+        if (error) return { error: 'Erro ao salvar preço avulso.' };
+    } else if (promoValue !== null) {
+        const { error } = await supabase
+            .from('event_category_overrides')
+            .insert({ event_id: eventId, category_id: categoryId, promo_value: promoValue });
+
+        if (error) return { error: 'Erro ao salvar preço avulso.' };
+    }
+
+    return { success: true };
+}
+
 export async function updateEventCategoryDisabled(eventId: string, categoryId: string, disabled: boolean) {
     const { profile, tenant_id } = await requireTenantScope();
     const supabase = await createClient();
@@ -462,13 +503,14 @@ export async function getEventCategoriesWithPrices(
     const categoryIds = categories.map(c => c.id);
     const { data: pageOverrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee, description, promo_type, disabled')
+        .select('category_id, registration_fee, description, promo_type, promo_value, disabled')
         .eq('event_id', eventId)
         .in('category_id', categoryIds);
 
     const pageOverridesMap = new Map(pageOverrides?.map(o => [o.category_id, o.registration_fee]));
     const pageDescMap = new Map(pageOverrides?.map(o => [o.category_id, o.description]));
     const pagePromoMap = new Map(pageOverrides?.map(o => [o.category_id, o.promo_type]));
+    const pagePromoValueMap = new Map(pageOverrides?.map(o => [o.category_id, o.promo_value]));
     const pageDisabledMap = new Map(pageOverrides?.map(o => [o.category_id, o.disabled]));
 
     // 5. Get TOTAL overrides count for this table (for the summary card)
@@ -529,6 +571,7 @@ export async function getEventCategoriesWithPrices(
                 is_override: isDifferent,
                 override_description: pageDescMap.get(cat.id) || null,
                 promo_type: pagePromoMap.get(cat.id) || null,
+                promo_value: pagePromoValueMap.get(cat.id) ?? null,
                 disabled: pageDisabledMap.get(cat.id) || false,
                 registered_count: countMap.get(cat.id) || 0,
                 preview_athletes: previewMap.get(cat.id) || []

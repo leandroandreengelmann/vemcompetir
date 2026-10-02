@@ -62,6 +62,7 @@ interface Category {
     registration_fee: number;
     description?: string | null;
     promo_type?: string | null;
+    promo_value?: number | null;
     registered_count?: number;
     preview_athletes?: string[];
     [key: string]: any;
@@ -73,13 +74,14 @@ interface CategorySearchPanelProps {
     isWhiteBelt?: boolean;
     athleteAge?: number | null;
     athleteSex?: string | null;
-    onAddToCart?: (categoryId: string) => Promise<void>;
+    onAddToCart?: (categoryId: string, choice?: 'combo' | 'avulso') => Promise<void>;
     cartCategoryIds?: Set<string>;
     disableAutoFilter?: boolean;
     addToCartLabel?: string;
     inCartLabel?: string;
     defaultQuery?: string;
     requireFilter?: boolean;
+    allowComboChoice?: boolean;
 }
 
 function normalize(text: string) {
@@ -100,7 +102,7 @@ function matchesQuery(c: Category, query: string): boolean {
     return normalize(query).split(/\s+/).filter(Boolean).every(t => haystack.includes(t));
 }
 
-export function CategorySearchPanel({ eventId, categories, isWhiteBelt = false, athleteAge, athleteSex, onAddToCart: onAddToCartProp, cartCategoryIds: cartCategoryIdsProp, disableAutoFilter = false, addToCartLabel, inCartLabel, defaultQuery: defaultQueryProp = '', requireFilter = false }: CategorySearchPanelProps) {
+export function CategorySearchPanel({ eventId, categories, isWhiteBelt = false, athleteAge, athleteSex, onAddToCart: onAddToCartProp, cartCategoryIds: cartCategoryIdsProp, disableAutoFilter = false, addToCartLabel, inCartLabel, defaultQuery: defaultQueryProp = '', requireFilter = false, allowComboChoice = true }: CategorySearchPanelProps) {
     const canSeeAbsoluto = athleteAge == null || athleteAge >= 15;
 
     const [query, setQuery] = useState(defaultQueryProp);
@@ -336,9 +338,9 @@ export function CategorySearchPanel({ eventId, categories, isWhiteBelt = false, 
                             ? cartCategoryIdsProp.has(cat.id)
                             : cartItems.some(item => item.categoryId === cat.id && item.eventId === eventId);
                         const handleAddToCart = onAddToCartProp
-                            ? async () => { await onAddToCartProp(cat.id); }
-                            : async () => {
-                                await addToAthleteCartAction({ eventId, categoryId: cat.id });
+                            ? async (choice?: 'combo' | 'avulso') => { await onAddToCartProp(cat.id, choice); }
+                            : async (choice?: 'combo' | 'avulso') => {
+                                await addToAthleteCartAction({ eventId, categoryId: cat.id, comboChoice: choice });
                                 showToast.success('Adicionado ao carrinho', cat.name);
                                 useAthleteCart.getState().fetchCart();
                             };
@@ -353,6 +355,7 @@ export function CategorySearchPanel({ eventId, categories, isWhiteBelt = false, 
                                 onAddToCart={handleAddToCart}
                                 addToCartLabel={addToCartLabel}
                                 inCartLabel={inCartLabel}
+                                allowComboChoice={allowComboChoice}
                             />
                         );
                     })

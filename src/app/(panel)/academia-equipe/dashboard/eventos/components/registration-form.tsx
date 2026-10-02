@@ -112,7 +112,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax, initialAt
             .finally(() => setLoadingCategories(false));
     }, [selectedAthleteId, event.id]);
 
-    const addToCart = async (categoryId: string) => {
+    const addToCart = async (categoryId: string, comboChoice?: 'combo' | 'avulso') => {
         if (!selectedAthlete || !categoryId) return;
 
         const category = allCategories.find(c => c.id === categoryId);
@@ -133,6 +133,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax, initialAt
             athleteName: selectedAthlete.full_name,
             categoryTitle: category.categoria_completa,
             price: isOwner && adminTax > 0 ? adminTax : category.registration_fee,
+            comboChoice,
         });
 
         showToast.success('Adicionado ao carrinho', `${selectedAthlete.full_name} · ${category.categoria_completa}`);
@@ -302,7 +303,7 @@ export function RegistrationForm({ event, athletes, isOwner, adminTax, initialAt
                                     isWhiteBelt={isWhiteBelt}
                                     athleteSex={selectedAthlete?.sexo ?? null}
                                     athleteAge={selectedAthlete?.birth_date ? (calculateAge(selectedAthlete.birth_date) as number) : null}
-                                    onAddToCart={async (categoryId) => { await addToCart(categoryId); }}
+                                    onAddToCart={async (categoryId, choice) => { await addToCart(categoryId, choice); }}
                                     cartCategoryIds={cartCategoryIds}
                                 />
                             </div>

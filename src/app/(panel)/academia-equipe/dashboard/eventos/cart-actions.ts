@@ -22,7 +22,7 @@ import {
 import { applyComboBundle } from '@/lib/apply-combo-bundle-to-cart';
 
 // Add item to cart (create registration with status 'carrinho')
-export async function addToCartAction(item: { eventId: string, athleteId: string, categoryId: string, price: number }) {
+export async function addToCartAction(item: { eventId: string, athleteId: string, categoryId: string, price: number, comboChoice?: 'combo' | 'avulso' }) {
     const { profile, tenant_id } = await requireTenantScope();
     const supabase = await createClient();
 
@@ -65,14 +65,16 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
         .single();
 
     let promoType: string | null = null;
+    let promoValue: number | null = null;
     if (category?.table_id) {
         const { data: override } = await supabase
             .from('event_category_overrides')
-            .select('promo_type')
+            .select('promo_type, promo_value')
             .eq('event_id', item.eventId)
             .eq('category_id', item.categoryId)
             .maybeSingle();
         promoType = override?.promo_type ?? null;
+        promoValue = override?.promo_value ?? null;
     }
 
     // Validação server-side: calcular o preço correto no servidor
@@ -119,6 +121,12 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
         } else {
             serverPrice = basePrice;
         }
+
+        // Avulso: academia optou por não levar a categoria companheira de graça,
+        // então usa o preço avulso (promo_value) em vez do preço do combo.
+        if (promoType === 'free_second_registration' && item.comboChoice === 'avulso' && promoValue != null) {
+            serverPrice = promoValue;
+        }
     }
 
     const registrationId = crypto.randomUUID();
@@ -144,6 +152,7 @@ export async function addToCartAction(item: { eventId: string, athleteId: string
     // PROMO: free_second_registration — only for third-party events
     if (
         promoType === 'free_second_registration' &&
+        item.comboChoice !== 'avulso' &&
         category?.table_id &&
         (await isAbsolutoCategory(category.categoria_completa))
     ) {

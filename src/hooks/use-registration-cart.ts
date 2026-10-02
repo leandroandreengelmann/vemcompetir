@@ -15,6 +15,7 @@ export interface CartItem {
     status: string;
     promoTypeApplied?: string | null;
     promoSourceId?: string | null;
+    comboChoice?: 'combo' | 'avulso';
 }
 
 interface RegistrationCartState {
@@ -78,7 +79,8 @@ export const useRegistrationCart = create<RegistrationCartState>((set, get) => (
                 eventId: item.eventId,
                 athleteId: item.athleteId,
                 categoryId: item.categoryId,
-                price: item.price
+                price: item.price,
+                comboChoice: item.comboChoice
             });
 
             if (result.error) {

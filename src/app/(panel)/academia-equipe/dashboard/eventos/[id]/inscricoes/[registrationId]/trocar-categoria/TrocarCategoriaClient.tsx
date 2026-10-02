@@ -139,6 +139,7 @@ export default function TrocarCategoriaClient({
                     disableAutoFilter
                     addToCartLabel="Selecionar"
                     inCartLabel="Selecionada"
+                    allowComboChoice={false}
                     {...(athleteAge != null && athleteAge >= 15
                         ? { defaultQuery: 'absoluto' }
                         : { requireFilter: true }

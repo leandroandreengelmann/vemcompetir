@@ -166,6 +166,7 @@ export default function AthleteChangeCategoryForm({
                     disableAutoFilter
                     addToCartLabel="Selecionar"
                     inCartLabel="Selecionada"
+                    allowComboChoice={false}
                     {...(athleteAge != null && athleteAge >= 15
                         ? { defaultQuery: 'absoluto' }
                         : { requireFilter: true }

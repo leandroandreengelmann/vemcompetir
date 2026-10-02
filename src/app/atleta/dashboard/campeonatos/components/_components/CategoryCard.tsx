@@ -16,6 +16,7 @@ interface CategoryResult {
     registration_fee: number;
     description?: string | null;
     promo_type?: string | null;
+    promo_value?: number | null;
     registered_count?: number;
     preview_athletes?: string[];
     match?: {
@@ -28,17 +29,20 @@ interface CategoryCardProps {
     eventId?: string;
     category: CategoryResult;
     onClick?: () => void;
-    onAddToCart?: () => Promise<void>;
+    onAddToCart?: (choice?: 'combo' | 'avulso') => Promise<void>;
     showMatchDetails?: boolean;
     isWhiteBelt?: boolean;
     isInCart?: boolean;
     addToCartLabel?: string;
     inCartLabel?: string;
+    allowComboChoice?: boolean;
 }
 
-export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatchDetails = false, isWhiteBelt = false, isInCart = false, addToCartLabel = 'Inscrever', inCartLabel = 'No carrinho' }: CategoryCardProps) {
+export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatchDetails = false, isWhiteBelt = false, isInCart = false, addToCartLabel = 'Inscrever', inCartLabel = 'No carrinho', allowComboChoice = true }: CategoryCardProps) {
     const [adding, setAdding] = useState(false);
     const [added, setAdded] = useState(false);
+    const hasComboChoice = allowComboChoice && category.promo_type === 'free_second_registration' && category.promo_value != null;
+    const [selectedChoice, setSelectedChoice] = useState<'combo' | 'avulso'>('combo');
 
     // Reset local "added" state when the item is removed from cart externally
     React.useEffect(() => {
@@ -76,6 +80,26 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
         setIsExpanded(!isExpanded);
     };
 
+    const handleAdd = async (e: React.MouseEvent, choice?: 'combo' | 'avulso') => {
+        e.stopPropagation();
+        if (isActuallyInCart || !onAddToCart) return;
+        setAdding(true);
+        try {
+            await onAddToCart(choice);
+            setAdded(true);
+        } catch {
+            // error handled by parent
+        } finally {
+            setAdding(false);
+        }
+    };
+
+    const handleSelectChoice = (e: React.MouseEvent, choice: 'combo' | 'avulso') => {
+        e.stopPropagation();
+        if (isActuallyInCart || adding) return;
+        setSelectedChoice(choice);
+    };
+
     return (
         <div
             onClick={onClick}
@@ -110,51 +134,107 @@ export function CategoryCard({ eventId, category, onClick, onAddToCart, showMatc
                 )}
 
                 {/* Rodapé: Preço e Ação */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto pt-2 gap-2">
-                    <div className="flex items-center gap-2">
+                {hasComboChoice ? (
+                    <div className="flex flex-col gap-2 mt-auto pt-2">
                         <span className="text-panel-sm font-semibold text-foreground">
-                            Valor da inscrição
+                            Como você quer se inscrever?
                         </span>
-                        <span className={`text-panel-md font-bold tabular-nums ${isWhiteBelt ? 'text-brand-950' : 'text-primary'}`}>
-                            R$ {category.registration_fee}
-                        </span>
+                        <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+                            {([
+                                { key: 'combo' as const, title: 'Combo', subtitle: '+ categoria de peso junto', price: category.registration_fee, badge: 'Mais vantajoso' },
+                                { key: 'avulso' as const, title: 'Só o Absoluto', subtitle: 'sem a categoria de peso', price: category.promo_value, badge: null },
+                            ]).map((opt) => {
+                                const isSelected = selectedChoice === opt.key;
+                                const selectedActiveClasses = isWhiteBelt
+                                    ? 'border-brand-950 bg-brand-950 shadow-lg shadow-brand-950/25 hover:brightness-110'
+                                    : 'border-primary bg-primary shadow-lg shadow-primary/25 hover:brightness-110';
+                                return (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        disabled={adding || isActuallyInCart}
+                                        onClick={(e) => handleSelectChoice(e, opt.key)}
+                                        aria-pressed={isSelected}
+                                        className={`relative flex-1 flex flex-col items-start gap-0.5 px-4 pt-4 pb-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.97] ${
+                                            isSelected
+                                                ? isActuallyInCart
+                                                    ? 'border-green-500 bg-green-500 shadow-lg shadow-green-500/25 cursor-default'
+                                                    : selectedActiveClasses
+                                                : 'border-border bg-muted/20 opacity-50 hover:opacity-80 cursor-pointer'
+                                        }`}
+                                    >
+                                        {opt.badge && !isActuallyInCart && (
+                                            <span className="absolute -top-3.5 left-3 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide shadow-md bg-emerald-500 text-white">
+                                                {opt.badge}
+                                            </span>
+                                        )}
+                                        {isSelected && (
+                                            <span className="absolute top-2.5 right-2.5 flex items-center justify-center h-5 w-5 rounded-full bg-white shadow">
+                                                <CheckIcon size={12} weight="bold" className={isActuallyInCart ? 'text-green-600' : isWhiteBelt ? 'text-brand-950' : 'text-primary'} />
+                                            </span>
+                                        )}
+                                        <span className={`text-panel-sm font-extrabold ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{opt.title}</span>
+                                        <span className={`text-panel-sm ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/70'}`}>{opt.subtitle}</span>
+                                        <span className={`text-h3 font-extrabold tabular-nums ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground'}`}>R$ {opt.price}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {isActuallyInCart ? (
+                            <span className="flex items-center gap-1.5 text-panel-sm font-bold text-green-700 dark:text-green-400">
+                                <CheckIcon size={14} weight="duotone" /> {inCartLabel}
+                            </span>
+                        ) : (
+                            <button
+                                type="button"
+                                disabled={adding}
+                                onClick={(e) => handleAdd(e, selectedChoice)}
+                                className={`flex items-center justify-center gap-1.5 h-11 rounded-full text-panel-sm font-bold transition-all active:scale-[0.98] ${isWhiteBelt ? 'bg-brand-950 text-white hover:bg-brand-800' : 'bg-primary text-primary-foreground hover:opacity-90'}`}
+                            >
+                                {adding ? (
+                                    <CircleNotchIcon size={20} weight="bold" className="animate-spin" />
+                                ) : (
+                                    <ShoppingCartIcon size={20} weight="duotone" />
+                                )}
+                                Adicionar ao carrinho — R$ {selectedChoice === 'combo' ? category.registration_fee : category.promo_value}
+                            </button>
+                        )}
                     </div>
+                ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto pt-2 gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-panel-sm font-semibold text-foreground">
+                                Valor da inscrição
+                            </span>
+                            <span className={`text-panel-md font-bold tabular-nums ${isWhiteBelt ? 'text-brand-950' : 'text-primary'}`}>
+                                R$ {category.registration_fee}
+                            </span>
+                        </div>
 
-                    {onAddToCart && (
-                        <button
-                            type="button"
-                            className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-panel-sm font-bold transition-all w-full sm:w-auto ${isActuallyInCart
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 opacity-100 cursor-default'
-                                : isWhiteBelt
-                                    ? 'bg-brand-950 text-white hover:bg-brand-800'
-                                    : 'bg-primary text-primary-foreground hover:opacity-90'
-                                }`}
-                            disabled={adding || isActuallyInCart}
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                if (isActuallyInCart) return;
-                                setAdding(true);
-                                try {
-                                    await onAddToCart();
-                                    setAdded(true);
-                                } catch {
-                                    // error handled by parent
-                                } finally {
-                                    setAdding(false);
-                                }
-                            }}
-                        >
-                            {adding ? (
-                                <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
-                            ) : isActuallyInCart ? (
-                                <CheckIcon size={14} weight="duotone" />
-                            ) : (
-                                <ShoppingCartIcon size={14} weight="duotone" />
-                            )}
-                            {isActuallyInCart ? inCartLabel : addToCartLabel}
-                        </button>
-                    )}
-                </div>
+                        {onAddToCart && (
+                            <button
+                                type="button"
+                                className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-panel-sm font-bold transition-all w-full sm:w-auto ${isActuallyInCart
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 opacity-100 cursor-default'
+                                    : isWhiteBelt
+                                        ? 'bg-brand-950 text-white hover:bg-brand-800'
+                                        : 'bg-primary text-primary-foreground hover:opacity-90'
+                                    }`}
+                                disabled={adding || isActuallyInCart}
+                                onClick={(e) => handleAdd(e)}
+                            >
+                                {adding ? (
+                                    <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                ) : isActuallyInCart ? (
+                                    <CheckIcon size={14} weight="duotone" />
+                                ) : (
+                                    <ShoppingCartIcon size={14} weight="duotone" />
+                                )}
+                                {isActuallyInCart ? inCartLabel : addToCartLabel}
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* Athletes Preview Footer */}
                 {typeof displayCount === 'number' && displayCount > 0 && (

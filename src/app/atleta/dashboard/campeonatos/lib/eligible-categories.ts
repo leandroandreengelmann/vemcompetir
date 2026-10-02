@@ -417,12 +417,13 @@ export async function getEligibleCategories(eventId: string) {
     // 4. Overrides
     const { data: overrides } = await supabase
         .from('event_category_overrides')
-        .select('category_id, registration_fee, description, promo_type, disabled')
+        .select('category_id, registration_fee, description, promo_type, promo_value, disabled')
         .eq('event_id', eventId);
 
     const overridesMap = new Map(overrides?.map(o => [o.category_id, o.registration_fee]));
     const overridesDescMap = new Map(overrides?.map(o => [o.category_id, o.description]));
     const overridesPromoMap = new Map(overrides?.map(o => [o.category_id, o.promo_type]));
+    const overridesPromoValueMap = new Map(overrides?.map(o => [o.category_id, o.promo_value]));
     const disabledCategoryIds = new Set(overrides?.filter(o => o.disabled).map(o => o.category_id));
 
     // 4b. Athlete pricing — preço diferenciado por gym_name/master_name
@@ -537,6 +538,7 @@ export async function getEligibleCategories(eventId: string) {
             registration_fee: price,
             description: overridesDescMap.get(cat.id) || null,
             promo_type: overridesPromoMap.get(cat.id) || null,
+            promo_value: overridesPromoValueMap.get(cat.id) ?? null,
             registered_count: registeredCount,
             preview_athletes: previewAthletes,
             match,

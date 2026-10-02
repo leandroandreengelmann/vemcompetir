@@ -16,6 +16,7 @@ import { cancelPendingAsaasPayment } from '@/lib/asaas-payment-utils';
 export async function addToAthleteCartAction(item: {
     eventId: string;
     categoryId: string;
+    comboChoice?: 'combo' | 'avulso';
 }) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,13 +79,19 @@ export async function addToAthleteCartAction(item: {
 
         const { data: override } = await supabase
             .from('event_category_overrides')
-            .select('registration_fee, promo_type')
+            .select('registration_fee, promo_type, promo_value')
             .eq('event_id', item.eventId)
             .eq('category_id', item.categoryId)
             .maybeSingle();
 
         finalPrice = override?.registration_fee ?? tableLink?.registration_fee ?? 0;
         promoType = override?.promo_type ?? null;
+
+        // Avulso: atleta optou por não levar a categoria companheira de graça,
+        // então paga o preço avulso (promo_value) em vez do preço do combo.
+        if (promoType === 'free_second_registration' && item.comboChoice === 'avulso' && override?.promo_value != null) {
+            finalPrice = override.promo_value;
+        }
 
         // Athlete pricing: preco diferenciado por gym_name/master_name (exceto absoluto)
         if (!(await isAbsolutoCategory(category.categoria_completa))) {
@@ -158,6 +165,7 @@ export async function addToAthleteCartAction(item: {
     // category in the same table and add it for free (price = 0).
     if (
         promoType === 'free_second_registration' &&
+        item.comboChoice !== 'avulso' &&
         category?.table_id &&
         (await isAbsolutoCategory(category.categoria_completa))
     ) {

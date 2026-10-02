@@ -26,7 +26,7 @@ interface AthleteCartState {
     isLoading: boolean;
     setOpen: (open: boolean) => void;
     fetchCart: () => Promise<void>;
-    addItem: (item: { eventId: string; categoryId: string; price: number }) => Promise<void>;
+    addItem: (item: { eventId: string; categoryId: string; price: number; comboChoice?: 'combo' | 'avulso' }) => Promise<void>;
     removeItem: (registrationId: string) => Promise<void>;
     reactivateItem: (registrationId: string) => Promise<void>;
 }

@@ -289,6 +289,7 @@ export function CreditInscreverForm({ pkg, event, athletes, creditsLeft }: Props
                                     cartCategoryIds={enrolledCategoryIds}
                                     addToCartLabel="Inscrever"
                                     inCartLabel="Inscrito"
+                                    allowComboChoice={false}
                                 />
                             </div>
                         )}

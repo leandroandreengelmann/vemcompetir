@@ -299,7 +299,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
     }
 
     // ───────────────────────── Categorias ─────────────────────────
-    async function handleAddCategory(categoryId: string) {
+    async function handleAddCategory(categoryId: string, comboChoice?: 'combo' | 'avulso') {
         if (!athleteId) return;
         if (cart.some(c => c.categoryId === categoryId)) {
             showToast.warning('Categoria já adicionada', 'Ela já está na lista deste atleta.');
@@ -308,7 +308,7 @@ export function ExternalAthleteWizard({ eventId, eventTitle, academies }: Props)
         const cat = allCategories.find(c => c.id === categoryId);
         setAdding(true);
         try {
-            const res = await addToCartAction({ eventId, athleteId, categoryId, price: cat?.registration_fee ?? 0 });
+            const res = await addToCartAction({ eventId, athleteId, categoryId, price: cat?.registration_fee ?? 0, comboChoice });
             if (res.error) {
                 showToast.error('Não foi possível adicionar', res.error);
                 return;
