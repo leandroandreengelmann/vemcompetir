@@ -1,5 +1,6 @@
 import { requireRole } from '@/lib/auth-guards';
 import { AcademiaProfileForm } from './profile-form';
+import { ChangePasswordForm } from './change-password-form';
 
 export default async function AcademiaPerfilPage() {
     // Only academia/equipe (and admin) should access this specific profile page
@@ -30,6 +31,8 @@ export default async function AcademiaPerfilPage() {
                     gym_name: profile.gym_name ?? null,
                     phone: profile.phone ?? null,
                 }} />
+
+                {user.email && <ChangePasswordForm email={user.email} />}
             </div>
         </div>
     );
