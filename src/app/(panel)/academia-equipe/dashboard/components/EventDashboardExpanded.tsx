@@ -17,6 +17,9 @@ export function EventDashboardExpanded({ eventId }: EventDashboardExpandedProps)
                 <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/categorias`}>
                     <Button variant="outline" pill className="h-8 px-4 text-panel-sm font-semibold transition-all w-full sm:w-auto">Categorias</Button>
                 </Link>
+                <Link href={`/academia-equipe/dashboard/eventos/${eventId}/mapa-categorias`}>
+                    <Button variant="outline" pill className="h-8 px-4 text-panel-sm font-semibold transition-all w-full sm:w-auto">Mapa de Categorias</Button>
+                </Link>
                 <Link href={`/academia-equipe/dashboard/eventos/${eventId}/relatorios/inscricoes`}>
                     <Button variant="outline" pill className="h-8 px-4 text-panel-sm font-semibold transition-all w-full sm:w-auto">Inscrições</Button>
                 </Link>
