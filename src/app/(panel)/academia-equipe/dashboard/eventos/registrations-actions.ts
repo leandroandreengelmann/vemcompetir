@@ -500,6 +500,9 @@ export async function changeCategoryAction(
             category_id,
             event_id,
             tenant_id,
+            athlete:profiles!athlete_id (
+                tenant_id
+            ),
             event:events!event_id (
                 event_date,
                 category_change_deadline_days,
@@ -512,11 +515,14 @@ export async function changeCategoryAction(
     if (regError || !reg) return { error: 'Inscrição não encontrada.' };
 
     const event = Array.isArray(reg.event) ? reg.event[0] : reg.event;
+    const athlete = Array.isArray(reg.athlete) ? reg.athlete[0] : reg.athlete;
 
-    // 2. Permission: must be the registration's tenant OR the event organizer
+    // 2. Permission: must be the registration's tenant, the event organizer
+    // OR the athlete's academy (athlete who registered on their own)
     const isRegistrationTenant = reg.tenant_id === tenant_id;
     const isOrganizer = event?.tenant_id === tenant_id;
-    if (!isRegistrationTenant && !isOrganizer) {
+    const isAthleteOfTenant = athlete?.tenant_id === tenant_id;
+    if (!isRegistrationTenant && !isOrganizer && !isAthleteOfTenant) {
         return { error: 'Sem permissão para alterar esta inscrição.' };
     }
 
