@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { formatFullCategoryName } from '@/lib/category-utils';
-import { classifyRegistration, fetchPaymentsMap } from './registration-classifier';
+import { classifyRegistration, fetchPaymentsMap, chargedAmount } from './registration-classifier';
 
 export async function getAcademyInscriptions(filters: { status?: string; search?: string; eventId?: string; page?: number }) {
     const { tenant_id } = await requireTenantScope();
@@ -83,7 +83,7 @@ export async function getAcademyInscriptions(filters: { status?: string; search?
             if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
             const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
             const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
-            return { ...item, tipo, payer_type, manual_method };
+            return { ...item, tipo, payer_type, manual_method, list_price: item.price, price: chargedAmount(item) };
         });
 
         return { data: processedData, count: filtered.length, pageSize, error };
@@ -102,7 +102,7 @@ export async function getAcademyInscriptions(filters: { status?: string; search?
         if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
         const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
         const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
-        return { ...item, tipo, payer_type, manual_method };
+        return { ...item, tipo, payer_type, manual_method, list_price: item.price, price: chargedAmount(item) };
     });
 
     return { data: processedData, count, pageSize, error };
@@ -174,7 +174,7 @@ export async function exportAcademyInscriptions(filters: { search?: string; even
         if (item.category) item.category.categoria_completa = formatFullCategoryName(item.category);
         const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
         const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
-        return { ...item, tipo, payer_type, manual_method };
+        return { ...item, tipo, payer_type, manual_method, list_price: item.price, price: chargedAmount(item) };
     });
 
     // Carrega dados da academia: nome vem do tenant; endereço/telefone do profile da academia

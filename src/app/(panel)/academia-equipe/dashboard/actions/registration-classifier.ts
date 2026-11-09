@@ -1,3 +1,9 @@
+// Valor efetivamente cobrado: manual_amount (definido em baixa manual, desconto ou isenção)
+// tem prioridade sobre o preço de tabela.
+export function chargedAmount(reg: { price?: number | string | null; manual_amount?: number | string | null }): number {
+    return Number(reg.manual_amount ?? reg.price ?? 0);
+}
+
 // Helper: classificar tipo de registro com base no status, payment e manual_payment_method
 export function classifyRegistration(
     status: string,
@@ -21,7 +27,9 @@ export function classifyRegistration(
         return { tipo: 'pacote', payer_type: null, manual_method: null };
     }
     if (status === 'pago' || status === 'paga' || status === 'confirmado') {
-        return { tipo: 'pago', payer_type: payment?.payer_type || null, manual_method: null };
+        // Pagamento manual de evento próprio (ex.: status 'pago' + Pix direto) mantém o método
+        // para a UI exibir "PIX direto" / "pago em mão" abaixo do badge.
+        return { tipo: 'pago', payer_type: payment?.payer_type || null, manual_method: manualPaymentMethod || null };
     }
     if (status === 'agendado') return { tipo: 'agendado', payer_type: payment?.payer_type || null, manual_method: null };
     if (status === 'pendente' || status === 'aguardando_pagamento') return { tipo: 'pendente', payer_type: payment?.payer_type || null, manual_method: null };

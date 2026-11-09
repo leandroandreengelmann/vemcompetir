@@ -31,7 +31,7 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: P
         const { data: reg } = await adminSupabase
             .from('event_registrations')
             .select(`
-                id, price, status, tenant_id, event_id, athlete_id, manual_payment_method,
+                id, price, manual_amount, status, tenant_id, event_id, athlete_id, manual_payment_method,
                 athlete:profiles!athlete_id(full_name, cpf),
                 event:events!event_id(title, tenant_id)
             `)
@@ -59,7 +59,7 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: P
                     registrationId: reg.id,
                     payerName: (reg as any).athlete?.full_name ?? '',
                     payerDocument: (reg as any).athlete?.cpf ?? '',
-                    amount: Number(reg.price || 0),
+                    amount: Number(reg.manual_amount ?? reg.price ?? 0),
                     description: `Inscrição em ${(reg as any).event?.title ?? 'evento'}`,
                     eventTitle: (reg as any).event?.title ?? '',
                     paymentMethodDefault: method,

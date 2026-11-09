@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireFinancialModule } from '@/lib/auth-guards';
-import { classifyRegistration, fetchPaymentsMap } from '../actions/registration-classifier';
+import { classifyRegistration, fetchPaymentsMap, chargedAmount } from '../actions/registration-classifier';
 import { createEventRegistrationReceipt } from '@/lib/receipts/event-registration-receipt';
 import { revalidatePath } from 'next/cache';
 
@@ -20,7 +20,10 @@ export type TransactionRow = {
     tipo: string;
     payer_type: string | null;
     manual_method: string | null;
+    /** Preço de tabela da inscrição */
     price: number;
+    /** Valor efetivamente cobrado (manual_amount, se houver; senão price) */
+    charged_amount: number;
     created_at: string;
     registration_number: number | null;
     has_receipt: boolean;
@@ -61,7 +64,7 @@ export async function listFinancialTransactions(filters: {
     let query = adminSupabase
         .from('event_registrations')
         .select(`
-            id, event_id, athlete_id, status, price, payment_id, created_at, registration_number,
+            id, event_id, athlete_id, status, price, manual_amount, payment_id, created_at, registration_number,
             manual_payment_method, is_courtesy, promo_type_applied,
             athlete:profiles!athlete_id${hasSearch ? '!inner' : ''}(full_name, cpf, gym_name)
         `, { count: needsPostFilter ? undefined : 'exact' })
@@ -165,6 +168,7 @@ async function enrichTransactions(
             payer_type,
             manual_method,
             price: Number(item.price || 0),
+            charged_amount: chargedAmount(item),
             created_at: item.created_at,
             registration_number: item.registration_number ?? null,
             has_receipt: receiptSet.has(item.id),
@@ -191,7 +195,7 @@ export async function getFinanceiroHubKpis(filters: { from?: string | null; to?:
     if (eventIds.length > 0) {
         let regQuery = adminSupabase
             .from('event_registrations')
-            .select('price, status, payment_id, manual_payment_method, is_courtesy, created_at')
+            .select('price, manual_amount, status, payment_id, manual_payment_method, is_courtesy, created_at')
             .in('event_id', eventIds)
             .not('status', 'in', '(carrinho,pendente,aguardando_pagamento)');
 
@@ -203,7 +207,7 @@ export async function getFinanceiroHubKpis(filters: { from?: string | null; to?:
         const paymentsMap = await fetchPaymentsMap(adminSupabase, paymentIds);
 
         for (const reg of regs ?? []) {
-            const price = Number(reg.price || 0);
+            const price = chargedAmount(reg as any);
             const payment = reg.payment_id ? paymentsMap[reg.payment_id] : null;
             const { tipo } = classifyRegistration(reg.status, payment, (reg as any).manual_payment_method, (reg as any).is_courtesy);
 
@@ -383,7 +387,7 @@ export async function issueReceiptForRegistrationAction(input: {
         const { data: registration } = await adminSupabase
             .from('event_registrations')
             .select(`
-                id, event_id, price, athlete_id, tenant_id, status,
+                id, event_id, price, manual_amount, athlete_id, tenant_id, status,
                 athlete:profiles!athlete_id(full_name, cpf),
                 event:events!event_id(title, tenant_id, event_date)
             `)
@@ -397,7 +401,7 @@ export async function issueReceiptForRegistrationAction(input: {
             return { error: 'Inscrição fora do escopo da sua academia.' };
         }
 
-        const amount = typeof input.amountOverride === 'number' ? input.amountOverride : Number(registration.price || 0);
+        const amount = typeof input.amountOverride === 'number' ? input.amountOverride : chargedAmount(registration as any);
         if (!(amount > 0)) {
             return { error: 'Não é possível emitir recibo para valor zero.' };
         }

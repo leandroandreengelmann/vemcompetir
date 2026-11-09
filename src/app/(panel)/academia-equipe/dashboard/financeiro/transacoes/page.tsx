@@ -252,7 +252,7 @@ export default function TransacoesPage() {
                                             </TableCell>
                                             <TableCell>{renderBadge(row)}</TableCell>
                                             <TableCell className="text-right font-bold text-panel-sm">
-                                                {formatCurrency(row.price)}
+                                                {formatCurrency(row.charged_amount)}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
