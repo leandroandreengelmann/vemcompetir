@@ -11,13 +11,18 @@ export interface ScoringConfig {
     lines_per_column: number;
 }
 
-/** Normalizes a gym name for grouping (lowercase, no accents). */
+/**
+ * Normalizes a gym name for grouping (lowercase, no accents, punctuation and
+ * spacing ignored). E.g. "M4BJJ - NOVA UNI\u00c3O" and "M4BJJ-NOVA UNI\u00c3O" both
+ * become "m4bjj nova uniao".
+ */
 function normalizeGymName(name: string): string {
     return name
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
-        .trim();
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim() || 'sem equipe';
 }
 
 export interface TeamSummary {
