@@ -72,7 +72,7 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
     const summaries: EventSummary[] = await Promise.all(data.map(async (event: any) => {
         const { data: regs } = await adminSupabase
             .from('event_registrations')
-            .select('status, price, category_id, payment_id, promo_type_applied')
+            .select('status, price, manual_amount, category_id, payment_id, promo_type_applied')
             .eq('event_id', event.id);
 
         const allRegs = regs || [];
@@ -100,7 +100,8 @@ export async function getEventsDashboardSummaries(filters: { search?: string; st
         const paidCategoryIds = new Set<string>();
 
         for (const reg of allRegs) {
-            const price = Number(reg.price || 0);
+            // Valor efetivamente cobrado (manual_amount tem prioridade sobre o preço de tabela)
+            const price = Number(reg.manual_amount ?? reg.price ?? 0);
             const payment = reg.payment_id ? paymentsMap[reg.payment_id] : null;
 
             if (reg.status === 'isento') {

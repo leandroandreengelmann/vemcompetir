@@ -294,6 +294,7 @@ export async function getEventReportFinanceiro(eventId: string) {
         .select(`
             status,
             price,
+            manual_amount,
             created_at,
             payment_id,
             promo_type_applied,
@@ -325,7 +326,7 @@ export async function getEventReportFinanceiro(eventId: string) {
 
         const payment = item.payment_id ? paymentsMap[item.payment_id] : null;
         const { tipo, payer_type, manual_method } = classifyRegistration(item.status, payment, item.manual_payment_method, item.is_courtesy);
-        const price = Number(item.price || 0);
+        const price = Number(item.manual_amount ?? item.price ?? 0);
 
         // Acumular summary
         if (tipo === 'cortesia') courtesy_count++;
@@ -351,6 +352,8 @@ export async function getEventReportFinanceiro(eventId: string) {
 
         return {
             ...item,
+            list_price: item.price,
+            price,
             athlete: item.athlete?.full_name || 'Desconhecido',
             category: cat,
             tipo,
