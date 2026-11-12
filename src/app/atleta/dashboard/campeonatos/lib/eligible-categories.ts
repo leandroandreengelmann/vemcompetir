@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth-guards';
 import { parseISO } from 'date-fns';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isEnrolledHidden } from '@/lib/enrolled-visibility';
 
 /**
  * [AJUSTE AQUI] Mapeamento de campos reais do banco de dados
@@ -510,6 +511,9 @@ export async function getEligibleCategories(eventId: string) {
         }
     });
 
+    // Organizador pode ocultar os inscritos: sem nomes nem contagem para o atleta
+    const enrolledHidden = await isEnrolledHidden(supabaseAdmin, eventId, { tenantId: (profile as any).tenant_id, role: profile.role });
+
     // 5. Match
     const rawResults = await Promise.all(categories.map(async (cat) => {
         const match = await isEligible(athlete, cat as any, event?.event_date || null);
@@ -539,8 +543,9 @@ export async function getEligibleCategories(eventId: string) {
             description: overridesDescMap.get(cat.id) || null,
             promo_type: overridesPromoMap.get(cat.id) || null,
             promo_value: overridesPromoValueMap.get(cat.id) ?? null,
-            registered_count: registeredCount,
-            preview_athletes: previewAthletes,
+            registered_count: enrolledHidden ? undefined : registeredCount,
+            preview_athletes: enrolledHidden ? [] : previewAthletes,
+            enrolled_hidden: enrolledHidden,
             match,
             score
         };

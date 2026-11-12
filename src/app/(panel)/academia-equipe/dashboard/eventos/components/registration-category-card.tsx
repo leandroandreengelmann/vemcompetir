@@ -6,6 +6,7 @@ import { ArrowRightIcon, ShoppingCartIcon, CircleNotchIcon, CheckIcon, CaretDown
 import { getBeltStyle } from '@/lib/belt-theme';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { getCategoryEnrolledAthletes } from '@/app/(panel)/actions/event-categories';
+import { EnrolledHiddenNotice } from '@/components/enrolled-hidden-notice';
 
 interface CategoryResult {
     id: string;
@@ -21,6 +22,8 @@ interface CategoryResult {
     promo_type?: string | null;
     registered_count?: number;
     preview_athletes?: string[];
+    /** Organizador ocultou os inscritos deste evento */
+    enrolled_hidden?: boolean;
     match?: {
         eligible: boolean;
         reasons: { belt: boolean; age: boolean; weight: boolean; sex: boolean };
@@ -175,6 +178,13 @@ export function RegistrationCategoryCard({ eventId, category, onClick, onAddToCa
                         )}
                     </div>
                 </div>
+
+                {/* Inscritos ocultos pelo organizador */}
+                {category.enrolled_hidden && (
+                    <div className="mt-1 pt-2 border-t border-dashed border-border/60">
+                        <EnrolledHiddenNotice />
+                    </div>
+                )}
 
                 {/* Athletes Preview Footer */}
                 {typeof displayCount === 'number' && displayCount > 0 && (

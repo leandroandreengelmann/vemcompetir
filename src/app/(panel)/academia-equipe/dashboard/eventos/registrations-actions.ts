@@ -5,6 +5,7 @@ import { requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { checkEligibility, parseAgeRangeFromText, isMasterLivre, normalizeText } from '@/lib/registration-logic';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isEnrolledHidden } from '@/lib/enrolled-visibility';
 import { consumeTokens, refundTokens, getEventTenantId } from '@/lib/token-utils';
 
 export async function registerAthleteAction(
@@ -259,7 +260,7 @@ export async function getEligibleCategoriesAction(
     eventId: string,
     athleteId: string
 ) {
-    const { tenant_id } = await requireTenantScope();
+    const { tenant_id, profile: viewerProfile } = await requireTenantScope();
     const supabase = await createClient();
     const supabaseAdminAuth = createAdminClient();
 
@@ -405,6 +406,9 @@ export async function getEligibleCategoriesAction(
         .eq('athlete_id', athleteId)
         .in('status', ['pago', 'isento', 'confirmado', 'aguardando_pagamento', 'pendente', 'carrinho']);
 
+    // Organizador pode ocultar os inscritos: sem nomes nem contagem para quem se inscreve
+    const enrolledHidden = await isEnrolledHidden(supabaseAdmin, eventId, { tenantId: tenant_id, role: viewerProfile?.role });
+
     // 5. Process Eligibility
     const processed = await Promise.all(categories.map(async (cat: any) => {
         const match = await checkEligibility(athlete, cat, event?.event_date || null);
@@ -444,8 +448,9 @@ export async function getEligibleCategoriesAction(
             description: overridesDescMap.get(cat.id) || null,
             promo_type: promoType,
             promo_value: overridesPromoValueMap.get(cat.id) ?? null,
-            registered_count: registeredCount,
-            preview_athletes: previewAthletes,
+            registered_count: enrolledHidden ? undefined : registeredCount,
+            preview_athletes: enrolledHidden ? [] : previewAthletes,
+            enrolled_hidden: enrolledHidden,
             match,
             score
         };

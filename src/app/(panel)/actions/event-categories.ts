@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole, requireTenantScope } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getViewerScope, isEnrolledHidden } from '@/lib/enrolled-visibility';
 
 export async function linkCategoryTables(eventId: string, tableIds: string[]) {
     const { profile, tenant_id } = await requireTenantScope();
@@ -673,6 +674,9 @@ export async function searchEventCategories(eventId: string, query: string) {
         }
     });
 
+    // Organizador pode ocultar os inscritos: sem nomes nem contagem para quem se inscreve
+    const enrolledHidden = await isEnrolledHidden(supabaseAdmin, eventId, await getViewerScope(supabase));
+
     // 4. Merge prices and counts, and filter out already enrolled and disabled categories
     return rows
         .filter(row => !myEnrolledCategoryIds.has(row.id) && !disabledCategoryIds.has(row.id))
@@ -686,8 +690,9 @@ export async function searchEventCategories(eventId: string, query: string) {
                 registration_fee: overridePrice ?? defaultPrice,
                 description: overridesDescMap.get(row.id) || null,
                 promo_type: overridesPromoMap.get(row.id) || null,
-                registered_count: registeredCount,
-                preview_athletes: previewMap.get(row.id) || []
+                registered_count: enrolledHidden ? undefined : registeredCount,
+                preview_athletes: enrolledHidden ? [] : (previewMap.get(row.id) || []),
+                enrolled_hidden: enrolledHidden,
             };
         });
 }
@@ -698,6 +703,12 @@ export async function searchEventCategories(eventId: string, query: string) {
  */
 export async function getCategoryEnrolledAthletes(eventId: string, categoryId: string) {
     const supabaseAdmin = createAdminClient();
+
+    // Organizador pode ocultar os inscritos (events.show_enrolled_athletes = false)
+    const supabase = await createClient();
+    if (await isEnrolledHidden(supabaseAdmin, eventId, await getViewerScope(supabase))) {
+        return [];
+    }
 
     const { data, error } = await supabaseAdmin
         .from('event_registrations')

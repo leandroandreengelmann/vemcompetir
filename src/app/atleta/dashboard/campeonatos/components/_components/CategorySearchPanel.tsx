@@ -65,6 +65,7 @@ interface Category {
     promo_value?: number | null;
     registered_count?: number;
     preview_athletes?: string[];
+    enrolled_hidden?: boolean;
     [key: string]: any;
 }
 

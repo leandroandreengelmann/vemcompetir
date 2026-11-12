@@ -10,6 +10,7 @@ import { updateEventAction } from '../actions';
 import { SectionHeader } from "@/components/layout/SectionHeader";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { EnrolledVisibilityToggle } from '@/components/enrolled-visibility-toggle';
 
 interface EditEventFormProps {
     event: {
@@ -26,6 +27,7 @@ interface EditEventFormProps {
         address_state: string | null;
         address_zip: string | null;
         image_path: string | null;
+        show_enrolled_athletes?: boolean | null;
     };
 }
 
@@ -138,6 +140,11 @@ export default function EditEventForm({ event }: EditEventFormProps) {
                         className="text-center md:flex-col md:items-center"
                     />
                 </div>
+
+                <EnrolledVisibilityToggle
+                    eventId={event.id}
+                    initialShow={event.show_enrolled_athletes !== false}
+                />
 
                 {error && (
                     <div className="p-3 bg-destructive/15 text-destructive text-sm rounded-lg text-center animate-in fade-in zoom-in duration-300">

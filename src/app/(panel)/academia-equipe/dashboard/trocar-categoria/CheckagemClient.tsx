@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { EnrolledAthletesPreview } from '@/app/atleta/dashboard/inscricoes/EnrolledAthletesPreview';
+import { EnrolledHiddenNotice } from '@/components/enrolled-hidden-notice';
 
 interface Registration {
     id: string;
@@ -43,6 +44,8 @@ interface Props {
     ownedEventIds: string[];
     categoryCounts: Record<string, number>;
     categoryPreviews: Record<string, string[]>;
+    /** Eventos em que o organizador ocultou os inscritos por categoria */
+    hiddenEnrolledEventIds?: string[];
 }
 
 function BeltBadge({ belt }: { belt?: string }) {
@@ -67,7 +70,7 @@ function BeltBadge({ belt }: { belt?: string }) {
     );
 }
 
-export default function CheckagemClient({ registrations, eventMap, currentTenantId, ownedEventIds, categoryCounts, categoryPreviews }: Props) {
+export default function CheckagemClient({ registrations, eventMap, currentTenantId, ownedEventIds, categoryCounts, categoryPreviews, hiddenEnrolledEventIds = [] }: Props) {
     const ownedSet = useMemo(() => new Set(ownedEventIds), [ownedEventIds]);
     const [filter, setFilter] = useState<'todos' | 'minha'>('todos');
     const [search, setSearch] = useState('');
@@ -212,7 +215,10 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                                                                 <p className="text-ui font-semibold text-foreground">
                                                                     {reg.category ? formatFullCategoryName(reg.category) : '—'}
                                                                 </p>
-                                                                {reg.category_id && (
+                                                                {reg.category_id && hiddenEnrolledEventIds.includes(eventId) && (
+                                                                    <EnrolledHiddenNotice />
+                                                                )}
+                                                                {reg.category_id && !hiddenEnrolledEventIds.includes(eventId) && (
                                                                     <EnrolledAthletesPreview
                                                                         eventId={eventId}
                                                                         categoryId={reg.category_id}

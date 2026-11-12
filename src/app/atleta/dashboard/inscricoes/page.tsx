@@ -15,6 +15,8 @@ import { PassportButton } from './PassportButton';
 import { ChangeCategoryButton } from './ChangeCategoryButton';
 import { EnrolledAthletesPreview } from './EnrolledAthletesPreview';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getHiddenEnrolledEventIds } from '@/lib/enrolled-visibility';
+import { EnrolledHiddenNotice } from '@/components/enrolled-hidden-notice';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -59,12 +61,20 @@ id,
         .filter((p: any) => p.eventId && p.categoryId);
 
     const enrolledByKey = new Map<string, { count: number; previewNames: string[] }>();
+    // Eventos em que o organizador ocultou os inscritos: não buscamos nomes nem contagem
+    let hiddenEnrolledEvents = new Set<string>();
     if (eventCategoryPairs.length > 0) {
         const adminClient = createAdminClient();
-        const eventIds = Array.from(new Set(eventCategoryPairs.map((p: any) => p.eventId as string)));
+        hiddenEnrolledEvents = await getHiddenEnrolledEventIds(
+            adminClient,
+            eventCategoryPairs.map((p: any) => p.eventId as string),
+            { role: 'atleta' },
+        );
+        const eventIds = Array.from(new Set(eventCategoryPairs.map((p: any) => p.eventId as string)))
+            .filter(id => !hiddenEnrolledEvents.has(id));
         const categoryIds = Array.from(new Set(eventCategoryPairs.map((p: any) => p.categoryId as string)));
 
-        const { data: peers } = await adminClient
+        const { data: peers } = eventIds.length === 0 ? { data: [] as any[] } : await adminClient
             .from('event_registrations')
             .select('event_id, category_id, athlete:profiles!athlete_id(full_name)')
             .in('event_id', eventIds)
@@ -230,6 +240,9 @@ id,
                                                     </span>
                                                 )}
                                                 {inscricao.event?.id && inscricao.category?.id && ['pago', 'confirmado', 'isento'].includes(inscricao.status) && (() => {
+                                                    if (hiddenEnrolledEvents.has(inscricao.event.id)) {
+                                                        return <EnrolledHiddenNotice className="mt-2" />;
+                                                    }
                                                     const key = `${inscricao.event.id}-${inscricao.category.id}`;
                                                     const entry = enrolledByKey.get(key);
                                                     if (!entry || entry.count <= 0) return null;

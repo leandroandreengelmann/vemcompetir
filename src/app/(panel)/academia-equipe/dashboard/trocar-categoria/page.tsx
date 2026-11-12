@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { redirect } from 'next/navigation';
 import CheckagemClient from './CheckagemClient';
+import { getHiddenEnrolledEventIds } from '@/lib/enrolled-visibility';
 
 export default async function CheckagemPage() {
     const { profile, tenant_id } = await requireTenantScope();
@@ -92,7 +93,14 @@ export default async function CheckagemPage() {
 
     // Contagem e preview de inscritos por categoria (TODAS as academias),
     // para alimentar o "Ver inscritos" igual ao lado do atleta.
-    const displayedEventIds = Array.from(new Set(allRegistrations.map((r: any) => r.event_id)));
+    // Eventos em que o organizador ocultou os inscritos: não buscamos nomes nem contagem
+    const hiddenEnrolledEventIds = await getHiddenEnrolledEventIds(
+        adminClient,
+        Array.from(new Set(allRegistrations.map((r: any) => r.event_id))),
+        { tenantId: tenant_id, role: profile?.role },
+    );
+    const displayedEventIds = Array.from(new Set(allRegistrations.map((r: any) => r.event_id)))
+        .filter(id => !hiddenEnrolledEventIds.has(id));
     const ENROLLED_STATUSES = ['pago', 'isento', 'confirmado'];
 
     const { data: countRows } = displayedEventIds.length > 0
@@ -135,6 +143,7 @@ export default async function CheckagemPage() {
             ownedEventIds={ownedEventIds}
             categoryCounts={categoryCounts}
             categoryPreviews={categoryPreviews}
+            hiddenEnrolledEventIds={Array.from(hiddenEnrolledEventIds)}
         />
     );
 }

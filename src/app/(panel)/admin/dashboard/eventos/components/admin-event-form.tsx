@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
+import { EnrolledVisibilityToggle } from '@/components/enrolled-visibility-toggle';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -70,6 +71,7 @@ interface AdminEventFormProps {
         registration_end_date?: string | null;
         category_change_deadline_days?: number | null;
         inscricoes_encerradas?: boolean;
+        show_enrolled_athletes?: boolean;
     };
     academies: Academy[];
 }
@@ -338,6 +340,13 @@ export default function AdminEventForm({ initialData, academies }: AdminEventFor
 
             {/* Tabs (apenas em edição) */}
             {isEdit && initialData && <EventoTabs eventId={initialData.id} />}
+
+            {isEdit && initialData && (
+                <EnrolledVisibilityToggle
+                    eventId={initialData.id}
+                    initialShow={initialData.show_enrolled_athletes !== false}
+                />
+            )}
 
             {error && (
                 <div className="p-3 bg-destructive/15 text-destructive text-base rounded-lg text-center">
