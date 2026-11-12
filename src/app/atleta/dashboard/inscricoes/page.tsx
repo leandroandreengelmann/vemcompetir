@@ -16,7 +16,6 @@ import { ChangeCategoryButton } from './ChangeCategoryButton';
 import { EnrolledAthletesPreview } from './EnrolledAthletesPreview';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getHiddenEnrolledEventIds } from '@/lib/enrolled-visibility';
-import { EnrolledHiddenNotice } from '@/components/enrolled-hidden-notice';
 
 const BELTS = [
     'Branca', 'Cinza e branca', 'Cinza', 'Cinza e preta', 'Amarela e branca', 'Amarela', 'Amarela e preta',
@@ -240,9 +239,7 @@ id,
                                                     </span>
                                                 )}
                                                 {inscricao.event?.id && inscricao.category?.id && ['pago', 'confirmado', 'isento'].includes(inscricao.status) && (() => {
-                                                    if (hiddenEnrolledEvents.has(inscricao.event.id)) {
-                                                        return <EnrolledHiddenNotice className="mt-2" />;
-                                                    }
+                                                    if (hiddenEnrolledEvents.has(inscricao.event.id)) return null;
                                                     const key = `${inscricao.event.id}-${inscricao.category.id}`;
                                                     const entry = enrolledByKey.get(key);
                                                     if (!entry || entry.count <= 0) return null;

@@ -17,7 +17,6 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { EnrolledAthletesPreview } from '@/app/atleta/dashboard/inscricoes/EnrolledAthletesPreview';
-import { EnrolledHiddenNotice } from '@/components/enrolled-hidden-notice';
 
 interface Registration {
     id: string;
@@ -215,9 +214,6 @@ export default function CheckagemClient({ registrations, eventMap, currentTenant
                                                                 <p className="text-ui font-semibold text-foreground">
                                                                     {reg.category ? formatFullCategoryName(reg.category) : '—'}
                                                                 </p>
-                                                                {reg.category_id && hiddenEnrolledEventIds.includes(eventId) && (
-                                                                    <EnrolledHiddenNotice />
-                                                                )}
                                                                 {reg.category_id && !hiddenEnrolledEventIds.includes(eventId) && (
                                                                     <EnrolledAthletesPreview
                                                                         eventId={eventId}
