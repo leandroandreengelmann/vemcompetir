@@ -7,6 +7,45 @@ import { getEventFee } from '@/lib/fee-calculator';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { classifyRegistration, fetchPaymentsMap } from './registration-classifier';
 
+// ── Relatório de categorias: situação de cada inscrição ──────────────────────
+export type CategoryReportBucket = 'paid' | 'exempt' | 'pending' | 'cart';
+
+export type CategoryReportRow = {
+    name: string;
+    /** Todas as inscrições da categoria (inclui carrinho e aguardando) */
+    count: number;
+    paid: number;
+    exempt: number;
+    /** paid + exempt — vão para a chave */
+    confirmed: number;
+    pending: number;
+    cart: number;
+};
+
+export type CategoryReportRegistration = {
+    category: string;
+    athlete_id: string;
+    bucket: CategoryReportBucket;
+    /** Paga com preço zero por promoção (ex.: 2ª categoria grátis) */
+    promo_free: boolean;
+};
+
+const CATEGORY_REPORT_STATUSES = {
+    paid: ['paga', 'pago', 'confirmado', 'pago_em_mao', 'pix_direto'],
+    exempt: ['isento', 'isento_evento_proprio'],
+    pending: ['pendente', 'aguardando_pagamento'],
+    cart: ['carrinho'],
+};
+
+function categoryReportBucket(status: string, isCourtesy: boolean | null): CategoryReportBucket | null {
+    if (isCourtesy) return 'exempt';
+    if (CATEGORY_REPORT_STATUSES.paid.includes(status)) return 'paid';
+    if (CATEGORY_REPORT_STATUSES.exempt.includes(status)) return 'exempt';
+    if (CATEGORY_REPORT_STATUSES.pending.includes(status)) return 'pending';
+    if (CATEGORY_REPORT_STATUSES.cart.includes(status)) return 'cart';
+    return null;
+}
+
 // 1a. Summary de inscrições (KPIs sem paginação)
 export async function getEventReportInscricoesSummary(eventId: string) {
     const { tenant_id } = await requireTenantScope();
@@ -241,14 +280,20 @@ export async function getEventReportCategorias(eventId: string) {
         .from('event_registrations')
         .select(`
             status,
+            athlete_id,
             category_id,
-            payment_id,
+            price,
+            promo_type_applied,
+            is_courtesy,
             category:category_rows!category_id(categoria_completa)
         `)
         .eq('event_id', eventId)
-        .in('status', ['carrinho', 'pendente', 'aguardando_pagamento', 'paga', 'pago', 'confirmado', 'isento']);
+        .in('status', [...CATEGORY_REPORT_STATUSES.paid, ...CATEGORY_REPORT_STATUSES.exempt, ...CATEGORY_REPORT_STATUSES.pending, ...CATEGORY_REPORT_STATUSES.cart]);
 
-    const categoryMap = (data || []).reduce((acc: any, item: any) => {
+    const categoryMap: Record<string, CategoryReportRow> = {};
+    const registrations: CategoryReportRegistration[] = [];
+
+    for (const item of (data || []) as any[]) {
         let cat = item.category?.categoria_completa || 'Sem categoria';
 
         if (cat.toLowerCase().includes('absoluto')) {
@@ -258,23 +303,28 @@ export async function getEventReportCategorias(eventId: string) {
             }
         }
 
-        const st = item.status;
+        const bucket = categoryReportBucket(item.status, item.is_courtesy);
+        if (!bucket) continue;
 
-        if (!acc[cat]) {
-            acc[cat] = { name: cat, count: 0, cart: 0, pending: 0, paid: 0 };
+        if (!categoryMap[cat]) {
+            categoryMap[cat] = { name: cat, count: 0, paid: 0, exempt: 0, confirmed: 0, pending: 0, cart: 0 };
         }
+        const row = categoryMap[cat];
+        row.count += 1;
+        row[bucket] += 1;
+        if (bucket === 'paid' || bucket === 'exempt') row.confirmed += 1;
 
-        acc[cat].count += 1;
-
-        if (st === 'carrinho') acc[cat].cart += 1;
-        else if (st === 'pendente' || st === 'aguardando_pagamento') acc[cat].pending += 1;
-        else if (st === 'paga' || st === 'pago' || st === 'confirmado' || st === 'isento') acc[cat].paid += 1;
-
-        return acc;
-    }, {});
+        registrations.push({
+            category: cat,
+            athlete_id: item.athlete_id,
+            bucket,
+            promo_free: bucket === 'paid' && Number(item.price ?? 0) === 0 && !!item.promo_type_applied,
+        });
+    }
 
     return {
-        data: Object.values(categoryMap || {}),
+        data: Object.values(categoryMap),
+        registrations,
         error
     };
 }

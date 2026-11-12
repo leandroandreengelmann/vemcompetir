@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState, useMemo, use } from 'react';
-import { getEventReportCategorias } from '../../../../actions/event-reports';
+import { getEventReportCategorias, type CategoryReportRow, type CategoryReportRegistration } from '../../../../actions/event-reports';
+import { CategoriasResumo, type ViewMode } from './CategoriasResumo';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EyeIcon, KeyIcon, MagnifyingGlassIcon, XIcon, ArrowLeftIcon, FunnelIcon, UsersIcon, TagIcon } from '@phosphor-icons/react';
+import { EyeIcon, KeyIcon, MagnifyingGlassIcon, XIcon, ArrowLeftIcon, FunnelIcon } from '@phosphor-icons/react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -65,8 +66,10 @@ function parseCategorySegments(name: string): ParsedCategory {
 
 export default function CategoriasReportPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: eventId } = use(params);
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<CategoryReportRow[]>([]);
+    const [registrations, setRegistrations] = useState<CategoryReportRegistration[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<ViewMode>('confirmadas');
 
     const [search, setSearch] = useState('');
     const [filterSexo, setFilterSexo] = useState('todos');
@@ -85,6 +88,7 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
         try {
             const res = await getEventReportCategorias(eventId);
             setData(res.data);
+            setRegistrations(res.registrations ?? []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -108,7 +112,8 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
         };
     }, [parsedData]);
 
-    const filteredData = useMemo(() => {
+    // Categorias que passam nos filtros de atributo (sexo, faixa, peso...)
+    const attrFilteredData = useMemo(() => {
         return parsedData.filter(cat => {
             if (search && !cat.name.toLowerCase().includes(search.toLowerCase())) return false;
             if (filterSexo !== 'todos' && cat.parsed.sexo !== filterSexo) return false;
@@ -122,14 +127,18 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
         });
     }, [parsedData, search, filterSexo, filterFaixa, filterPeso, filterDivisao, filterModalidade, filterTipo]);
 
-    const summary = useMemo(() => {
-        const totalInscritos = filteredData.reduce((sum, c) => sum + (c.count ?? 0), 0);
-        return {
-            categorias: filteredData.length,
-            totalCategorias: parsedData.length,
-            inscritos: totalInscritos,
-        };
-    }, [filteredData, parsedData]);
+    // Linhas da tabela conforme o seletor "Mostrar na tabela"
+    const filteredData = useMemo(() => {
+        if (viewMode === 'tudo') return attrFilteredData;
+        if (viewMode === 'com_aguardando') return attrFilteredData.filter(c => c.confirmed + c.pending > 0);
+        return attrFilteredData.filter(c => c.confirmed > 0);
+    }, [attrFilteredData, viewMode]);
+
+    // Inscrições das categorias filtradas, para o quadro resumo
+    const summaryRegistrations = useMemo(() => {
+        const names = new Set(attrFilteredData.map(c => c.name));
+        return registrations.filter(r => names.has(r.category));
+    }, [attrFilteredData, registrations]);
 
     const hasActiveFilters = search || filterSexo !== 'todos' || filterFaixa !== 'todos' || filterPeso !== 'todos' || filterDivisao !== 'todos' || filterModalidade !== 'todos' || filterTipo !== 'todos';
 
@@ -167,31 +176,14 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                 }
             />
 
-            {/* KPIs */}
+            {/* Resumo por situação */}
             {!loading && data.length > 0 && (
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
-                        <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-foreground/10">
-                            <TagIcon size={18} weight="duotone" className="text-foreground" />
-                        </div>
-                        <div>
-                            <p className="text-panel-sm text-muted-foreground font-medium">Categorias</p>
-                            <p className="text-lg font-bold">
-                                {summary.categorias}
-                                {hasActiveFilters && <span className="text-panel-sm font-normal text-muted-foreground"> de {summary.totalCategorias}</span>}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
-                        <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-foreground/10">
-                            <UsersIcon size={18} weight="duotone" className="text-foreground" />
-                        </div>
-                        <div>
-                            <p className="text-panel-sm text-muted-foreground font-medium">Inscritos</p>
-                            <p className="text-lg font-bold">{summary.inscritos}</p>
-                        </div>
-                    </div>
-                </div>
+                <CategoriasResumo
+                    registrations={summaryRegistrations}
+                    filtered={!!hasActiveFilters}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                />
             )}
 
             {/* Filtros */}
@@ -329,7 +321,9 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                     <TableHeader className="bg-muted/30">
                         <TableRow className="hover:bg-transparent border-border/50">
                             <TableHead className="text-panel-sm font-semibold h-11 w-full max-w-[400px]">Categoria</TableHead>
-                            <TableHead className="text-panel-sm font-semibold h-11 text-right whitespace-nowrap">Total</TableHead>
+                            <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Confirmadas</TableHead>
+                            <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap text-muted-foreground">Aguardando</TableHead>
+                            <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap text-muted-foreground">Carrinho</TableHead>
                             <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Detalhes</TableHead>
                             <TableHead className="text-panel-sm font-semibold h-11 text-center whitespace-nowrap">Chave</TableHead>
                         </TableRow>
@@ -339,7 +333,9 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                             [...Array(5)].map((_, i) => (
                                 <TableRow key={i} className="border-border/50">
                                     <TableCell><Skeleton className="h-4 w-60" /></TableCell>
-                                    <TableCell><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-6 w-10 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-6 w-8 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-6 w-8 mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-8 w-8 rounded-md mx-auto" /></TableCell>
                                     <TableCell><Skeleton className="h-8 w-8 rounded-md mx-auto" /></TableCell>
                                 </TableRow>
@@ -350,10 +346,24 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                                     <TableCell className="text-panel-sm font-medium py-4">
                                         <span className="line-clamp-2" title={cat.name}>{cat.name}</span>
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <Badge className="font-bold h-7 px-3 bg-foreground text-background hover:bg-foreground/90 transition-all border-none">
-                                            {cat.count}
-                                        </Badge>
+                                    <TableCell className="text-center">
+                                        {cat.confirmed > 0 ? (
+                                            <Badge className="font-bold h-7 px-3 bg-foreground text-background hover:bg-foreground/90 transition-all border-none tabular-nums">
+                                                {cat.confirmed}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-panel-sm text-muted-foreground tabular-nums">0</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-center text-panel-sm tabular-nums">
+                                        {cat.pending > 0
+                                            ? <span className="font-semibold text-amber-600 dark:text-amber-400">{cat.pending}</span>
+                                            : <span className="text-muted-foreground/60">—</span>}
+                                    </TableCell>
+                                    <TableCell className="text-center text-panel-sm tabular-nums">
+                                        {cat.cart > 0
+                                            ? <span className="font-medium text-muted-foreground">{cat.cart}</span>
+                                            : <span className="text-muted-foreground/60">—</span>}
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <Tooltip>
@@ -383,7 +393,7 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                             ))
                         ) : data.length > 0 && hasActiveFilters ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-32 text-center">
+                                <TableCell colSpan={6} className="h-32 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <FunnelIcon size={24} weight="duotone" className="text-muted-foreground" />
                                         <p className="text-muted-foreground text-sm">Nenhuma categoria encontrada com os filtros selecionados.</p>
@@ -398,7 +408,7 @@ export default function CategoriasReportPage({ params }: { params: Promise<{ id:
                             </TableRow>
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground text-sm">
+                                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-sm">
                                     Nenhuma categoria com inscrição.
                                 </TableCell>
                             </TableRow>
