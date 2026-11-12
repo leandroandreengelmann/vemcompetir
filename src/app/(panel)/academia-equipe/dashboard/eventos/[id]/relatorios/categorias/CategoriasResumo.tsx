@@ -7,6 +7,9 @@ import {
     ClockIcon,
     ShoppingCartIcon,
     InfoIcon,
+    SealCheckIcon,
+    SigmaIcon,
+    type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import type { CategoryReportBucket, CategoryReportRegistration } from '../../../../actions/event-reports';
@@ -29,14 +32,24 @@ function only(regs: CategoryReportRegistration[], ...buckets: CategoryReportBuck
 
 const GRID = 'grid grid-cols-[minmax(0,1fr)_64px_56px_72px] sm:grid-cols-[minmax(0,1fr)_96px_80px_96px] gap-2 items-center px-4';
 
+type Tone = 'emerald' | 'amber' | 'slate';
+
+const TONE: Record<Tone, string> = {
+    emerald: 'bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-500 dark:text-emerald-400',
+    amber: 'bg-amber-500/10 dark:bg-amber-400/10 text-amber-500 dark:text-amber-400',
+    slate: 'bg-slate-500/10 dark:bg-slate-400/10 text-slate-500 dark:text-slate-400',
+};
+
 function Row({
-    icon,
+    icon: Icon,
+    tone,
     label,
     hint,
     counts,
     variant = 'default',
 }: {
-    icon?: React.ReactNode;
+    icon: PhosphorIcon;
+    tone: Tone;
     label: string;
     hint: string;
     counts: Counts;
@@ -51,20 +64,23 @@ function Row({
                 variant === 'total' && 'bg-muted/40 border-t border-border',
             )}
         >
-            <div className="min-w-0">
-                <div className={cn('flex items-center gap-2 text-panel-sm', variant !== 'default' ? 'font-bold' : 'font-semibold')}>
-                    {icon}
-                    <span>{label}</span>
+            <div className="flex items-center gap-3 min-w-0">
+                <div className={cn('p-2 rounded-xl shrink-0', TONE[tone])}>
+                    <Icon size={24} weight="duotone" />
                 </div>
-                <p
-                    className={cn(
-                        'text-xs mt-0.5',
-                        icon && 'pl-6',
-                        variant === 'confirmed' ? 'text-emerald-700/90 dark:text-emerald-300/80' : 'text-muted-foreground',
-                    )}
-                >
-                    {hint}
-                </p>
+                <div className="min-w-0">
+                    <div className={cn('text-panel-sm', variant !== 'default' ? 'font-bold' : 'font-semibold')}>
+                        {label}
+                    </div>
+                    <p
+                        className={cn(
+                            'text-xs mt-0.5',
+                            variant === 'confirmed' ? 'text-emerald-700/90 dark:text-emerald-300/80' : 'text-muted-foreground',
+                        )}
+                    >
+                        {hint}
+                    </p>
+                </div>
             </div>
             {[counts.inscricoes, counts.atletas, counts.categorias].map((n, i) => (
                 <span
@@ -125,7 +141,8 @@ export function CategoriasResumo({
                 </div>
 
                 <Row
-                    icon={<CheckCircleIcon size={16} weight="duotone" className="text-emerald-600 shrink-0" />}
+                    icon={CheckCircleIcon}
+                    tone="emerald"
                     label="Pagas"
                     hint={
                         s.promoFree > 0
@@ -136,13 +153,16 @@ export function CategoriasResumo({
                 />
                 <div className="border-t border-border/50">
                     <Row
-                        icon={<GiftIcon size={16} weight="duotone" className="text-emerald-600 shrink-0" />}
+                        icon={GiftIcon}
+                        tone="emerald"
                         label="Cortesias / isentas"
                         hint="Sem cobrança: cortesia, pacote de inscrições ou evento próprio"
                         counts={s.exempt}
                     />
                 </div>
                 <Row
+                    icon={SealCheckIcon}
+                    tone="emerald"
                     label="= Confirmadas"
                     hint="Pagas + cortesias · vão para a chave"
                     counts={s.confirmed}
@@ -150,20 +170,24 @@ export function CategoriasResumo({
                 />
 
                 <Row
-                    icon={<ClockIcon size={16} weight="duotone" className="text-amber-500 shrink-0" />}
+                    icon={ClockIcon}
+                    tone="amber"
                     label="Aguardando pagamento"
                     hint="Pix gerado, ainda não pago · não vão para a chave"
                     counts={s.pending}
                 />
                 <div className="border-t border-border/50">
                     <Row
-                        icon={<ShoppingCartIcon size={16} weight="duotone" className="text-muted-foreground shrink-0" />}
+                        icon={ShoppingCartIcon}
+                        tone="slate"
                         label="No carrinho"
                         hint="Escolheram a categoria, mas não finalizaram · não vão para a chave"
                         counts={s.cart}
                     />
                 </div>
                 <Row
+                    icon={SigmaIcon}
+                    tone="slate"
                     label="= Total geral"
                     hint="Tudo junto, inclusive o que ainda não foi confirmado"
                     counts={s.total}
@@ -171,8 +195,8 @@ export function CategoriasResumo({
                 />
             </div>
 
-            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                <InfoIcon size={14} weight="duotone" className="shrink-0 mt-px" />
+            <p className="flex items-start gap-2 text-panel-sm text-muted-foreground">
+                <InfoIcon size={18} weight="duotone" className="shrink-0" />
                 Atletas e categorias não somam linha a linha: o mesmo atleta pode ter uma inscrição paga e outra no carrinho, e a mesma categoria pode ter inscrições em situações diferentes.
             </p>
 
