@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { EnrolledVisibilitySwitch } from '@/components/enrolled-visibility-switch';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -93,13 +94,14 @@ export default async function EventosPage() {
                                     <TableHead className="hidden sm:table-cell text-panel-sm font-black">DATA</TableHead>
                                     <TableHead className="hidden md:table-cell text-panel-sm font-black">LOCAL</TableHead>
                                     <TableHead className="text-center text-panel-sm font-black">STATUS</TableHead>
+                                    <TableHead className="text-center text-panel-sm font-black whitespace-nowrap">INSCRITOS NAS CATEGORIAS</TableHead>
                                     <TableHead className="w-[120px] text-right pr-6 text-panel-sm font-black">AÇÕES</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!events || events.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-32 text-center border-none">
+                                        <TableCell colSpan={6} className="h-32 text-center border-none">
                                             <div className="flex flex-col items-center justify-center p-8 bg-muted/20 rounded-2xl border-2 border-dashed border-border/50">
                                                 <PackageIcon size={40} weight="duotone" className="text-muted-foreground/30 mb-3" />
                                                 <p className="text-panel-sm font-medium text-muted-foreground">Nenhum evento encontrado.</p>
@@ -134,6 +136,12 @@ export default async function EventosPage() {
                                                 >
                                                     {event.status || 'Ativo'}
                                                 </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center py-4">
+                                                <EnrolledVisibilitySwitch
+                                                    eventId={event.id}
+                                                    initialShow={event.show_enrolled_athletes !== false}
+                                                />
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-4">
                                                 <div className="flex items-center justify-end gap-1 sm:gap-2">
