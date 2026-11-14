@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { captureAcademyNames, propagateAcademyRename } from '@/lib/academy-rename';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { encrypt, decrypt, getLast4, generateToken, hashToken } from '@/lib/crypto';
@@ -243,6 +244,9 @@ export async function updateOrganizerAction(formData: FormData) {
         return { error: 'O nome desta academia já está em uso por outra entidade.' };
     }
 
+    // Nomes atuais da academia (para atualizar os atletas que ainda usam o nome antigo)
+    const previousNames = await captureAcademyNames(adminClient, id);
+
     // 1. Atualizar Auth User (Email, Senha, Metadata)
     const updateData: any = {
         user_metadata: {
@@ -324,6 +328,9 @@ export async function updateOrganizerAction(formData: FormData) {
 
         await adminClient.from('tenants').update(tenantUpdate).eq('id', profileForTenant.tenant_id);
     }
+
+    // 4. Renomeou? Atualiza a equipe dos atletas da academia que estavam com o nome antigo
+    await propagateAcademyRename(adminClient, previousNames.tenantId, previousNames.names, full_name);
 
     revalidatePath('/admin/dashboard/equipes-academias');
     revalidatePath(`/admin/dashboard/equipes-academias/${id}`);

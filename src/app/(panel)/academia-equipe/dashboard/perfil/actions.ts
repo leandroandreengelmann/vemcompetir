@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth-guards';
 import { revalidatePath } from 'next/cache';
+import { captureAcademyNames, propagateAcademyRename } from '@/lib/academy-rename';
 
 export async function updateAcademiaProfile(formData: FormData) {
     try {
@@ -17,6 +18,9 @@ export async function updateAcademiaProfile(formData: FormData) {
 
         const rawCpf = cpf ? cpf.replace(/\D/g, '') : null;
         const rawPhone = phone ? phone.replace(/\D/g, '') : null;
+
+        // Nomes atuais da academia (para atualizar os atletas que ainda usam o nome antigo)
+        const previousNames = await captureAcademyNames(admin, user.id);
 
         const { error } = await admin
             .from('profiles')
@@ -33,6 +37,9 @@ export async function updateAcademiaProfile(formData: FormData) {
             if (error.code === '23505') return { error: 'Este CPF/CNPJ já está cadastrado em outra conta.' };
             return { error: 'Ocorreu um erro ao atualizar o perfil: ' + error.message };
         }
+
+        // Renomeou? Atualiza a equipe dos atletas da academia que estavam com o nome antigo
+        await propagateAcademyRename(admin, previousNames.tenantId, previousNames.names, gymName);
 
         let emailChanged = false;
         if (email && email !== user.email) {
