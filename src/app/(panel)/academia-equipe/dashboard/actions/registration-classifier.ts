@@ -11,6 +11,9 @@ export function classifyRegistration(
     manualPaymentMethod?: string | null,
     isCourtesy?: boolean | null
 ): { tipo: string; payer_type: string | null; manual_method: string | null } {
+    // Cancelada pelo organizador (ou pelo Financeiro antigo)
+    if (status === 'cancelado' || status === 'cancelada') return { tipo: 'cancelado', payer_type: null, manual_method: null };
+
     // Cortesia real (flag is_courtesy) tem prioridade sobre status
     if (isCourtesy) return { tipo: 'cortesia', payer_type: null, manual_method: null };
 

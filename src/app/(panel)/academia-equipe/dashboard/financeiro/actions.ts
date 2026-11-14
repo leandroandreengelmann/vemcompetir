@@ -59,7 +59,7 @@ export async function listFinancialTransactions(filters: {
     const hasSearch = !!filters.search;
     const needsPostFilter = filters.tipo && ['cortesia', 'pacote', 'evento_proprio', 'receita'].includes(filters.tipo);
 
-    const EXCLUDED_STATUSES = ['carrinho', 'pendente', 'aguardando_pagamento'];
+    const EXCLUDED_STATUSES = ['carrinho', 'pendente', 'aguardando_pagamento', 'cancelado', 'cancelada'];
 
     let query = adminSupabase
         .from('event_registrations')
@@ -197,7 +197,7 @@ export async function getFinanceiroHubKpis(filters: { from?: string | null; to?:
             .from('event_registrations')
             .select('price, manual_amount, status, payment_id, manual_payment_method, is_courtesy, created_at')
             .in('event_id', eventIds)
-            .not('status', 'in', '(carrinho,pendente,aguardando_pagamento)');
+            .not('status', 'in', '(carrinho,pendente,aguardando_pagamento,cancelado,cancelada)');
 
         if (filters.from) regQuery = regQuery.gte('created_at', filters.from);
         if (filters.to) regQuery = regQuery.lte('created_at', filters.to);

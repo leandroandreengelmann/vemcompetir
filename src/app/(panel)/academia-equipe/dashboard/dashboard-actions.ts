@@ -21,14 +21,14 @@ export async function getDashboardStatsAction() {
         .from('event_registrations')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenant_id)
-        .neq('status', 'carrinho');
+        .not('status', 'in', '(carrinho,cancelado,cancelada)');
 
     // 3. Eventos Participando (Distinct event_id from registrations)
     const { data: participations } = await supabase
         .from('event_registrations')
         .select('event_id')
         .eq('tenant_id', tenant_id)
-        .neq('status', 'carrinho');
+        .not('status', 'in', '(carrinho,cancelado,cancelada)');
 
     const uniqueParticipatingEvents = new Set(participations?.map(p => p.event_id) || []);
     const totalEventosParticipando = uniqueParticipatingEvents.size;
@@ -59,7 +59,7 @@ export async function getDashboardStatsAction() {
             )
         `)
         .eq('tenant_id', tenant_id)
-        .neq('status', 'carrinho');
+        .not('status', 'in', '(carrinho,cancelado,cancelada)');
 
     let totalSpending = 0;
     let totalSasFees = 0;

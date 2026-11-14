@@ -6,6 +6,7 @@ import { requireTenantScope } from '@/lib/auth-guards';
 import { getEventFee } from '@/lib/fee-calculator';
 import { formatFullCategoryName } from '@/lib/category-utils';
 import { classifyRegistration, fetchPaymentsMap } from './registration-classifier';
+import { getCancellationInfoMap } from '@/lib/registration-cancellation';
 
 // ── Relatório de categorias: situação de cada inscrição ──────────────────────
 export type CategoryReportBucket = 'paid' | 'exempt' | 'pending' | 'cart';
@@ -97,8 +98,11 @@ export async function getEventReportInscricoesSummary(eventId: string) {
         }
     }
 
+    const cancelled_count = allRegs.filter(r => r.status === 'cancelado' || r.status === 'cancelada').length;
+
     return {
-        total_registrations: allRegs.length,
+        total_registrations: allRegs.length - cancelled_count,
+        cancelled_count,
         paid_count, scheduled_count, pending_count,
         courtesy_count, pacote_count, own_event_count, promo_free_count,
         paid_amount, scheduled_amount, pending_amount,
@@ -140,6 +144,8 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
             query = query.in('status', ['paga', 'pago', 'confirmado', 'agendado', 'pago_em_mao', 'pix_direto']);
         } else if (filters.status === 'pendente') {
             query = query.in('status', ['pendente', 'aguardando_pagamento']);
+        } else if (filters.status === 'cancelado') {
+            query = query.in('status', ['cancelado', 'cancelada']);
         } else {
             query = query.eq('status', filters.status);
         }
@@ -190,7 +196,7 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
             return { ...item, tipo, payer_type, manual_method };
         });
 
-        return { data: processedData, count: filtered.length, pageSize, error };
+        return { data: await withCancellationInfo(adminSupabase, processedData), count: filtered.length, pageSize, error };
     }
 
     const { data, count, error } = await query
@@ -211,11 +217,19 @@ export async function getEventReportInscricoes(eventId: string, filters: { statu
     });
 
     return {
-        data: processedData,
+        data: await withCancellationInfo(adminSupabase, processedData),
         count: count,
         pageSize,
         error
     };
+}
+
+/** Anexa quem cancelou / quando / motivo às inscrições canceladas. */
+async function withCancellationInfo(adminSupabase: any, items: any[]) {
+    const ids = items.filter(i => i.tipo === 'cancelado').map(i => i.id);
+    if (ids.length === 0) return items;
+    const info = await getCancellationInfoMap(adminSupabase, ids);
+    return items.map(i => (info[i.id] ? { ...i, cancel_info: info[i.id] } : i));
 }
 
 // 2. Atletas Únicos
@@ -236,7 +250,8 @@ export async function getEventReportAtletas(eventId: string) {
             athlete:profiles!athlete_id(full_name, cpf, belt_color, gym_name),
             category:category_rows!category_id(categoria_completa)
         `)
-        .eq('event_id', eventId);
+        .eq('event_id', eventId)
+        .not('status', 'in', '(cancelado,cancelada)');
 
     // Agrupar por atleta
     const athletesMap = data?.reduce((acc: any, item: any) => {

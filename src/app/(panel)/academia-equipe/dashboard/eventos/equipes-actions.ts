@@ -78,7 +78,7 @@ export async function getTeamsByEventAction(eventId: string): Promise<TeamSummar
         .from('event_registrations')
         .select('athlete_id')
         .eq('event_id', eventId)
-        .neq('status', 'carrinho');
+        .not('status', 'in', '(carrinho,cancelado,cancelada)');
 
     if (error || !registrations) return [];
 
@@ -183,7 +183,7 @@ export async function getAthletesByTeamAction(
             )
         `)
         .eq('event_id', eventId)
-        .neq('status', 'carrinho');
+        .not('status', 'in', '(carrinho,cancelado,cancelada)');
 
     if (error || !registrations) return [];
 

@@ -92,6 +92,25 @@ export function RegistrationDetailsDialog({
         const tipo = reg.tipo;
         const payerType = reg.payer_type;
 
+        if (tipo === 'cancelado') {
+            const info = reg.cancel_info;
+            return (
+                <div className="flex flex-col items-start gap-1">
+                    <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-destructive/10 text-destructive border-destructive/30">
+                        CANCELADA
+                    </Badge>
+                    {info && (
+                        <>
+                            <span className="text-xs text-muted-foreground">
+                                por {info.cancelledByName} em {new Date(info.cancelledAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                            </span>
+                            {info.reason && <span className="text-xs text-muted-foreground">Motivo: {info.reason}</span>}
+                        </>
+                    )}
+                </div>
+            );
+        }
+
         if (tipo === 'cortesia') {
             return (
                 <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300 dark:border-pink-500/30">

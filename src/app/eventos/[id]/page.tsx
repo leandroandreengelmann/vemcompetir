@@ -119,7 +119,7 @@ export default async function PublicEventDetailPage({ params }: PageProps) {
         .from('event_registrations')
         .select('*', { count: 'exact', head: true })
         .eq('event_id', id)
-        .neq('status', 'carrinho');
+        .not('status', 'in', '(carrinho,cancelado,cancelada)');
 
     // Preço mínimo das categorias do evento
     const { data: categoryTables } = await supabase

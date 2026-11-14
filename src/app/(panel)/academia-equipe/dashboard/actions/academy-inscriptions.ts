@@ -41,6 +41,9 @@ export async function getAcademyInscriptions(filters: { status?: string; search?
         query = query.eq('tenant_id', tenant_id);
     }
 
+    // Inscrições canceladas pelo organizador não aparecem nesta lista
+    query = query.not('status', 'in', '(cancelado,cancelada)');
+
     if (filters.status && filters.status !== 'todas' && !needsPostFilter) {
         if (filters.status === 'paga') {
             query = query.in('status', ['paga', 'pago', 'confirmado', 'pago_em_mao', 'pix_direto']);

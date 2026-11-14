@@ -18,6 +18,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { RegistrationDetailsDialog } from './RegistrationDetailsDialog';
+import { CancelRegistrationDialog } from './CancelRegistrationDialog';
+import { downloadCancellationProof } from '@/components/registration-proof/download-cancellation-proof';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DotsThreeVerticalIcon, UserMinusIcon, FileXIcon } from '@phosphor-icons/react';
 
 function formatCPF(cpf?: string) {
     if (!cpf) return '';
@@ -45,6 +49,9 @@ type Summary = {
     paid_by_athlete: number;
 };
 
+// Tipos de inscrição que o organizador pode cancelar (confirmadas)
+const CANCELLABLE_TIPOS = ['pago', 'agendado', 'cortesia', 'pacote', 'evento_proprio', 'isento_evento_proprio', 'pago_em_mao', 'pix_direto'];
+
 export default function InscricoesReportPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: eventId } = use(params);
     const [data, setData] = useState<any[]>([]);
@@ -61,6 +68,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
     const [page, setPage] = useState(1);
     const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState<any>(null);
     const [summary, setSummary] = useState<Summary | null>(null);
 
     useEffect(() => {
@@ -92,6 +100,22 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
     const renderStatusBadge = (reg: any) => {
         const tipo = reg.tipo;
         const payerType = reg.payer_type;
+
+        if (tipo === 'cancelado') {
+            const info = reg.cancel_info;
+            return (
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant="outline" className="text-panel-sm font-semibold px-2 uppercase tracking-wider bg-destructive/10 text-destructive border-destructive/30">
+                        CANCELADA
+                    </Badge>
+                    {info && (
+                        <span className="text-panel-sm text-muted-foreground font-medium" title={info.reason ?? undefined}>
+                            por {info.cancelledByName} em {new Date(info.cancelledAt).toLocaleDateString('pt-BR')}
+                        </span>
+                    )}
+                </div>
+            );
+        }
 
         if (tipo === 'cortesia') {
             return (
@@ -453,6 +477,7 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     <SelectItem value="pacote">Pacote de Inscrições</SelectItem>
                                     <SelectItem value="evento_proprio">Evento Próprio</SelectItem>
                                     <SelectItem value="promo_gratis">2ª Categoria Grátis</SelectItem>
+                                    <SelectItem value="cancelado">Canceladas</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -512,7 +537,10 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                     data.map((reg) => (
                                         <TableRow
                                             key={reg.id}
-                                            className="group hover:bg-muted/30 transition-colors border-border/50 cursor-pointer"
+                                            className={cn(
+                                                "group hover:bg-muted/30 transition-colors border-border/50 cursor-pointer",
+                                                reg.tipo === 'cancelado' && "opacity-60 [&_td:nth-child(2)]:line-through",
+                                            )}
                                             onClick={() => {
                                                 setSelectedRegistration(reg);
                                                 setIsDialogOpen(true);
@@ -544,15 +572,34 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                                             <TableCell className="text-right text-panel-sm font-bold">
                                                 {formatCurrency(Number(reg.manual_amount ?? reg.price ?? 0))}
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mx-auto">
-                                                            <EyeIcon size={16} weight="duotone" />
+                                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                                <DropdownMenu modal={false}>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mx-auto" aria-label="Ações da inscrição">
+                                                            <DotsThreeVerticalIcon size={20} weight="bold" />
                                                         </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">Ver detalhes da inscrição</TooltipContent>
-                                                </Tooltip>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-56">
+                                                        <DropdownMenuItem onSelect={() => { setSelectedRegistration(reg); setIsDialogOpen(true); }}>
+                                                            <EyeIcon size={18} weight="duotone" />
+                                                            Ver detalhes
+                                                        </DropdownMenuItem>
+                                                        {reg.tipo === 'cancelado' ? (
+                                                            <DropdownMenuItem onSelect={() => { downloadCancellationProof(reg.id); }}>
+                                                                <FileXIcon size={18} weight="duotone" />
+                                                                Comprovante de cancelamento
+                                                            </DropdownMenuItem>
+                                                        ) : CANCELLABLE_TIPOS.includes(reg.tipo) && (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem variant="destructive" onSelect={() => setCancelTarget(reg)}>
+                                                                    <UserMinusIcon size={18} weight="duotone" />
+                                                                    Cancelar inscrição
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -568,6 +615,16 @@ export default function InscricoesReportPage({ params }: { params: Promise<{ id:
                     </div>
                 </CardContent>
             </Card>
+
+            <CancelRegistrationDialog
+                registration={cancelTarget}
+                open={!!cancelTarget}
+                onOpenChange={(o) => { if (!o) setCancelTarget(null); }}
+                onCancelled={() => {
+                    load();
+                    getEventReportInscricoesSummary(eventId).then(setSummary).catch(console.error);
+                }}
+            />
 
             <RegistrationDetailsDialog
                 isOpen={isDialogOpen}
