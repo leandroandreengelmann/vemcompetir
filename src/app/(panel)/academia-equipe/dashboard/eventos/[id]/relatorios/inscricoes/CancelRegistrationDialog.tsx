@@ -26,29 +26,38 @@ export function CancelRegistrationDialog({
 }) {
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | null>(null);
+    // 1 = preencher motivo, 2 = confirmar de novo
+    const [step, setStep] = useState<1 | 2>(1);
     const [pending, startTransition] = useTransition();
 
     useEffect(() => {
-        if (open) { setReason(''); setError(null); }
+        if (open) { setReason(''); setError(null); setStep(1); }
     }, [open]);
 
     if (!registration) return null;
 
     const amount = Number(registration.manual_amount ?? registration.price ?? 0);
 
-    const handleConfirm = () => {
+    const handleNext = () => {
         if (reason.trim().length < MIN_REASON) {
             setError('Informe o motivo do cancelamento (obrigatório).');
             return;
         }
+        setStep(2);
+    };
+
+    const handleConfirm = () => {
         startTransition(async () => {
             const res = await cancelRegistrationByOrganizerAction({ registrationId: registration.id, reason });
             if ('error' in res && res.error) {
                 setError(res.error);
+                setStep(1);
                 return;
             }
             const extra = (res as any).cancelledCount > 1 ? ' A 2ª categoria grátis vinculada também foi cancelada.' : '';
-            showToast.success('Inscrição cancelada', `Baixando o comprovante de cancelamento.${extra}`);
+            const tokens = (res as any).refundedTokens ?? 0;
+            const tokenMsg = tokens > 0 ? ` ${tokens} token${tokens > 1 ? 's' : ''} devolvido${tokens > 1 ? 's' : ''} ao saldo.` : '';
+            showToast.success('Inscrição cancelada', `Baixando o comprovante de cancelamento.${extra}${tokenMsg}`);
             onOpenChange(false);
             onCancelled();
             await downloadCancellationProof(registration.id);
@@ -70,6 +79,23 @@ export function CancelRegistrationDialog({
                     </div>
                 </DialogHeader>
 
+                {step === 2 ? (
+                    <div className="space-y-4">
+                        <div className="rounded-xl border-2 border-destructive/40 bg-destructive/5 p-4 space-y-2">
+                            <p className="text-panel-md font-bold text-destructive">Tem certeza que deseja cancelar?</p>
+                            <p className="text-panel-sm">
+                                A inscrição de <strong>{registration.athlete?.full_name ?? 'atleta'}</strong> em{' '}
+                                <strong>{registration.category?.categoria_completa ?? 'categoria'}</strong> será cancelada agora.
+                            </p>
+                            <p className="text-panel-sm text-muted-foreground">
+                                Motivo: <span className="text-foreground">{reason.trim()}</span>
+                            </p>
+                        </div>
+                        <p className="text-panel-sm text-muted-foreground">
+                            O atleta sai da categoria e da chave, o token volta para o seu saldo e o comprovante de cancelamento será baixado. Nenhum valor em dinheiro é devolvido automaticamente.
+                        </p>
+                    </div>
+                ) : (
                 <div className="space-y-4">
                     <div className="rounded-xl bg-muted/40 p-3 grid grid-cols-[96px_1fr] gap-y-1.5 text-panel-sm">
                         <span className="text-muted-foreground">Atleta</span>
@@ -101,20 +127,35 @@ export function CancelRegistrationDialog({
                     <div className="flex gap-2.5 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 p-3 text-panel-sm">
                         <WarningIcon size={20} weight="duotone" className="shrink-0" />
                         <div className="space-y-1">
-                            <p>Nenhum valor é devolvido automaticamente. Se o atleta pagou, faça o estorno por fora.</p>
+                            <p>O token da inscrição volta para o seu saldo (exceto inscrições de pacote).</p>
+                            <p>Nenhum valor em dinheiro é devolvido automaticamente. Se o atleta pagou, faça o estorno por fora.</p>
                             <p>Se for um combo, a 2ª categoria grátis vinculada também é cancelada. Se a chave já foi gerada, gere-a de novo.</p>
                         </div>
                     </div>
                 </div>
+                )}
 
                 <DialogFooter className="gap-2">
-                    <Button variant="outline" pill onClick={() => onOpenChange(false)} disabled={pending}>
-                        Voltar
-                    </Button>
-                    <Button variant="destructive" pill onClick={handleConfirm} disabled={pending} className="text-white">
-                        {pending && <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-1" />}
-                        Cancelar inscrição
-                    </Button>
+                    {step === 1 ? (
+                        <>
+                            <Button variant="outline" pill onClick={() => onOpenChange(false)}>
+                                Voltar
+                            </Button>
+                            <Button variant="destructive" pill onClick={handleNext} className="text-white">
+                                Continuar
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button variant="outline" pill onClick={() => setStep(1)} disabled={pending}>
+                                Não, voltar
+                            </Button>
+                            <Button variant="destructive" pill onClick={handleConfirm} disabled={pending} className="text-white">
+                                {pending && <CircleNotchIcon size={16} weight="bold" className="animate-spin mr-1" />}
+                                Sim, cancelar inscrição
+                            </Button>
+                        </>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

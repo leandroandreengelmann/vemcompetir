@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireTenantScope } from '@/lib/auth-guards';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatFullCategoryName } from '@/lib/category-utils';
+import { refundTokens } from '@/lib/token-utils';
 import { CANCELLED_STATUSES_LIST, getCancellationInfoMap, type CancellationInfo } from '@/lib/registration-cancellation';
 
 // Cancelamento de inscrição pelo ORGANIZADOR do evento.
@@ -13,6 +14,8 @@ import { CANCELLED_STATUSES_LIST, getCancellationInfoMap, type CancellationInfo 
 // - Só inscrições confirmadas: pendentes expiram sozinhas e um Pix pago depois
 //   reativaria a inscrição pelo webhook.
 // - Cancela junto a "2ª categoria grátis" vinculada (promo_source_id).
+// - Devolve 1 token por inscrição cancelada (exceto as de pacote de créditos,
+//   cujos tokens foram consumidos na criação do pacote).
 // - Não devolve dinheiro: estorno é feito por fora.
 
 const CANCELLABLE_STATUSES = ['pago', 'paga', 'confirmado', 'agendado', 'isento', 'isento_evento_proprio', 'pago_em_mao', 'pix_direto'];
@@ -29,7 +32,7 @@ export async function cancelRegistrationByOrganizerAction(input: { registrationI
         const admin = createAdminClient();
         const { data: reg } = await admin
             .from('event_registrations')
-            .select('id, event_id, status, price, manual_amount, event:events!event_id(tenant_id)')
+            .select('id, event_id, status, price, manual_amount, package_id, event:events!event_id(tenant_id)')
             .eq('id', input.registrationId)
             .single();
 
@@ -47,13 +50,13 @@ export async function cancelRegistrationByOrganizerAction(input: { registrationI
         // Inscrição principal + 2ª categoria grátis ligada a ela
         const { data: companions } = await admin
             .from('event_registrations')
-            .select('id, status, price')
+            .select('id, status, price, package_id')
             .eq('promo_source_id', reg.id)
             .in('status', CANCELLABLE_STATUSES);
 
         const targets = [
-            { id: reg.id, status: reg.status, price: Number(reg.price ?? 0) },
-            ...((companions ?? []) as any[]).map(c => ({ id: c.id, status: c.status, price: Number(c.price ?? 0) })),
+            { id: reg.id, status: reg.status, price: Number(reg.price ?? 0), packageId: (reg as any).package_id ?? null },
+            ...((companions ?? []) as any[]).map(c => ({ id: c.id, status: c.status, price: Number(c.price ?? 0), packageId: c.package_id ?? null })),
         ];
 
         const now = new Date().toISOString();
@@ -77,10 +80,22 @@ export async function cancelRegistrationByOrganizerAction(input: { registrationI
             })),
         );
 
+        // Devolve os tokens ao organizador (1 por inscrição fora de pacote)
+        let refundedTokens = 0;
+        for (const t of targets.filter(t => !t.packageId)) {
+            const r = await refundTokens(tenant_id, 1, {
+                eventId: reg.event_id,
+                registrationId: t.id,
+                notes: 'Estorno por cancelamento de inscrição',
+                createdBy: user.id,
+            });
+            if (r.success) refundedTokens++;
+        }
+
         revalidatePath(`/academia-equipe/dashboard/eventos/${reg.event_id}/relatorios/inscricoes`);
         revalidatePath('/academia-equipe/dashboard');
         revalidatePath('/academia-equipe/dashboard/financeiro/status');
-        return { success: true, cancelledCount: targets.length };
+        return { success: true, cancelledCount: targets.length, refundedTokens };
     } catch (err: any) {
         return { error: err?.message ?? 'Erro inesperado.' };
     }
