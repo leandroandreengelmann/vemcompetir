@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { showToast } from '@/lib/toast';
-import { cancelRegistrationByOrganizerAction } from '../../../../cancel-registration-actions';
+import { cancelRegistrationByOrganizerAction } from '../../../cancel-registration-actions';
 import { downloadCancellationProof } from '@/components/registration-proof/download-cancellation-proof';
 
 const MIN_REASON = 5;
