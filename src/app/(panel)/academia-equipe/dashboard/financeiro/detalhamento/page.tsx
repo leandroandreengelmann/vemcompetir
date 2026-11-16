@@ -19,7 +19,7 @@ export default async function DetalhamentoFinanceiroPage({
 }) {
     const { profile } = await requireFinancialModule();
     // Somente o dono da academia vê esta tela.
-    if (!['academia', 'organizador'].includes(profile.role)) redirect('/academia-equipe/dashboard/financeiro');
+    if (!['academia', 'organizador', 'academia/equipe', 'admin_geral'].includes(profile.role)) redirect('/academia-equipe/dashboard/financeiro');
 
     const sp = await searchParams;
     const period = resolvePeriod(sp);

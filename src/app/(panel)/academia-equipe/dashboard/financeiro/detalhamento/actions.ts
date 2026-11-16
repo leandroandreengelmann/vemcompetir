@@ -13,7 +13,7 @@ const PAGE = 1000; // limite padrão do PostgREST: paginamos para não truncar s
 async function requireOwner() {
     const ctx = await requireFinancialModule();
     // Somente o dono da academia/organizador (não a equipe). Ajustar aqui se o papel mudar.
-    if (!['academia', 'organizador'].includes(ctx.profile.role)) {
+    if (!['academia', 'organizador', 'academia/equipe', 'admin_geral'].includes(ctx.profile.role)) {
         throw new Error('Acesso restrito ao dono da academia.');
     }
     return ctx;
