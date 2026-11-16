@@ -8,6 +8,8 @@ import { listTenantEventsForFinanceiro } from '../actions';
 import { getFinanceiroDetalhamento } from './actions';
 import { DetalhamentoView } from './_components/DetalhamentoView';
 import { ConferenciaAsaas } from './_components/ConferenciaAsaas';
+import { ListaAsaas } from './_components/ListaAsaas';
+import { listAsaasPayments } from './lista-actions';
 import { EventFilter } from './_components/EventFilter';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export default async function DetalhamentoFinanceiroPage({
     searchParams,
 }: {
-    searchParams: Promise<{ preset?: string; from?: string; to?: string; eventId?: string }>;
+    searchParams: Promise<{ preset?: string; from?: string; to?: string; eventId?: string; origem?: string }>;
 }) {
     const { profile } = await requireFinancialModule();
     // Somente o dono da academia vê esta tela.
@@ -23,10 +25,16 @@ export default async function DetalhamentoFinanceiroPage({
 
     const sp = await searchParams;
     const period = resolvePeriod(sp);
-    const [events, data] = await Promise.all([
+    const filters = { eventId: sp.eventId || null, ...periodToIsoFilter(period) };
+    const focus = sp.origem === 'asaas' || sp.origem === 'taxa' ? sp.origem : null;
+    const [events, data, asaasRows] = await Promise.all([
         listTenantEventsForFinanceiro(),
-        getFinanceiroDetalhamento({ eventId: sp.eventId || null, ...periodToIsoFilter(period) }),
+        getFinanceiroDetalhamento(filters),
+        focus ? listAsaasPayments(filters) : Promise.resolve(null),
     ]);
+    const linkBase = new URLSearchParams(
+        Object.entries({ preset: sp.preset, from: sp.from, to: sp.to, eventId: sp.eventId }).filter(([, v]) => !!v) as [string, string][],
+    ).toString();
 
     return (
         <div className="space-y-6">
@@ -37,7 +45,10 @@ export default async function DetalhamentoFinanceiroPage({
                 rightElement={<PeriodFilter />}
             />
             <EventFilter events={events.map((e: any) => ({ id: e.id, title: e.title }))} value={sp.eventId ?? ''} />
-            <DetalhamentoView data={data} />
+            <DetalhamentoView data={data} linkBase={linkBase} />
+            {focus && asaasRows && (
+                <ListaAsaas rows={asaasRows} focus={focus} cardTotalCents={data.asaasGrossCents} cardFeeCents={data.asaasFeeCents} />
+            )}
             <ConferenciaAsaas />
         </div>
     );

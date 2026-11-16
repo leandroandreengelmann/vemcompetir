@@ -27,3 +27,25 @@ export type Detalhamento = {
     };
     resultAfterTokensCents: number | null;
 };
+
+export type AsaasPaymentItem = {
+    registrationId: string;
+    athleteName: string;
+    category: string;
+    amountCents: number;
+    /** parte da taxa do pagamento rateada para esta inscrição (null = taxa não registrada) */
+    feeShareCents: number | null;
+};
+
+export type AsaasPaymentRow = {
+    paymentId: string;
+    asaasPaymentId: string;
+    date: string;
+    grossCents: number;
+    feeCents: number | null;
+    netCents: number | null;
+    situation: 'Recebido' | 'Agendado';
+    payerType: 'Atleta' | 'Academia';
+    eventTitle: string;
+    items: AsaasPaymentItem[];
+};

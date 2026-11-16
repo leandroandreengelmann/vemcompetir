@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup – Detalhe pagamento a pagamento</title>
+<style>
+:root{color-scheme:light dark;--bg:#f4f6f9;--card:#fff;--fg:#14181f;--mut:#5b6573;--bd:#e2e6ec;--pri:#2563eb;--neg:#b42318;--ok:#067647;--okbg:#dcfae6;--warnbg:#fef0c7;--warn:#93370d}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#171c23;--fg:#eef1f5;--mut:#9aa5b4;--bd:#2a313b;--pri:#6b9bff;--neg:#f97066;--ok:#75e0a7;--okbg:#0b3a24;--warnbg:#3b2f0b;--warn:#fec84b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:1150px;margin:0 auto;padding:16px}
+.aviso{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:.9rem;margin:0 0 12px}
+h1{font-size:1.4rem;margin:8px 0 12px}h2{font-size:1.05rem;margin:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.cards button{text-align:left;font:inherit;color:inherit;background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:14px;cursor:pointer;min-height:44px}
+.cards button[aria-pressed=true]{border-color:var(--pri)}
+.cards .k{font-size:.82rem;color:var(--mut)}.cards .v{font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums}.cards .n{font-size:.78rem;color:var(--mut)}
+.cards .dica{font-size:.72rem;color:var(--pri)}
+.neg{color:var(--neg)}
+.painel{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px}
+.topo{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ferr{display:flex;flex-wrap:wrap;gap:8px}
+input[type=search],select,.btn{font:inherit;min-height:44px;padding:6px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg)}
+.btn{cursor:pointer}.btn.p{background:var(--pri);color:#fff;border-color:var(--pri)}.btn.s{min-height:36px;font-size:.85rem}
+.conf{display:inline-block;border-radius:999px;padding:3px 12px;font-size:.85rem;font-weight:600;background:var(--okbg);color:var(--ok)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:9px 8px;border-bottom:1px solid var(--bd);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.l,td.l{text-align:left;white-space:normal}
+thead th{font-size:.76rem;color:var(--mut)}
+tr.sub td{background:color-mix(in srgb,var(--bd) 35%,transparent);font-size:.84rem}
+tfoot td{font-weight:700;border-bottom:0}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.76rem;background:var(--okbg);color:var(--ok)}
+.tag.w{background:var(--warnbg);color:var(--warn)}
+.nota{font-size:.8rem;color:var(--mut);margin:10px 0 0}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--fg);max-width:440px;width:92vw;padding:20px}
+dialog::backdrop{background:rgb(0 0 0/.45)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0}dt{color:var(--mut);font-size:.85rem}dd{margin:0;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<p class="aviso"><strong>MOCKUP – DADOS FICTÍCIOS.</strong> Mostra como ficaria o clique em cada número. Nada aqui é real.</p>
+<h1>Detalhamento financeiro · Campeonato Exemplo</h1>
+
+<div class="cards" id="cards" role="group" aria-label="Escolha o que detalhar"></div>
+
+<section class="painel" aria-labelledby="t">
+  <div class="topo">
+    <h2 id="t"></h2>
+    <span class="conf" id="conf"></span>
+  </div>
+  <div class="topo">
+    <div class="ferr">
+      <input type="search" id="busca" placeholder="Buscar atleta, CPF ou ID Asaas" aria-label="Buscar">
+      <select id="ord" aria-label="Ordenar por"><option value="data">Mais recentes</option><option value="taxa">Maior taxa</option><option value="valor">Maior valor</option></select>
+    </div>
+    <div class="ferr"><button class="btn s" type="button">Exportar CSV</button><button class="btn s" type="button">Exportar PDF</button></div>
+  </div>
+  <div class="tw"><table><caption style="position:absolute;left:-9999px" id="cap"></caption><thead id="th"></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table></div>
+  <p class="nota" id="nota"></p>
+</section>
+
+<dialog id="dlg" aria-labelledby="dt">
+  <h2 id="dt">Comprovante bancário (exemplo)</h2>
+  <dl id="dd"></dl>
+  <p class="nota">No sistema real: dados oficiais lidos do Asaas, com link para a página original do comprovante.</p>
+  <form method="dialog"><button class="btn p" autofocus>Fechar</button></form>
+</dialog>
+</main>
+
+<script>
+const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
+const $=i=>document.getElementById(i);
+// DADOS FICTÍCIOS. Pagamentos Asaas: um pagamento pode ter várias inscrições (carrinho).
+const asaas=[
+ {id:'pay_ex0001',d:'14/11 09:12',b:120,f:1.99,st:'Recebido',pg:'Atleta',itens:[['Atleta Exemplo A','Adulto • Azul • Leve',120]]},
+ {id:'pay_ex0002',d:'14/11 10:40',b:240,f:1.99,st:'Recebido',pg:'Academia',itens:[['Atleta Exemplo B','Adulto • Roxa • Médio',120],['Atleta Exemplo C','Adulto • Roxa • Pesado',120]]},
+ {id:'pay_ex0003',d:'13/11 18:05',b:120,f:1.99,st:'Agendado',pg:'Atleta',itens:[['Atleta Exemplo D','Juvenil • Branca • Pena',120]]},
+ {id:'pay_ex0004',d:'12/11 21:30',b:120,f:null,st:'Recebido',pg:'Atleta',itens:[['Atleta Exemplo E','Master • Azul • Médio',120]]},
+ {id:'pay_ex0005',d:'12/11 08:15',b:360,f:1.99,st:'Recebido',pg:'Academia',itens:[['Atleta Exemplo F','Adulto • Preta • Leve',120],['Atleta Exemplo G','Adulto • Preta • Médio',120],['Atleta Exemplo H','Adulto • Preta • Pesado',120]]}
+];
+const fora=[
+ ['14/11 11:00','Atleta Exemplo I','Pix direto na academia',120,'Baixa por Dono Exemplo'],
+ ['13/11 19:20','Atleta Exemplo J','Dinheiro em espécie',120,'Baixa por Dono Exemplo'],
+ ['11/11 16:45','Atleta Exemplo K','Pix direto na academia',120,'Baixa por Dono Exemplo']];
+const cort=[['10/11','Atleta Exemplo L','Cortesia',0,'Atleta convidado'],['10/11','Atleta Exemplo M','Cortesia',0,'Professor parceiro']];
+const pend=[['14/11 20:00','Atleta Exemplo N','Aguardando Pix há 2 dias',120,'—'],['13/11 08:00','Atleta Exemplo O','Aguardando Pix há 3 dias',120,'—']];
+const tok=[['14/11','Consumo','Atleta Exemplo A',-1,2.5],['14/11','Consumo','Atleta Exemplo B',-1,2.5],['14/11','Consumo','Atleta Exemplo C',-1,2.5],['13/11','Estorno','Atleta Exemplo X (cancelada)',1,2.5]];
+
+const totA=()=>asaas.reduce((s,p)=>({b:s.b+p.b,f:s.f+(p.f||0),q:s.q+p.itens.length,np:s.np+1,sf:s.sf+(p.f==null?1:0)}),{b:0,f:0,q:0,np:0,sf:0});
+const A=totA(), F=fora.reduce((s,r)=>s+r[3],0), tkc=tok.reduce((s,r)=>s-r[3]*r[4],0);
+const cards=[
+ ['asaas','Entrou pelo Asaas',brl(A.b),A.q+' inscrições em '+A.np+' Pix'],
+ ['taxa','Taxas do Asaas','− '+brl(A.f),A.sf+' pagamento sem taxa registrada'],
+ ['fora','Pago por fora',brl(F),fora.length+' inscrições'],
+ ['cort','Cortesia / grátis',brl(0),cort.length+' inscrições'],
+ ['pend','Pendente',brl(pend.reduce((s,r)=>s+r[3],0)),pend.length+' aguardando Pix'],
+ ['tok','Custo de tokens','− '+brl(tkc),'3 consumidos, 1 estornado']];
+let sel='asaas';
+$('cards').innerHTML=cards.map(c=>`<button type="button" data-k="${c[0]}" aria-pressed="false"><div class="k">${c[1]}</div><div class="v ${c[0]==='taxa'||c[0]==='tok'?'neg':''}">${c[2]}</div><div class="n">${c[3]}</div><div class="dica">clique para detalhar</div></button>`).join('');
+$('cards').addEventListener('click',e=>{const b=e.target.closest('button');if(b){sel=b.dataset.k;render();}});
+['busca','ord'].forEach(i=>$(i).addEventListener('input',render));
+
+function comprov(id,valor,fee){
+  $('dd').innerHTML=`<dt>Valor pago</dt><dd>${brl(valor)}</dd><dt>Taxa Asaas</dt><dd>${fee==null?'não registrada':brl(fee)}</dd><dt>ID Asaas</dt><dd>${id}</dd><dt>Pagador</dt><dd>Nome Exemplo</dd><dt>Banco</dt><dd>Banco Exemplo</dd>`;
+  $('dlg').showModal();
+}
+window.comprov=comprov;
+
+function render(){
+  document.querySelectorAll('#cards button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===sel));
+  const q=$('busca').value.toLowerCase(), ord=$('ord').value;
+  const th=$('th'),tb=$('tb'),tf=$('tf');
+  if(sel==='asaas'||sel==='taxa'){
+    let L=asaas.filter(p=>!q||p.id.includes(q)||p.itens.some(i=>i[0].toLowerCase().includes(q)));
+    if(sel==='taxa'||ord==='taxa')L=[...L].sort((a,b)=>(b.f||0)-(a.f||0)); else if(ord==='valor')L=[...L].sort((a,b)=>b.b-a.b);
+    $('t').textContent=sel==='taxa'?'Taxas do Asaas, pagamento a pagamento':'Pagamentos recebidos pelo Asaas';
+    th.innerHTML='<tr><th class="l">Pagamento / atleta</th><th>Data</th><th>Bruto</th><th>Taxa</th><th>Líquido</th><th>Situação</th><th>Pagou</th><th>Ações</th></tr>';
+    tb.innerHTML=L.map(p=>{
+      const liq=p.f==null?null:p.b-p.f;
+      const main=`<tr><td class="l"><strong>${p.id}</strong> · ${p.itens.length} inscrição(ões)</td><td>${p.d}</td><td>${brl(p.b)}</td><td>${p.f==null?'<span class="tag w">não registrada</span>':'− '+brl(p.f)}</td><td>${liq==null?'—':brl(liq)}</td><td><span class="tag ${p.st==='Agendado'?'w':''}">${p.st}</span></td><td>${p.pg}</td><td><button class="btn s" type="button" onclick="comprov('${p.id}',${p.b},${p.f})">Comprovante</button> <button class="btn s" type="button">Recibo</button></td></tr>`;
+      const sub=p.itens.length>1?p.itens.map(i=>`<tr class="sub"><td class="l" colspan="2">↳ ${i[0]} · ${i[1]}</td><td>${brl(i[2])}</td><td>− ${brl(p.f/p.itens.length)} <small>(rateio)</small></td><td colspan="4"></td></tr>`).join(''):'';
+      return main+sub;}).join('')||'<tr><td class="l" colspan="8">Nada encontrado.</td></tr>';
+    const t=L.reduce((s,p)=>({b:s.b+p.b,f:s.f+(p.f||0)}),{b:0,f:0});
+    tf.innerHTML=`<tr><td class="l" colspan="2">Total (${L.length} pagamentos)</td><td>${brl(t.b)}</td><td>− ${brl(t.f)}</td><td>${brl(t.b-t.f)}</td><td colspan="3"></td></tr>`;
+    const bate=sel==='taxa'?Math.abs(t.f-A.f)<.005:Math.abs(t.b-A.b)<.005;
+    $('conf').textContent=(q?'Filtro ativo · ':'')+(bate&&!q?'✓ Soma da lista = card clicado':'Lista filtrada, total parcial');
+    $('nota').textContent='Pagamento com vários atletas: a taxa real é do pagamento; por atleta é rateio. Pagamento sem taxa registrada pode ser consultado no Asaas.';
+  } else if(sel==='tok'){
+    $('t').textContent='Tokens consumidos e estornados';
+    th.innerHTML='<tr><th class="l">Inscrição</th><th>Data</th><th>Tipo</th><th>Tokens</th><th>Valor unit.</th><th>Custo</th></tr>';
+    tb.innerHTML=tok.map(r=>`<tr><td class="l">${r[2]}</td><td>${r[0]}</td><td>${r[1]}</td><td>${r[3]}</td><td>${brl(r[4])}</td><td>${r[3]<0?'− ':'+ '}${brl(Math.abs(r[3]*r[4]))}</td></tr>`).join('');
+    tf.innerHTML=`<tr><td class="l" colspan="5">Custo líquido de tokens</td><td>− ${brl(tkc)}</td></tr>`;
+    $('conf').textContent='✓ Soma da lista = card clicado';$('nota').textContent='Valor do token vem da configuração da academia no admin.';
+  } else {
+    const src={fora,cort,pend}[sel];
+    $('t').textContent={fora:'Pago por fora do Asaas',cort:'Cortesia e grátis',pend:'Pendentes (aguardando Pix)'}[sel];
+    const L=src.filter(r=>!q||r[1].toLowerCase().includes(q));
+    th.innerHTML='<tr><th class="l">Atleta</th><th>Data</th><th>Origem / situação</th><th>Valor</th><th class="l">Observação</th><th>Ações</th></tr>';
+    tb.innerHTML=L.map(r=>`<tr><td class="l">${r[1]}</td><td>${r[0]}</td><td>${r[2]}</td><td>${brl(r[3])}</td><td class="l">${r[4]}</td><td><button class="btn s" type="button">${sel==='pend'?'Reenviar Pix':'Comprovante de inscrição'}</button></td></tr>`).join('');
+    tf.innerHTML=`<tr><td class="l" colspan="3">Total (${L.length})</td><td>${brl(L.reduce((s,r)=>s+r[3],0))}</td><td colspan="2"></td></tr>`;
+    $('conf').textContent=q?'Filtro ativo':'✓ Soma da lista = card clicado';
+    $('nota').textContent=sel==='fora'?'Aqui o comprovante é o de inscrição. Anexar o comprovante do Pix/dinheiro na baixa é opcional (dúvida 1 do plano).':'';
+  }
+  $('cap').textContent=$('t').textContent;
+}
+render();
+</script>
+</body>
+</html>

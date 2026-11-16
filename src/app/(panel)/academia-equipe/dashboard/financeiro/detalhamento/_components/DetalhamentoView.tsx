@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Detalhamento, OriginRow } from '../types';
 import type { Origin } from '../../../actions/registration-origin';
@@ -20,17 +21,23 @@ const META: Record<Origin, { label: string; color: string; group: string }> = {
 };
 const GROUPS = ['Passou pelo Asaas', 'Pago por fora', 'Sem custo', 'Em aberto'];
 
-function Stat({ label, value, note, tone }: { label: string; value: string; note?: string; tone?: 'neg' | 'main' }) {
+function Stat({ label, value, note, tone, href }: { label: string; value: string; note?: string; tone?: 'neg' | 'main'; href?: string }) {
+    const Wrapper: any = href ? Link : 'div';
     return (
-        <div className={`rounded-2xl border p-5 bg-background ${tone === 'main' ? 'border-emerald-500/60 border-2' : 'border-border/50'}`}>
+        <Wrapper
+            {...(href ? { href, scroll: true } : {})}
+            className={`block rounded-2xl border p-5 bg-background ${tone === 'main' ? 'border-emerald-500/60 border-2' : 'border-border/50'} ${href ? 'hover:border-primary/60 hover:shadow-md transition' : ''}`}
+        >
             <div className="text-panel-sm text-muted-foreground">{label}</div>
             <div className={`text-2xl font-bold tabular-nums ${tone === 'neg' ? 'text-red-600 dark:text-red-400' : ''}`}>{value}</div>
             {note && <div className="text-panel-sm text-muted-foreground">{note}</div>}
-        </div>
+            {href && <div className="text-xs text-primary mt-1">Clique para detalhar</div>}
+        </Wrapper>
     );
 }
 
-export function DetalhamentoView({ data }: { data: Detalhamento }) {
+export function DetalhamentoView({ data, linkBase = '' }: { data: Detalhamento; linkBase?: string }) {
+    const to = (origem: string) => `?${linkBase ? linkBase + '&' : ''}origem=${origem}#detalhe`;
     const [modo, setModo] = useState<'valor' | 'qtd'>('valor');
     const rows = data.rows;
     const get = (o: Origin) => rows.find((r) => r.origin === o) as OriginRow;
@@ -52,8 +59,9 @@ export function DetalhamentoView({ data }: { data: Detalhamento }) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <Stat label="Entrou pelo Asaas (bruto)" value={brl(data.asaasGrossCents)} note={`${asaas.count} Pix pelo Asaas`} />
+                <Stat label="Entrou pelo Asaas (bruto)" value={brl(data.asaasGrossCents)} note={`${asaas.count} Pix pelo Asaas`} href={to('asaas')} />
                 <Stat
+                    href={to('taxa')}
                     label="(−) Taxas do Asaas"
                     value={`− ${brl(data.asaasFeeCents)}`}
                     tone="neg"
