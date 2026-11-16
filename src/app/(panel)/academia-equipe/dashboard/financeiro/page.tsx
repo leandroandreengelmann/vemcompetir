@@ -9,6 +9,7 @@ import {
     ChartLineUpIcon,
     CaretRightIcon,
     CalendarCheckIcon,
+    ChartPieSliceIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import { PeriodFilter } from './_components/PeriodFilter';
 import { resolvePeriod, periodToIsoFilter } from './_components/period';
@@ -54,6 +55,13 @@ export default async function FinanceiroHubPage({
     ];
 
     const sections = [
+        {
+            title: 'Detalhamento',
+            description: 'Para onde foi o dinheiro: Asaas, por fora, taxas e tokens.',
+            href: '/academia-equipe/dashboard/financeiro/detalhamento',
+            icon: ChartPieSliceIcon,
+            accent: 'text-orange-600 bg-orange-500/10 border-orange-500/20',
+        },
         {
             title: 'Transações',
             description: 'Todas as movimentações financeiras da academia.',
@@ -110,7 +118,7 @@ export default async function FinanceiroHubPage({
 
             <Card className="border-none shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                         {sections.map((section) => {
                             const Icon = section.icon;
                             return (
